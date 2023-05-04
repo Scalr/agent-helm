@@ -1,0 +1,7 @@
+apiVersion: v2
+name: scalr-agent
+description: Scalr agents for a self-hosted pool
+type: application
+version: 0.1.0
+appVersion: "0.1.30"
+home: https://github.com/Scalr/agent-helm/

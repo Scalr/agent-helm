@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "chart/Chart.yaml"
+      - "charts/scalr-agent/Chart.yaml"
 
 permissions: {}
 jobs:
@@ -28,20 +28,20 @@ jobs:
         id: chart_version
         run: |
           set -euo pipefail
-          chart_version="$(grep -Po "(?<=^version: ).+" charts/Chart.yaml)"
-          echo "::set-output name=version::${chart_version}"
+          chart_version="$(grep -Po "(?<=^version: ).+" charts/scalr-agent/Chart.yaml)"
+          echo "version=${chart_version}" >> $GITHUB_OUTPUT
 
       - name: Get changelog entry
         id: changelog_reader
         uses: mindsers/changelog-reader-action@v2
         with:
-          path: charts/CHANGELOG.md
+          path: CHANGELOG.md
           version: "v${{ steps.chart_version.outputs.version }}"
 
       - name: Create release notes
         run: |
           set -euo pipefail
-          cat <<"EOF" > charts/RELEASE.md
+          cat <<"EOF" > charts/scalr-agent/RELEASE.md
           ${{ steps.changelog_reader.outputs.changes }}
           EOF
 
@@ -60,6 +60,7 @@ jobs:
         uses: helm/chart-releaser-action@v1.5.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_RELEASE_NAME_TEMPLATE: "scalr-agent-helm-chart-{{ .Version }}"
+          CR_RELEASE_NAME_TEMPLATE: "scalr-agent-{{ .Version }}"
           CR_RELEASE_NOTES_FILE: RELEASE.md
+          CR_SKIP_EXISTING: true
           CR_MAKE_RELEASE_LATEST: false

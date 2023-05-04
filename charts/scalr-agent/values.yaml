@@ -1,0 +1,67 @@
+# Default values for scalr-agent.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# -- Number of replicas for the Scalr Agent deployment
+replicaCount: 1
+
+agent:
+  # -- Docker image configuration for Scalr Agent
+  image:
+    repository: scalr/agent
+    pullPolicy: IfNotPresent
+    tag: "0.1.30"
+  # -- A value for agent.token must be provided for Scalr Agent authentication
+  token:
+  # -- A value for agent.url must be provided to specify the Scalr API endpoint
+  url:
+
+# -- Docker configuration for running Docker-in-Docker containers
+docker:
+  image:
+    repository: docker
+    pullPolicy: IfNotPresent
+    tag: "20.10.23-dind"
+
+# -- List of secrets for pulling images from private registries
+imagePullSecrets: []
+
+# -- String to partially override the name used in resources
+nameOverride: ""
+
+# -- String to fully override the name used in resources
+fullnameOverride: ""
+
+# -- ServiceAccount configuration for Scalr Agent
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Additional annotations to be added to the Scalr Agent pods
+podAnnotations: {}
+
+# -- Pod security context for the Scalr Agent deployment
+podSecurityContext: {}
+
+# -- Security context for the Scalr Agent containers
+securityContext:
+  privileged: true
+  procMount: Default
+
+# -- Resource limits and requests for the Scalr Agent containers
+resources:
+  limits:
+    memory: 2048Mi
+  requests:
+    cpu: 500m
+    memory: 2048Mi
+
+# -- NodeSelector for specifying which nodes the Scalr Agent pods should be deployed on
+nodeSelector: {}
+
+# -- Tolerations for the Scalr Agent pods, allowing them to run on tainted nodes
+tolerations: []
+
+# -- Affinity rules to control how the Scalr Agent pods are scheduled on nodes
+affinity: {}
