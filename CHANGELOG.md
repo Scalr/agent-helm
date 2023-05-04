@@ -9,8 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.2.0]
+
+### Changed
+- Update appVersion 0.1.30->0.1.32
+
 
 ## [v0.1.0]
 
 ### Added
-    Initial release.
+- Initial release.
