@@ -64,3 +64,16 @@ jobs:
           CR_RELEASE_NOTES_FILE: RELEASE.md
           CR_SKIP_EXISTING: true
           CR_MAKE_RELEASE_LATEST: false
+
+      - name: Generate Helm Repo docs
+        shell: bash
+        run: |
+          wget -O helm-docs.deb https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.deb
+          sudo apt install ./helm-docs.deb
+          helm-docs
+          mv charts/scalr-agent/README.md REPO.md
+          git checkout gh-pages && git fetch --depth 1
+          diff -q REPO.md README.md && echo "No changes" && exit 0
+          mv REPO.md README.md && git add README.md
+          git commit -m "Updated README.md from ref: $GITHUB_SHA"
+          git push
