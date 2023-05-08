@@ -1,10 +1,10 @@
 apiVersion: v2
 name: scalr-agent
-description: Scalr agents for a self-hosted pool
+description: Scalr agent for a self-hosted pool
 type: application
-version: 0.3.0
+version: 0.3.1
 appVersion: "0.1.32"
 home: https://github.com/Scalr/agent-helm/
 maintainers:
   - name: scalr
-    email: admin@scalr.com
+    email: packages@scalr.com
