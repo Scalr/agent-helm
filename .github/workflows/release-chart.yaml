@@ -72,7 +72,7 @@ jobs:
           sudo apt install ./helm-docs.deb
           helm-docs
           mv charts/scalr-agent/README.md REPO.md
-          git checkout gh-pages && git fetch --depth 1
+          git checkout gh-pages && git pull
           diff -q REPO.md README.md && echo "No changes" && exit 0
           mv REPO.md README.md && git add README.md
           git commit -m "Updated README.md from ref: $GITHUB_SHA"
