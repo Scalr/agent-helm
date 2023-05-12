@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "scalr-agent.name" -}}
+{{- define "agent-docker.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "scalr-agent.fullname" -}}
+{{- define "agent-docker.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "scalr-agent.chart" -}}
+{{- define "agent-docker.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "scalr-agent.labels" -}}
-helm.sh/chart: {{ include "scalr-agent.chart" . }}
-{{ include "scalr-agent.selectorLabels" . }}
+{{- define "agent-docker.labels" -}}
+helm.sh/chart: {{ include "agent-docker.chart" . }}
+{{ include "agent-docker.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "scalr-agent.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "scalr-agent.name" . }}
+{{- define "agent-docker.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "agent-docker.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "scalr-agent.serviceAccountName" -}}
+{{- define "agent-docker.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "scalr-agent.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "agent-docker.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

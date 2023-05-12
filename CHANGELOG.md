@@ -1,4 +1,4 @@
-# scalr-agent Helm Chart Changelog
+# agent-docker Helm Chart Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -8,21 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [UNRELEASED]
-
-## [v0.3.1]
-
-### Updated
-- README
-- Maintainer email
-
-### Added
-- Chart Maintainers
-
-## [v0.2.0]
-
-### Changed
-- Update appVersion 0.1.30->0.1.32
-
 
 ## [v0.1.0]
 

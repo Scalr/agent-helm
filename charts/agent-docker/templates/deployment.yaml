@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "scalr-agent.fullname" . }}
+  name: {{ include "agent-docker.fullname" . }}
   labels:
-    {{- include "scalr-agent.labels" . | nindent 4 }}
+    {{- include "agent-docker.labels" . | nindent 4 }}
 spec:
   strategy:
     rollingUpdate:
@@ -12,7 +12,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "scalr-agent.selectorLabels" . | nindent 6 }}
+      {{- include "agent-docker.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -20,13 +20,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "scalr-agent.selectorLabels" . | nindent 8 }}
+        {{- include "agent-docker.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "scalr-agent.serviceAccountName" . }}
+      serviceAccountName: {{ include "agent-docker.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       hostNetwork: true
@@ -43,7 +43,7 @@ spec:
           - name: dockersocket
             mountPath: /var/run/
           - name: data
-            mountPath: /var/lib/scalr-agent
+            mountPath: /var/lib/agent-docker
           env:
           - name: DOCKER_HOST
             value: unix:///var/run/docker.sock
@@ -60,18 +60,18 @@ spec:
           - name: SCALR_URL
             value: {{ required ".Values.agent.url must be provided!" .Values.agent.url }}
           - name: SCALR_WORK_DIR
-            value: /var/lib/scalr-agent
+            value: /var/lib/agent-docker
           - name: SCALR_TOKEN
             valueFrom:
               secretKeyRef:
-                name: {{ include "scalr-agent.name" . }}
+                name: {{ include "agent-docker.name" . }}
                 key: token
                 optional: false
           livenessProbe:
             exec:
               command:
               - cat
-              - /var/lib/scalr-agent/.agent.state
+              - /var/lib/agent-docker/.agent.state
             initialDelaySeconds: 10
             periodSeconds: 15
             failureThreshold: 1
@@ -82,7 +82,7 @@ spec:
           - name: dockersocket
             mountPath: /var/run/
           - name: data
-            mountPath: /var/lib/scalr-agent
+            mountPath: /var/lib/agent-docker
       volumes:
       - name: dockersocket
         emptyDir: {}

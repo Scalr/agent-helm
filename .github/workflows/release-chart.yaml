@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "charts/scalr-agent/Chart.yaml"
+      - "charts/agent-docker/Chart.yaml"
 
 permissions: {}
 jobs:
@@ -28,7 +28,7 @@ jobs:
         id: chart_version
         run: |
           set -euo pipefail
-          chart_version="$(grep -Po "(?<=^version: ).+" charts/scalr-agent/Chart.yaml)"
+          chart_version="$(grep -Po "(?<=^version: ).+" charts/agent-docker/Chart.yaml)"
           echo "version=${chart_version}" >> $GITHUB_OUTPUT
 
       - name: Get changelog entry
@@ -41,7 +41,7 @@ jobs:
       - name: Create release notes
         run: |
           set -euo pipefail
-          cat <<"EOF" > charts/scalr-agent/RELEASE.md
+          cat <<"EOF" > charts/agent-docker/RELEASE.md
           ${{ steps.changelog_reader.outputs.changes }}
           EOF
 
@@ -60,7 +60,7 @@ jobs:
         uses: helm/chart-releaser-action@v1.5.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_RELEASE_NAME_TEMPLATE: "scalr-agent-{{ .Version }}"
+          CR_RELEASE_NAME_TEMPLATE: "agent-docker-{{ .Version }}"
           CR_RELEASE_NOTES_FILE: RELEASE.md
           CR_SKIP_EXISTING: true
           CR_MAKE_RELEASE_LATEST: false
@@ -71,7 +71,7 @@ jobs:
           wget -O helm-docs.deb https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.deb
           sudo apt install ./helm-docs.deb
           helm-docs
-          mv charts/scalr-agent/README.md REPO.md
+          mv charts/agent-docker/README.md REPO.md
           git checkout gh-pages && git pull
           diff -q REPO.md README.md && echo "No changes" && exit 0
           mv REPO.md README.md && git add README.md
