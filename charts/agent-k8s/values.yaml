@@ -1,0 +1,73 @@
+# Default values for agent-k8s.
+
+image:
+  # Docker repository for the Scalr Agent image.
+  repository: scalr/agent
+  # The pullPolicy for a container and the tag of the image.
+  pullPolicy: Always
+  # -- Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+agent:
+  # -- The Scalr url.
+  url: ""
+  # -- The agent pool token.
+  token: ""
+  # -- Enable debug logs
+  debug: false
+  # -- The log formatter. Options: "plain" or "dev" or "json".
+  log_format: "json"
+  # -- Defines the SIGTERM/SIGHUP/SIGINT signal handler's shutdown behavior. Options: "drain" or "grace-shutdown" or "force-shutdown".
+  worker_on_stop_action: "drain"
+  # -- The timeout for draining worker tasks in seconds. After this timeout, tasks will be terminated via the SIGTERM signal.
+  worker_drain_timeout: 3600
+  # -- The timeout in seconds for gracefully shutting down active tasks via the SIGTERM signal. After this timeout, tasks will be terminated with the SIGKILL signal.
+  grace_shutdown_timeout: 60
+  # -- Determines if the agent should automatically disconnect from the Scalr agent pool when the service is stopping.
+  disconnect_on_stop: true
+  # -- The agent working directory on the cluster host node.
+  data_home: "/home/kubernetes/flexvolume/agent-k8s"
+  # -- The container task's (e.g., Kubernetes Pod) scheduling timeout in seconds.
+  # -- The task will be waiting for the scheduling in the queued status; if the cluster
+  # -- does not allocate resources for the container in that timeout, the task will be switched to the errored status.
+  container_task_scheduling_timeout: 120
+  # -- CPU resource request defined in cores. If your container needs two full cores to run, you would
+  # -- put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores.
+  container_task_cpu_request: 1.0
+  # -- CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2.
+  # -- If your container only needs ¼ of a core, you would put a value of 0.25 cores.
+  container_task_cpu_limit: 8.0
+  # -- Memory resource request defined in megabytes.
+  container_task_mem_request: 1024
+  # -- Memory resource limit defined in megabytes.
+  container_task_mem_limit: 16384
+  # -- Size limit (in megabytes) of the global plugin cache with providers from the public registries.
+  gc_plugins_global_size_limit: 2560
+  # -- Size limit (in megabytes) of the workspace plugin cache with providers from the private registries.
+  gc_plugins_workspace_size_limit: 512
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use.
+  # -- If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+# -- Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted.
+terminationGracePeriodSeconds: 3660
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi

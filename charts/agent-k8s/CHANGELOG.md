@@ -1,4 +1,4 @@
-# agent-docker Helm Chart Changelog
+# agent-k8s Helm Chart Changelog
 
 All notable changes to this project will be documented in this file.
 

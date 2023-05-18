@@ -1,20 +1,19 @@
-name: Release Chart
+name: Release charts
 
 on:
   push:
     branches:
       - master
     paths:
-      - "charts/agent-docker/Chart.yaml"
-
+      - "charts/*/Chart.yaml"
 permissions: {}
 jobs:
-  release:
-    permissions:
-      contents: write #  to push chart release and create a release (helm/chart-releaser-action)
-
+  prepare:
     if: github.repository == 'Scalr/agent-helm'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: [agent-k8s, agent-docker]
     defaults:
       run:
         shell: bash
@@ -23,27 +22,55 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
       - name: Get chart version
         id: chart_version
         run: |
           set -euo pipefail
-          chart_version="$(grep -Po "(?<=^version: ).+" charts/agent-docker/Chart.yaml)"
+          chart_version="$(grep -Po "(?<=^version: ).+" charts/${{ matrix.directory }}/Chart.yaml)"
           echo "version=${chart_version}" >> $GITHUB_OUTPUT
 
       - name: Get changelog entry
         id: changelog_reader
         uses: mindsers/changelog-reader-action@v2
         with:
-          path: CHANGELOG.md
+          path: charts/${{ matrix.directory }}/CHANGELOG.md
           version: "v${{ steps.chart_version.outputs.version }}"
 
       - name: Create release notes
         run: |
           set -euo pipefail
-          cat <<"EOF" > charts/agent-docker/RELEASE.md
+          cat <<"EOF" > charts/${{ matrix.directory }}/RELEASE.md
           ${{ steps.changelog_reader.outputs.changes }}
           EOF
+
+      - name: Upload RELEASE.md
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-notes-${{ matrix.directory }}
+          path: charts/${{ matrix.directory }}/RELEASE.md
+
+  release:
+    permissions:
+      contents: write #  to push chart release and create a release (helm/chart-releaser-action)
+    if: github.repository == 'Scalr/agent-helm'
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Download agent-k8s RELEASE.md
+        uses: actions/download-artifact@v3
+        with:
+          name: release-notes-agent-k8s
+          path: charts/agent-k8s
+
+      - name: Download agent-docker RELEASE.md
+        uses: actions/download-artifact@v3
+        with:
+          name: release-notes-agent-docker
+          path: charts/agent-docker
 
       - name: Configure Git
         run: |
@@ -60,20 +87,6 @@ jobs:
         uses: helm/chart-releaser-action@v1.5.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_RELEASE_NAME_TEMPLATE: "agent-docker-{{ .Version }}"
-          CR_RELEASE_NOTES_FILE: RELEASE.md
           CR_SKIP_EXISTING: true
           CR_MAKE_RELEASE_LATEST: false
-
-      - name: Generate Helm Repo docs
-        shell: bash
-        run: |
-          wget -O helm-docs.deb https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.deb
-          sudo apt install ./helm-docs.deb
-          helm-docs
-          mv charts/agent-docker/README.md REPO.md
-          git checkout gh-pages && git pull
-          diff -q REPO.md README.md && echo "No changes" && exit 0
-          mv REPO.md README.md && git add README.md
-          git commit -m "Updated README.md from ref: $GITHUB_SHA"
-          git push
+          CR_RELEASE_NOTES_FILE: RELEASE.md
