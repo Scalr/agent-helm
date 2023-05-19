@@ -3,6 +3,20 @@ entries:
   agent-docker:
   - apiVersion: v2
     appVersion: 0.1.33
+    created: "2023-05-19T09:47:48.799612394Z"
+    description: Scalr agent for a self-hosted pool.
+    digest: 6bad21e243c966778ef4008b2cbef82d60cd3cd358fc99fa52cbafc746f45c61
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-docker
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.2.0/agent-docker-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 0.1.33
     created: "2023-05-12T08:25:00.895796221Z"
     description: Scalr agent for a self-hosted pool
     digest: 1238ffeba167b6db9d78224281daca55de6d56f4bf584af2d9884fdc1b8b8c91
@@ -83,4 +97,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/scalr-agent-0.1.0/scalr-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2023-05-19T08:09:03.943130624Z"
+generated: "2023-05-19T09:47:48.975405964Z"
