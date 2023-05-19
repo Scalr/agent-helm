@@ -28,6 +28,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: TEST_URL
+              value: qwerty
             - name: SCALR_URL
               value: {{ required ".Values.agent.url must be provided!" .Values.agent.url }}
             - name: SCALR_TOKEN
