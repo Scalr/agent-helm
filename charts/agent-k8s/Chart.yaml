@@ -2,7 +2,7 @@ apiVersion: v2
 name: agent-k8s
 description: A Helm chart for the Scalr Agent deployment on the Kubernetes cluster.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.1.33"
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
 maintainers:
