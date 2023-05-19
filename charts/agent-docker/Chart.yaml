@@ -2,7 +2,7 @@ apiVersion: v2
 name: agent-docker
 description: Scalr agent for a self-hosted pool.
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "0.1.33"
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
 maintainers:
