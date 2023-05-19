@@ -6,21 +6,25 @@
 replicaCount: 1
 
 agent:
-  # -- Docker image configuration for Scalr Agent
   image:
+    # Docker repository for the Scalr Agent image.
     repository: scalr/agent
-    pullPolicy: IfNotPresent
-    tag: "0.1.30"
+    # The pullPolicy for a container and the tag of the image.
+    pullPolicy: Always
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: ""
   # -- A value for agent.token must be provided for Scalr Agent authentication
   token:
   # -- A value for agent.url must be provided to specify the Scalr API endpoint
   url:
 
-# -- Docker configuration for running Docker-in-Docker containers
 docker:
   image:
+    # -- Docker repository for the docker image.
     repository: docker
+    # -- The pullPolicy for a container and the tag of the image.
     pullPolicy: IfNotPresent
+    # -- Overrides the image tag.
     tag: "20.10.23-dind"
 
 # -- List of secrets for pulling images from private registries
@@ -32,10 +36,13 @@ nameOverride: ""
 # -- String to fully override the name used in resources
 fullnameOverride: ""
 
-# -- ServiceAccount configuration for Scalr Agent
 serviceAccount:
-  create: true
+  # -- Specifies whether a service account should be created
+  create: false
+  # -- Annotations to add to the service account
   annotations: {}
+  # -- The name of the service account to use.
+  # -- If not set and create is true, a name is generated using the fullname template
   name: ""
 
 # -- Additional annotations to be added to the Scalr Agent pods
@@ -44,18 +51,13 @@ podAnnotations: {}
 # -- Pod security context for the Scalr Agent deployment
 podSecurityContext: {}
 
-# -- Security context for the Scalr Agent containers
 securityContext:
+  # -- Set this value to true to run the container in privileged mode.
   privileged: true
-  procMount: Default
 
-# -- Resource limits and requests for the Scalr Agent containers
-resources:
-  limits:
-    memory: 2048Mi
-  requests:
-    cpu: 500m
-    memory: 2048Mi
+  # -- Specifies the type of proc mount for the container.
+  # -- Accepted values are "Default", "Unmasked", or "Host".
+  procMount: Default
 
 # -- NodeSelector for specifying which nodes the Scalr Agent pods should be deployed on
 nodeSelector: {}
@@ -65,3 +67,10 @@ tolerations: []
 
 # -- Affinity rules to control how the Scalr Agent pods are scheduled on nodes
 affinity: {}
+
+resources:
+  limits:
+    memory: 2048Mi
+  requests:
+    cpu: 500m
+    memory: 2048Mi
