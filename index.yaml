@@ -15,6 +15,21 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.1.0/agent-docker-0.1.0.tgz
     version: 0.1.0
+  agent-k8s:
+  - apiVersion: v2
+    appVersion: 0.1.33
+    created: "2023-05-19T08:09:03.943112324Z"
+    description: A Helm chart for the Scalr Agent deployment on the Kubernetes cluster.
+    digest: 84e9b6ff8a67678eb9dfe71381e85b43afac38d2a27c92f1cf27ec31c99c7344
+    home: https://github.com/Scalr/agent-helm/charts/agent-k8s
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.1.0/agent-k8s-0.1.0.tgz
+    version: 0.1.0
   scalr-agent:
   - apiVersion: v2
     appVersion: 0.1.32
@@ -68,4 +83,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/scalr-agent-0.1.0/scalr-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2023-05-12T08:25:00.895808622Z"
+generated: "2023-05-19T08:09:03.943130624Z"
