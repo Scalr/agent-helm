@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.3.1]
+
+### Added 
+- Chart description
+- Kubernetes deployment diagram
+
 ## [v0.3.0]
 
 ### Updated
