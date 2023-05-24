@@ -27,11 +27,11 @@ linearly based on the load.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| agent.container_task_cpu_limit | float | `8` | If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
-| agent.container_task_cpu_request | float | `1` | put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
+| agent.container_task_cpu_limit | float | `8` | CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
+| agent.container_task_cpu_request | float | `1` | CPU resource request defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
 | agent.container_task_mem_limit | int | `16384` | Memory resource limit defined in megabytes. |
 | agent.container_task_mem_request | int | `1024` | Memory resource request defined in megabytes. |
-| agent.container_task_scheduling_timeout | int | `120` | does not allocate resources for the container in that timeout, the task will be switched to the errored status. |
+| agent.container_task_scheduling_timeout | int | `120` | The container task's (e.g., Kubernetes Pod) scheduling timeout in seconds. The task will be waiting for the scheduling in the queued status; if the cluster does not allocate resources for the container in that timeout, the task will be switched to the errored status. |
 | agent.data_home | string | `"/home/kubernetes/flexvolume/agent-k8s"` | The agent working directory on the cluster host node. |
 | agent.debug | bool | `false` | Enable debug logs |
 | agent.disconnect_on_stop | bool | `true` | Determines if the agent should automatically disconnect from the Scalr agent pool when the service is stopping. |
@@ -44,8 +44,8 @@ linearly based on the load.
 | agent.worker_drain_timeout | int | `3600` | The timeout for draining worker tasks in seconds. After this timeout, tasks will be terminated via the SIGTERM signal. |
 | agent.worker_on_stop_action | string | `"drain"` | Defines the SIGTERM/SIGHUP/SIGINT signal handler's shutdown behavior. Options: "drain" or "grace-shutdown" or "force-shutdown". |
 | fullnameOverride | string | `""` |  |
-| image.pullPolicy | string | `"Always"` |  |
-| image.repository | string | `"scalr/agent"` |  |
+| image.pullPolicy | string | `"Always"` | The pullPolicy for a container and the tag of the image. |
+| image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | nameOverride | string | `""` |  |
