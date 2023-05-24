@@ -6,6 +6,11 @@ A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
 where runs are executed in Pods in the same cluster.
 Run phases are isolated in kubernetes containers with resource limits.
 
+> **Note**
+> This new deployment architecture is currently in preview.
+> It has many advantages over the [`agent-docker`](/charts/agent-docker) chart and
+> would eventually replace it.
+
 Agent pool DaemomSet scales up/down with the cluster, registering
 and deregistering agents from the pool. When an Agent receives a job from Scalr,
 it schedules a Pod for execution. The Kubernetes workload scheduler assigns the Pod
