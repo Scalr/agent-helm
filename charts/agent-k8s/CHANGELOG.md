@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Improve the agent-k8s chart description
+- Note about relation to agent-docker chart.
 
 ## [v0.2.1]
 

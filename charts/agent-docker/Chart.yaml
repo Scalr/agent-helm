@@ -19,7 +19,7 @@ description: |
 
   ![Agent in Docker deployment diagram](/charts/agent-docker/assets/agent-docker-deploy-diagram.jpg)
 type: application
-version: 0.3.1
+version: 0.3.2
 appVersion: "0.1.33"
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
 maintainers:

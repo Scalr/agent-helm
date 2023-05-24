@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.3.2]
+
+### Updated
+
+- Note about relation to agent-k8s chart.
+
 ## [v0.3.1]
 
 ### Added
