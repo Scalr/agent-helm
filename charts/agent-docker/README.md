@@ -1,8 +1,18 @@
 # agent-docker
 
-![Version: 0.2.0](https://img.shields.io/badge/Version-0.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.33](https://img.shields.io/badge/AppVersion-0.1.33-informational?style=flat-square)
+![Version: 0.3.0](https://img.shields.io/badge/Version-0.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.33](https://img.shields.io/badge/AppVersion-0.1.33-informational?style=flat-square)
 
-Scalr agent for a self-hosted pool.
+A Helm chart for the scalr-agent deployment on ths Kubernetes cluster,
+where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
+Run phases are isolated into docker containers.
+
+Kuberentes deployment doesn't scale on multiple replicas.
+Consequently, the capacity of compute resources that can be managed
+by a single agent remains constrained by a single node.
+
+Multiple Deployments can be created within a single Kubernetes cluster.
+
+![Agent in Docker deployment diagram](/charts/agent-docker/assets/agent-docker-deploy-diagram.jpg)
 
 **Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker>
 

@@ -1,8 +1,20 @@
 apiVersion: v2
 name: agent-k8s
-description: A Helm chart for the Scalr Agent deployment on the Kubernetes cluster.
+description: |
+  A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
+  where runs are executed in Pods in the same cluster.
+  Run phases are isolated in kubernetes containers with resource limits.
+
+  Agent pool DaemomSet scales up/down with the cluster, registering
+  and deregistering agents from the pool. When an Agent receives a job from Scalr,
+  it schedules a Pod for execution. The Kubernetes workload scheduler assigns the Pod
+  to a specific Node, where the Agent running on that Node oversees the execution
+  of the job. By enabling the Kubernetes auto-scaler, Terraform workloads can scale
+  linearly based on the load.
+
+  ![Agent in Kubernetes deployment diagram](/charts/agent-k8s/assets/agent-k8s-deploy-diagram.jpg)
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: "0.1.33"
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
 maintainers:

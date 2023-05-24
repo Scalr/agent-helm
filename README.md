@@ -13,11 +13,11 @@ helm repo add scalr-agent-helm https://scalr.github.io/agent-helm/
 
 You can then run `helm search repo scalr-agent-helm` to see the charts.
 
-## Releasing 
+## Releasing
 
 Bump the version in `Chart.yaml`, commit and push.
 
-> **Warning** 
+> **Warning**
 > do not create a tag yourself!
 
 GitHub Action release workflow will then using [Helm chart releaser](https://github.com/helm/chart-releaser-action)
@@ -27,7 +27,7 @@ GitHub Action release workflow will then using [Helm chart releaser](https://git
 * commit an updated index.yaml with the new release
 * redeploy the GitHub pages to serve the new index.yaml
 
-> **Note** 
+> **Note**
 > there might be a slight delay between the release and the `index.yaml` update, as GitHub pages have to be re-deployed.
 
 
