@@ -9,18 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.2.2]
+
+### Fixed
+
+- Improve the agent-k8s chart description
+- Note about relation to agent-docker chart.
+
 ## [v0.2.1]
 
 ### Added
+
 - Chart description
 - Kubernetes deployment diagram
 
 ## [v0.2.0]
 
 ### Added
+
 - Automatically rollout deployment on the Sclar token change
 
 ## [v0.1.0]
 
 ### Added
+
 - Initial release.

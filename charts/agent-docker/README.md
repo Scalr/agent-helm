@@ -1,10 +1,16 @@
 # agent-docker
 
-![Version: 0.3.0](https://img.shields.io/badge/Version-0.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.33](https://img.shields.io/badge/AppVersion-0.1.33-informational?style=flat-square)
+![Version: 0.3.2](https://img.shields.io/badge/Version-0.3.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.33](https://img.shields.io/badge/AppVersion-0.1.33-informational?style=flat-square)
 
 A Helm chart for the scalr-agent deployment on ths Kubernetes cluster,
 where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
 Run phases are isolated into docker containers.
+
+> **Note**
+> We suggest to install this chart only is you already rely on scalr-agent,
+> and migrating your AgentPool from other installation methods: e.g. rpm / deb / docker.
+> For new deployments we encourage you to try the new [`agent-k8s`](/charts/agent-k8s) chart,
+> that has many advantages over the `agent-docker`.
 
 Kuberentes deployment doesn't scale on multiple replicas.
 Consequently, the capacity of compute resources that can be managed
