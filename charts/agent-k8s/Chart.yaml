@@ -19,7 +19,7 @@ description: |
 
   ![Agent in Kubernetes deployment diagram](/charts/agent-k8s/assets/agent-k8s-deploy-diagram.jpg)
 type: application
-version: 0.2.2
+version: 0.2.3
 appVersion: "0.1.33"
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
 maintainers:

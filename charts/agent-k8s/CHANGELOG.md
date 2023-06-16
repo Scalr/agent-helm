@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.2.3]
+
+### Fixed
+
+- Fix invalid service account reference.
+
 ## [v0.2.2]
 
 ### Fixed
