@@ -2,6 +2,30 @@ apiVersion: v1
 entries:
   agent-docker:
   - apiVersion: v2
+    appVersion: 0.1.36
+    created: "2023-06-26T20:25:45.114152517Z"
+    description: 'A Helm chart for the scalr-agent deployment on ths Kubernetes cluster,
+      where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
+      Run phases are isolated into docker containers.  > **Note** > We suggest to
+      install this chart only is you already rely on scalr-agent, > and migrating
+      your AgentPool from other installation methods: e.g. rpm / deb / docker. > For
+      new deployments we encourage you to try the new [`agent-k8s`](/charts/agent-k8s)
+      chart, > that has many advantages over the `agent-docker`.  Kuberentes deployment
+      doesn''t scale on multiple replicas. Consequently, the capacity of compute resources
+      that can be managed by a single agent remains constrained by a single node.  Multiple
+      Deployments can be created within a single Kubernetes cluster.  ![Agent in Docker
+      deployment diagram](/charts/agent-docker/assets/agent-docker-deploy-diagram.jpg) '
+    digest: 8fca7eacbf0e00870b2cbc38dd3cb3eee83e8611e41c851e360c04693319fcd5
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-docker
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.3.3/agent-docker-0.3.3.tgz
+    version: 0.3.3
+  - apiVersion: v2
     appVersion: 0.1.33
     created: "2023-05-24T19:04:18.141679638Z"
     description: 'A Helm chart for the scalr-agent deployment on ths Kubernetes cluster,
@@ -88,6 +112,30 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.1.0/agent-docker-0.1.0.tgz
     version: 0.1.0
   agent-k8s:
+  - apiVersion: v2
+    appVersion: 0.1.36
+    created: "2023-06-26T20:25:45.292194543Z"
+    description: 'A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
+      where runs are executed in Pods in the same cluster. Run phases are isolated
+      in kubernetes containers with resource limits.  > **Note** > This new deployment
+      architecture is currently in preview. > It has many advantages over the [`agent-docker`](/charts/agent-docker)
+      chart and > would eventually replace it.  Agent pool DaemomSet scales up/down
+      with the cluster, registering and deregistering agents from the pool. When an
+      Agent receives a job from Scalr, it schedules a Pod for execution. The Kubernetes
+      workload scheduler assigns the Pod to a specific Node, where the Agent running
+      on that Node oversees the execution of the job. By enabling the Kubernetes auto-scaler,
+      Terraform workloads can scale linearly based on the load.  ![Agent in Kubernetes
+      deployment diagram](/charts/agent-k8s/assets/agent-k8s-deploy-diagram.jpg) '
+    digest: a0131982836791be1a7604edbd78194a13bc1ba09aa9e22f6e50c2dfb0a7ac49
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.2.4/agent-k8s-0.2.4.tgz
+    version: 0.2.4
   - apiVersion: v2
     appVersion: 0.1.33
     created: "2023-06-16T10:51:44.406713169Z"
@@ -186,4 +234,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.1.0/agent-k8s-0.1.0.tgz
     version: 0.1.0
-generated: "2023-06-16T10:51:44.406741169Z"
+generated: "2023-06-26T20:25:45.292239344Z"
