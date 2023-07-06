@@ -29,7 +29,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 subjects:
   - kind: ServiceAccount
-    name: agent-k8s
+    name: {{ include "agent-k8s.serviceAccountName" . }}
     namespace: {{ .Release.Namespace | quote }}
 roleRef:
   kind: Role
