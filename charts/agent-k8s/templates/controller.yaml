@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ include "agent-k8s.fullname" . }}-controller"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-k8s.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "agent-k8s.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      labels:
+        {{- include "agent-k8s.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "agent-k8s.serviceAccountName" . }}
+      containers:
+        - name: agent-k8s
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SCALR_URL
+              value: {{ required ".Values.agent.url must be provided!" .Values.agent.url }}
+            - name: SCALR_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "agent-k8s.name" . }}
+                  key: token
+                  optional: false
+            - name: SCALR_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SCALR_LOG_FORMAT
+              value: "{{ .Values.agent.log_format }}"
+            - name: SCALR_DEBUG
+              value: "{{ .Values.agent.debug }}"
+            - name: SCALR_WORKER_ON_STOP_ACTION
+              value: "{{ .Values.agent.worker_on_stop_action }}"
+            - name: SCALR_WORKER_DRAIN_TIMEOUT
+              value: "{{ .Values.agent.worker_drain_timeout }}"
+            - name: SCALR_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              value: "{{ .Values.agent.grace_shutdown_timeout }}"
+            - name: SCALR_DISCONNECT_ON_STOP
+              value: "{{ .Values.agent.disconnect_on_stop }}"
+            - name: SCALR_DATA_HOME
+              value: "{{ .Values.agent.data_home }}"
+            - name: SCALR_CONTAINER_TASK_SCHEDULING_TIMEOUT
+              value: "{{ .Values.agent.container_task_scheduling_timeout }}"
+            - name: SCALR_CONTAINER_TASK_CPU_REQUEST
+              value: "{{ .Values.agent.container_task_cpu_request }}"
+            - name: SCALR_CONTAINER_TASK_CPU_LIMIT
+              value: "{{ .Values.agent.container_task_cpu_limit }}"
+            - name: SCALR_CONTAINER_TASK_MEM_REQUEST
+              value: "{{ .Values.agent.container_task_mem_request }}"
+            - name: SCALR_CONTAINER_TASK_MEM_LIMIT
+              value: "{{ .Values.agent.container_task_mem_limit }}"
+            - name: SCALR_GC_PLUGINS_GLOBAL_SIZE_LIMIT
+              value: "{{ .Values.agent.gc_plugins_global_size_limit }}"
+            - name: SCALR_GC_PLUGINS_WORKSPACE_SIZE_LIMIT
+              value: "{{ .Values.agent.gc_plugins_workspace_size_limit }}"
+            - name: SCALR_KUBERNETES_MODE
+              value: "controller"
+            - name: SCALR_KUBERNETES_ATASK_LABELS
+              value: "{{ .Values.agent.kubernetes_atask_labels | toJson | b64enc }}"
+            - name: SCALR_KUBERNETES_ATASK_ANNOTATIONS
+              value: "{{ .Values.agent.kubernetes_atask_annotations | toJson | b64enc }}"
+            - name: SCALR_KUBERNETES_ATASK_NODE_SELECTOR
+              value: "{{ .Values.workerNodeSelector | toJson | b64enc }}" 
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.controllerNodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
