@@ -45,10 +45,19 @@ agent:
   gc_plugins_global_size_limit: 2560
   # -- Size limit (in megabytes) of the workspace plugin cache with providers from the private registries.
   gc_plugins_workspace_size_limit: 512
+  # -- Extra labels to apply to the agent task pods.
+  kubernetes_atask_labels: {}
+  # -- Extra annotations to apply to the agent task pods.
+  kubernetes_atask_annotations: {}
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+# -- Kubernetes Node Selector for assigning controller agent to specific node in the cluster.
+controllerNodeSelector: {}
+# -- Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster.
+# The selector must match a node's labels for the pod to be scheduled on that node.
+workerNodeSelector: {}
 
 serviceAccount:
   # -- Specifies whether a service account should be created

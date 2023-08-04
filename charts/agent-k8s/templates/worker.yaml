@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ include "agent-k8s.fullname" . }}
+  name: "{{ include "agent-k8s.fullname" . }}-worker"
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-k8s.labels" . | nindent 4 }}
@@ -69,11 +69,17 @@ spec:
               value: "{{ .Values.agent.gc_plugins_global_size_limit }}"
             - name: SCALR_GC_PLUGINS_WORKSPACE_SIZE_LIMIT
               value: "{{ .Values.agent.gc_plugins_workspace_size_limit }}"
+            - name: SCALR_KUBERNETES_MODE
+              value: "worker"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: data-home
               mountPath: {{ .Values.agent.data_home }}
+      {{- with .Values.workerNodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: data-home
           hostPath:
