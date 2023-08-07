@@ -42,8 +42,8 @@ You can also control the placement of both the controller and the worker on the 
 $ helm upgrade --install scalr-agent agent-k8s
     --set agent.url="https://<account>.scalr.io" \
     --set agent.token="<agent-pool-token>" \
-    --set controllerNodeSelector."kubernetes\\.io\\/hostname"="gke-default-gke-clust-gke-default-gke-c-6e1ed41a-6fx5" \
-    --set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-gke-cluster-pool"
+    --set controllerNodeSelector."kubernetes\\.io\\/hostname"="<node-name>" \
+    --set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="<node-pool-name>"
 ```
 
 ## Values
