@@ -1,6 +1,6 @@
 # agent-k8s
 
-![Version: 0.2.5](https://img.shields.io/badge/Version-0.2.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.36](https://img.shields.io/badge/AppVersion-0.1.36-informational?style=flat-square)
+![Version: 0.2.5](https://img.shields.io/badge/Version-0.2.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.3.1](https://img.shields.io/badge/AppVersion-0.3.1-informational?style=flat-square)
 
 A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
 where runs are executed in Pods in the same cluster.
@@ -11,22 +11,40 @@ Run phases are isolated in kubernetes containers with resource limits.
 > It has many advantages over the [`agent-docker`](/charts/agent-docker) chart and
 > would eventually replace it.
 
-Agent pool DaemomSet scales up/down with the cluster, registering
-and deregistering agents from the pool. When an Agent receives a job from Scalr,
+## Additional Information
+
+The Agent deploys as two components: a controller and a worker. The controller
+consumes jobs from Scalr and schedules pods, while the worker supervises the jobs.
+
+The agent worker is a DaemonSet that scales up/down with the cluster, registering
+and deregistering agents from the pool. When an Agent controller receives a job from Scalr,
 it schedules a Pod for execution. The Kubernetes workload scheduler assigns the Pod
-to a specific Node, where the Agent running on that Node oversees the execution
+to a specific Node, where the Agent worker running on that Node oversees the execution
 of the job. By enabling the Kubernetes auto-scaler, Terraform workloads can scale
 linearly based on the load.
 
 ![Agent in Kubernetes deployment diagram](/charts/agent-k8s/assets/agent-k8s-deploy-diagram.jpg)
 
-**Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s>
+## Installing the Chart
 
-## Maintainers
+To install the chart with the release name `scalr-agent`:
 
-| Name | Email | Url |
-| ---- | ------ | --- |
-| scalr | <packages@scalr.com> |  |
+```console
+$ helm repo add scalr-agent-helm https://scalr.github.io/agent-helm/
+$ helm upgrade --install scalr-agent agent-k8s \
+    --set agent.url="https://<account>.scalr.io" \
+    --set agent.token="<agent-pool-token>"
+```
+
+You can also control the placement of both the controller and the worker on the cluster using the `controllerNodeSelector` and `workerNodeSelector` options:
+
+```console
+$ helm upgrade --install scalr-agent agent-k8s
+    --set agent.url="https://<account>.scalr.io" \
+    --set agent.token="<agent-pool-token>" \
+    --set controllerNodeSelector."kubernetes\\.io\\/hostname"="gke-default-gke-clust-gke-default-gke-c-6e1ed41a-6fx5" \
+    --set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-gke-cluster-pool"
+```
 
 ## Values
 
