@@ -46,9 +46,9 @@ agent:
   # -- Size limit (in megabytes) of the workspace plugin cache with providers from the private registries.
   gc_plugins_workspace_size_limit: 512
   # -- Extra labels to apply to the agent task pods.
-  kubernetes_atask_labels: {}
+  kubernetes_task_labels: {}
   # -- Extra annotations to apply to the agent task pods.
-  kubernetes_atask_annotations: {}
+  kubernetes_task_annotations: {}
 
 imagePullSecrets: []
 nameOverride: ""
