@@ -76,7 +76,9 @@ spec:
             - name: SCALR_KUBERNETES_TASK_ANNOTATIONS
               value: "{{ .Values.agent.kubernetes_task_annotations | toJson | b64enc }}"
             - name: SCALR_KUBERNETES_TASK_NODE_SELECTOR
-              value: "{{ .Values.workerNodeSelector | toJson | b64enc }}" 
+              value: "{{ .Values.workerNodeSelector | toJson | b64enc }}"
+            - name: SCALR_KUBERNETES_TASK_TOLERATIONS
+              value: "{{ .Values.workerTolerations | toJson | b64enc }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.controllerNodeSelector }}

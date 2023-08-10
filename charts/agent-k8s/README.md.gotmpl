@@ -28,7 +28,8 @@ $ helm upgrade --install scalr-agent {{ template "chart.name" . }} \
     --set agent.token="<agent-pool-token>"
 ```
 
-You can also control the placement of both the controller and the worker on the cluster using the `controllerNodeSelector` and `workerNodeSelector` options:
+You can also control the placement of both the controller and the worker on the cluster using the `controllerNodeSelector`
+and `workerNodeSelector` options. Here's an example using GKE specific labels:
 
 ```console
 $ helm upgrade --install scalr-agent {{ template "chart.name" . }}
@@ -36,6 +37,13 @@ $ helm upgrade --install scalr-agent {{ template "chart.name" . }}
     --set agent.token="<agent-pool-token>" \
     --set controllerNodeSelector."kubernetes\\.io\\/hostname"="<node-name>" \
     --set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="<node-pool-name>"
+```
+
+To use a separate agent pool for Scalr workloads, you may want to configure [Taint and Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/).
+Set up the taints on the Node Pool, and add tolerations to the agent worker with the `workerTolerations` option. An example:
+
+```console
+--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool
 ```
 
 {{ template "chart.requirementsSection" . }}
