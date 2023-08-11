@@ -46,6 +46,8 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 --set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool
 ```
 
+{{ template "chart.maintainersSection" . }}
+
 {{ template "chart.requirementsSection" . }}
 
 {{ template "chart.valuesSection" . }}
