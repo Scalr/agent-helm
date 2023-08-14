@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.3.4]
+
+### Updated
+
+- Updating Agent version to 0.5.0
+
 ## [v0.3.3]
 
 ### Updated
@@ -24,20 +30,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.3.1]
 
 ### Added
+
 - Chart description
 - Kubernetes deployment diagram
 
 ## [v0.3.0]
 
 ### Updated
+
 - Values docs.
 
 ## [v0.2.0]
 
 ### Updated
+
 - Chart home info.
 
 ## [v0.1.0]
 
 ### Added
+
 - Initial release.
