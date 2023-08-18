@@ -1,0 +1,52 @@
+{
+    "properties": {
+        "agent": {
+            "type": "object",
+            "properties": {
+                "log_format": {
+                    "type": "string",
+                    "enum": [
+                        "plain",
+                        "dev",
+                        "json"
+                    ]
+                },
+                "worker_on_stop_action": {
+                    "type": "string",
+                    "enum": [
+                        "drain",
+                        "grace-shutdown",
+                        "force-shutdown"
+                    ]
+                },
+                "kubernetes_task_annotations": {
+                    "type": "object"
+                },
+                "kubernetes_task_labels": {
+                    "type": "object"
+                }
+            }
+        },
+        "workerTolerations": {
+            "type": [
+                "null",
+                "array",
+                "string"
+            ]
+        },
+        "workerNodeSelector": {
+            "type": [
+                "null",
+                "object",
+                "string"
+            ]
+        },
+        "controllerNodeSelector": {
+            "type": [
+                "null",
+                "object",
+                "string"
+            ]
+        }
+    }
+}
