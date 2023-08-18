@@ -30,22 +30,19 @@
         "workerTolerations": {
             "type": [
                 "null",
-                "array",
-                "string"
+                "array"
             ]
         },
         "workerNodeSelector": {
             "type": [
                 "null",
-                "object",
-                "string"
+                "object"
             ]
         },
         "controllerNodeSelector": {
             "type": [
                 "null",
-                "object",
-                "string"
+                "object"
             ]
         }
     }
