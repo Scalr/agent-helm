@@ -31,7 +31,7 @@ To install the chart with the release name `scalr-agent`:
 
 ```console
 $ helm repo add scalr-agent-helm https://scalr.github.io/agent-helm/
-$ helm upgrade --install scalr-agent agent-k8s \
+$ helm upgrade --install scalr-agent scalr-agent-helm/agent-k8s \
     --set agent.url="https://<account>.scalr.io" \
     --set agent.token="<agent-pool-token>"
 ```
@@ -40,7 +40,7 @@ You can also control the placement of both the controller and the worker on the 
 and `workerNodeSelector` options. Here's an example using GKE specific labels:
 
 ```console
-$ helm upgrade --install scalr-agent agent-k8s
+$ helm upgrade --install scalr-agent scalr-agent-helm/agent-k8s
     --set agent.url="https://<account>.scalr.io" \
     --set agent.token="<agent-pool-token>" \
     --set controllerNodeSelector."kubernetes\\.io\\/hostname"="<node-name>" \
