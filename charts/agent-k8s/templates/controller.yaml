@@ -1,7 +1,7 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
-  name: {{ include "agent-k8s.fullname" . }}
+  name: "{{ include "agent-k8s.fullname" . }}-controller"
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-k8s.labels" . | nindent 4 }}
@@ -69,14 +69,20 @@ spec:
               value: "{{ .Values.agent.gc_plugins_global_size_limit }}"
             - name: SCALR_GC_PLUGINS_WORKSPACE_SIZE_LIMIT
               value: "{{ .Values.agent.gc_plugins_workspace_size_limit }}"
+            - name: SCALR_KUBERNETES_MODE
+              value: "controller"
+            - name: SCALR_KUBERNETES_TASK_LABELS
+              value: "{{ .Values.agent.kubernetes_task_labels | toJson | b64enc }}"
+            - name: SCALR_KUBERNETES_TASK_ANNOTATIONS
+              value: "{{ .Values.agent.kubernetes_task_annotations | toJson | b64enc }}"
+            - name: SCALR_KUBERNETES_TASK_NODE_SELECTOR
+              value: "{{ .Values.workerNodeSelector | toJson | b64enc }}"
+            - name: SCALR_KUBERNETES_TASK_TOLERATIONS
+              value: "{{ .Values.workerTolerations | toJson | b64enc }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          volumeMounts:
-            - name: data-home
-              mountPath: {{ .Values.agent.data_home }}
-      volumes:
-        - name: data-home
-          hostPath:
-            path: {{ .Values.agent.data_home }}
-            type: DirectoryOrCreate
+      {{- with .Values.controllerNodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}

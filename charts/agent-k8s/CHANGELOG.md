@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.2.5]
+
+### Added
+
+- Added the worker/controller modes to the agent-k8s chart
+
+### Updated
+
+- Updating Agent version to 0.5.0
+
 ## [v0.2.4]
 
 ### Updated
