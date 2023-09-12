@@ -1,4 +1,5 @@
 name: Sync appVersion
+# TODO: add description of this action
 
 on:
   workflow_dispatch:
@@ -7,6 +8,13 @@ on:
         description: Scalr Agent version in format x.y.z (without `agent/` prefix).
         required: true
         type: string
+      upstream:
+        description: |
+          This input is used to link the dispatch with the upstream. It will be
+          as prefix in PR name.
+        required: true
+        type: string
+
 
 env:
   PR_BRANCH: 'actions/sync-app-version-${{ inputs.app_version }}'
@@ -18,71 +26,75 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Update appVersion
-        id: update 
-        uses: ./.github/actions/update-app-version
-        with:
-            # app_version: ${{inputs.app_version}}
-            app_version: "0.42.0"
-
-      - name: Commit Changes
+      - name: Printenv
         shell: bash
-        run: |-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+        run: printenv
 
-          git checkout -b $PR_BRANCH
-
-          git status
-          git add .
-          git commit -m "Release: ${{steps.update.outputs.version}}"
-          git push origin $PR_BRANCH --force
-
-
-      - name: 'Create Pull Request'
-        uses: 'actions/github-script@v6'
+      - name: Main
+        uses: ./.github/actions/sync-app-version
         with:
-          script: |-
-            const tag = "v" + process.env.NEW_VERSION;
+            app_version: ${{inputs.app_version}}
+            upstream: ${{inputs.upstream}}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            try {
-              const listResponse = await github.rest.pulls.list({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: "open",
-                head: context.repo.owner + ":" + process.env.PR_BRANCH,
-                base: process.env.GITHUB_REF_NAME,
-              });
+      # - name: Commit Changes
+      #   shell: bash
+      #   run: |-
+      #     git config user.name "github-actions[bot]"
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
 
-              core.isDebug() && console.log(listResponse);
+      #     git checkout -b $PR_BRANCH
 
-              if (!listResponse.data.length) {
-                const createResponse = await github.rest.pulls.create({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  title: "Release: " + tag,
-                  body: process.env.RELEASE_NOTES,
-                  head: process.env.PR_BRANCH,
-                  base: process.env.GITHUB_REF_NAME,
-                });
+      #     git status
+      #     git add .
+      #     git commit -m "Release: ${{steps.update.outputs.version}}"
+      #     git push origin $PR_BRANCH --force
 
-                core.info(
-                  `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
-                );
-              } else {
-                const updateResponse = await github.rest.pulls.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: listResponse.data[0].number,
-                  title: "Release: " + tag,
-                  body: process.env.RELEASE_NOTES,
-                });
+      # - name: 'Create Pull Request'
+      #   uses: 'actions/github-script@v6'
+      #   with:
+      #     script: |-
+      #       const tag = "v" + process.env.NEW_VERSION;
 
-                core.info(
-                  `Updated PR #${updateResponse.data.number} at ${updateResponse.data.html_url}`
-                );
-              }
-            } catch (err) {
-              console.error(err);
-              core.setFailed(`Failed to create pull request: ${err}`);
-            }
+      #       try {
+      #         const listResponse = await github.rest.pulls.list({
+      #           owner: context.repo.owner,
+      #           repo: context.repo.repo,
+      #           state: "open",
+      #           head: context.repo.owner + ":" + process.env.PR_BRANCH,
+      #           base: process.env.GITHUB_REF_NAME,
+      #         });
+
+      #         core.isDebug() && console.log(listResponse);
+
+      #         if (!listResponse.data.length) {
+      #           const createResponse = await github.rest.pulls.create({
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             title: "Release: " + tag,
+      #             body: process.env.RELEASE_NOTES,
+      #             head: process.env.PR_BRANCH,
+      #             base: process.env.GITHUB_REF_NAME,
+      #           });
+
+      #           core.info(
+      #             `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
+      #           );
+      #         } else {
+      #           const updateResponse = await github.rest.pulls.update({
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             pull_number: listResponse.data[0].number,
+      #             title: "Release: " + tag,
+      #             body: process.env.RELEASE_NOTES,
+      #           });
+
+      #           core.info(
+      #             `Updated PR #${updateResponse.data.number} at ${updateResponse.data.html_url}`
+      #           );
+      #         }
+      #       } catch (err) {
+      #         console.error(err);
+      #         core.setFailed(`Failed to create pull request: ${err}`);
+      #       }
