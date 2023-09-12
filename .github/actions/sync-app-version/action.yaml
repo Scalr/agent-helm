@@ -1,4 +1,4 @@
-name: Update appVersion
+name: Sync appVersion
 description: |-
   This action update appVersion in all charts. It gets the appVersion from the input
   and sets it in each Chart.yaml and changes the version of Chart.yaml itself. Charts
@@ -6,15 +6,11 @@ description: |-
 
 inputs:
   app_version:
-    description: The new appVersion value
+    description: appVersion value
     required: true
-
-outputs:
-  app_version:
-    description: The update appVersion value
-
-  chart_version:
-    description: The updated Chart.yaml version value
+  upstream:
+    description: Upsteam ID
+    required: true
 
 runs:
   using: node16
