@@ -1,17 +1,16 @@
 apiVersion: v2
 name: agent-k8s
 description: >
-  A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
-  where runs are executed in Pods in the same cluster.
-  Run phases are isolated in kubernetes containers with resource limits.
+  A Helm chart for the scalr-agent deployment on the Kubernetes cluster, where
+  runs are executed in Pods in the same cluster. Run phases are isolated in
+  kubernetes containers with resource limits.
 
-  **Note**
-  This new deployment architecture is currently in preview.
-  It has many advantages over the [`agent-docker`](/charts/agent-docker) chart and
-  would eventually replace it.
+  **Note** This new deployment architecture is currently in preview. It has many
+  advantages over the [`agent-docker`](/charts/agent-docker) chart and would
+  eventually replace it.
 type: application
-version: 0.2.5
-appVersion: "0.5.0"
+version: 0.2.6
+appVersion: 0.42.0
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
 maintainers:
   - name: scalr
