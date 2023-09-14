@@ -8,12 +8,6 @@ on:
         description: Scalr Agent version in format x.y.z (without `agent/` prefix).
         required: true
         type: string
-      upstream:
-        description: |
-          This input is used to link the dispatch with the upstream. It will be
-          as prefix in PR name.
-        required: true
-        type: string
 
 
 env:
@@ -35,6 +29,5 @@ jobs:
         uses: ./.github/actions/sync-app-version
         with:
             app_version: ${{inputs.app_version}}
-            upstream: ${{inputs.upstream}}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

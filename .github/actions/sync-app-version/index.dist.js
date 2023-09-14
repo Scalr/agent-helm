@@ -18447,7 +18447,6 @@ const path = __nccwpck_require__(1017)
 
 const chartsDir = path.join(process.env.GITHUB_WORKSPACE, 'charts')
 const appVersion = core.getInput('app_version', { required: true })
-const upstream = core.getInput('upstream', { required: true })
 
 function getCharts () {
   const files = fs.readdirSync(chartsDir)
@@ -18479,7 +18478,7 @@ async function pushChanges () {
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
   await exec.exec(`git checkout -b ${process.env.PR_BRANCH}`)
   await exec.exec('git add charts')
-  await exec.exec(`git commit -m "Sync appVersion: ${appVersion}. Triggered by ${upstream}"`)
+  await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
   await exec.exec(`git push origin ${process.env.PR_BRANCH} --force`)
 }
 
@@ -18489,11 +18488,11 @@ async function draftPR () {
     const createResponse = await octokit.rest.pulls.create({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
-      title: `Sync appVersion ${appVersion} triggered by ${upstream}`,
+      title: `Sync appVersion ${appVersion} triggered by upstream release workflow`,
       head: process.env.PR_BRANCH,
       base: process.env.GITHUB_REF_NAME
     });
-    core.info(
+    core.notice(
       `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
     );
   } catch (err) {
