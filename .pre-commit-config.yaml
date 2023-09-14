@@ -1,10 +1,10 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+  - repo: local
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
+      - id: build-js-actions
+        name: build-js-actions
+        entry: bash -c 'actions_dir=".github/actions"; find "$actions_dir" -maxdepth 2 -type f -name "package.json" -exec dirname {} \; | uniq | xargs -I {} npm --prefix {} run build'
+        language: system
+        pass_filenames: false

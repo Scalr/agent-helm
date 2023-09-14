@@ -18493,7 +18493,7 @@ async function draftPR () {
       head: process.env.PR_BRANCH,
       base: process.env.GITHUB_REF_NAME
     });
-    core.info(
+    core.notice(
       `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
     );
   } catch (err) {
