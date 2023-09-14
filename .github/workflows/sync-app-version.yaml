@@ -1,5 +1,4 @@
 name: Sync appVersion
-# TODO: add description of this action
 
 on:
   workflow_dispatch:
