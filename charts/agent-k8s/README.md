@@ -1,6 +1,6 @@
 # agent-k8s
 
-![Version: 0.2.4](https://img.shields.io/badge/Version-0.2.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.36](https://img.shields.io/badge/AppVersion-0.1.36-informational?style=flat-square)
+![Version: 0.2.5](https://img.shields.io/badge/Version-0.2.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.5.0](https://img.shields.io/badge/AppVersion-0.5.0-informational?style=flat-square)
 
 A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
 where runs are executed in Pods in the same cluster.
@@ -11,16 +11,48 @@ Run phases are isolated in kubernetes containers with resource limits.
 > It has many advantages over the [`agent-docker`](/charts/agent-docker) chart and
 > would eventually replace it.
 
-Agent pool DaemomSet scales up/down with the cluster, registering
-and deregistering agents from the pool. When an Agent receives a job from Scalr,
+## Additional Information
+
+The Agent deploys as two components: a controller and a worker. The controller
+consumes jobs from Scalr and schedules pods, while the worker supervises the jobs.
+
+The agent worker is a DaemonSet that scales up/down with the cluster, registering
+and deregistering agents from the pool. When an Agent controller receives a job from Scalr,
 it schedules a Pod for execution. The Kubernetes workload scheduler assigns the Pod
-to a specific Node, where the Agent running on that Node oversees the execution
+to a specific Node, where the Agent worker running on that Node oversees the execution
 of the job. By enabling the Kubernetes auto-scaler, Terraform workloads can scale
 linearly based on the load.
 
 ![Agent in Kubernetes deployment diagram](/charts/agent-k8s/assets/agent-k8s-deploy-diagram.jpg)
 
-**Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s>
+## Installing the Chart
+
+To install the chart with the release name `scalr-agent`:
+
+```console
+$ helm repo add scalr-agent-helm https://scalr.github.io/agent-helm/
+$ helm upgrade --install scalr-agent scalr-agent-helm/agent-k8s \
+    --set agent.url="https://<account>.scalr.io" \
+    --set agent.token="<agent-pool-token>"
+```
+
+You can also control the placement of both the controller and the worker on the cluster using the `controllerNodeSelector`
+and `workerNodeSelector` options. Here's an example using GKE specific labels:
+
+```console
+$ helm upgrade --install scalr-agent scalr-agent-helm/agent-k8s
+    --set agent.url="https://<account>.scalr.io" \
+    --set agent.token="<agent-pool-token>" \
+    --set controllerNodeSelector."kubernetes\\.io\\/hostname"="<node-name>" \
+    --set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="<node-pool-name>"
+```
+
+To use a separate agent pool for Scalr workloads, you may want to configure [Taint and Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/).
+Set up the taints on the Node Pool, and add tolerations to the agent worker with the `workerTolerations` option. An example:
+
+```console
+--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool
+```
 
 ## Maintainers
 
@@ -43,11 +75,14 @@ linearly based on the load.
 | agent.gc_plugins_global_size_limit | int | `2560` | Size limit (in megabytes) of the global plugin cache with providers from the public registries. |
 | agent.gc_plugins_workspace_size_limit | int | `512` | Size limit (in megabytes) of the workspace plugin cache with providers from the private registries. |
 | agent.grace_shutdown_timeout | int | `60` | The timeout in seconds for gracefully shutting down active tasks via the SIGTERM signal. After this timeout, tasks will be terminated with the SIGKILL signal. |
+| agent.kubernetes_task_annotations | object | `{}` | Extra annotations to apply to the agent task pods. |
+| agent.kubernetes_task_labels | object | `{}` | Extra labels to apply to the agent task pods. |
 | agent.log_format | string | `"json"` | The log formatter. Options: "plain" or "dev" or "json". |
 | agent.token | string | `""` | The agent pool token. |
 | agent.url | string | `""` | The Scalr url. |
 | agent.worker_drain_timeout | int | `3600` | The timeout for draining worker tasks in seconds. After this timeout, tasks will be terminated via the SIGTERM signal. |
 | agent.worker_on_stop_action | string | `"drain"` | Defines the SIGTERM/SIGHUP/SIGINT signal handler's shutdown behavior. Options: "drain" or "grace-shutdown" or "force-shutdown". |
+| controllerNodeSelector | object | `{}` | Kubernetes Node Selector for assigning controller agent to specific node in the cluster. |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"Always"` | The pullPolicy for a container and the tag of the image. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
@@ -63,6 +98,8 @@ linearly based on the load.
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
 | serviceAccount.name | string | `""` | If not set and create is true, a name is generated using the fullname template |
 | terminationGracePeriodSeconds | int | `3660` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
+| workerNodeSelector | object | `{}` | Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster. The selector must match a node's labels for the pod to be scheduled on that node. |
+| workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
 
 ----------------------------------------------
 Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)

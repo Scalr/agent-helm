@@ -1,0 +1,28 @@
+{{ template "chart.header" . }}
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+{{ template "chart.description" . }}
+
+> **Note**
+> We suggest to install this chart only is you already rely on scalr-agent,
+> and migrating your AgentPool from other installation methods: e.g. rpm / deb / docker.
+> For new deployments we encourage you to try the new [`agent-k8s`](/charts/agent-k8s) chart,
+> that has many advantages over the `agent-docker`.
+
+Kuberentes deployment doesn't scale on multiple replicas.
+Consequently, the capacity of compute resources that can be managed
+by a single agent remains constrained by a single node.
+
+Multiple Deployments can be created within a single Kubernetes cluster.
+
+![Agent in Docker deployment diagram](/charts/agent-docker/assets/agent-docker-deploy-diagram.jpg)
+
+**Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker>
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}
