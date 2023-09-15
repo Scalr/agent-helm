@@ -13,6 +13,8 @@ agent:
   url: ""
   # -- The agent pool token.
   token: ""
+  # -- The name of the secret containing the agent pool token. Secret is created if left empty.
+  tokenExistingSecret: ""
   # -- Enable debug logs
   debug: false
   # -- The log formatter. Options: "plain" or "dev" or "json".
