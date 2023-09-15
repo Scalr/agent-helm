@@ -1,6 +1,9 @@
 name: Update appVersion
 
 on:
+  push:
+    branches:
+      - SCALRCORE-27249
   workflow_dispatch:
     inputs:
       app_version:
