@@ -18446,8 +18446,9 @@ const fs = __nccwpck_require__(7147)
 const path = __nccwpck_require__(1017)
 
 const chartsDir = path.join(process.env.GITHUB_WORKSPACE, 'charts')
-const appVersion = "0.42.0"
+const appVersion = '0.42.0'
 // const appVersion = core.getInput('app_version', { required: true })
+core.info(`The appVersion ${appVersion}`)
 
 function getCharts () {
   const files = fs.readdirSync(chartsDir)
@@ -18459,19 +18460,31 @@ function getCharts () {
   return directories
 }
 
-function updateCharts () {
-  const charts = getCharts()
-  core.info(`The appVersion ${appVersion}`)
-  charts.forEach(function (chart) {
-    const chartPath = path.join(chartsDir, chart, 'Chart.yaml')
-    const chartData = yaml.load(fs.readFileSync(chartPath, 'utf8'))
+function updateCharts (chart) {
+  const chartPath = path.join(chartsDir, chart, 'Chart.yaml')
+  const chartData = yaml.load(fs.readFileSync(chartPath, 'utf8'))
 
-    chartData.appVersion = appVersion
-    chartData.version = semver.inc(chartData.version, 'patch')
-    const updatedYaml = yaml.dump(chartData, {"lineWidth": -1})
-    fs.writeFileSync(chartPath, updatedYaml, 'utf8')
-    core.info(`The new version of ${chart} is ${chartData.version}`)
-  })
+  chartData.appVersion = appVersion
+  chartData.version = semver.inc(chartData.version, 'patch')
+  const updatedYaml = yaml.dump(chartData, { lineWidth: -1 })
+  fs.writeFileSync(chartPath, updatedYaml, 'utf8')
+  core.info(`The new version of ${chart} is ${chartData.version}`)
+  return chartData.version
+}
+
+function updateCHANGELOG (chart, chartNewVersion) {
+  const changelogPath = path.join(chartsDir, chart, 'CHANGELOG.md')
+  const newSection = `
+## [v${chartNewVersion}]
+
+### Updated
+
+- Bumping chart version to v${chartNewVersion} for scalr-agent v${appVersion}
+`
+  const updatedChangelog = fs.readFileSync(changelogPath, 'utf8').replace(
+    '## [UNRELEASED]\n', `## [UNRELEASED]\n${newSection}`
+  )
+  fs.writeFileSync(changelogPath, updatedChangelog, 'utf8')
 }
 
 async function pushChanges () {
@@ -18492,10 +18505,10 @@ async function draftPR () {
       title: `Sync appVersion ${appVersion} triggered by upstream release workflow`,
       head: process.env.PR_BRANCH,
       base: process.env.GITHUB_REF_NAME
-    });
+    })
     core.notice(
       `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
-    );
+    )
   } catch (err) {
     core.setFailed(`Failed to create pull request: ${err}`)
   }
@@ -18503,9 +18516,13 @@ async function draftPR () {
 
 async function run () {
   try {
-    updateCharts()
-    // await pushChanges()
-    // await draftPR()
+    const charts = getCharts()
+    charts.forEach(function (chart) {
+      const chartNewVersion = updateCharts(chart)
+      updateCHANGELOG(chart, chartNewVersion)
+    })
+    await pushChanges()
+    await draftPR()
   } catch (err) {
     return core.setFailed(`Error: ${err}`)
   }

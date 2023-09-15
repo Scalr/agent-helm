@@ -1,7 +1,7 @@
 {
-    "name": "sync-app-version-action",
+    "name": "update-app-version-action",
     "version": "1.0.0",
-    "description": "Main action fro sync-app-version.yaml workflow",
+    "description": "Main action fro update-app-version.yaml workflow",
     "main": "index.js",
     "scripts": {
         "lint": "eslint --fix index.js",
