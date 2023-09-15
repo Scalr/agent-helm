@@ -9,12 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
-## [v0.3.5]
-
-### Updated
-
-- Updating Chart.yaml description
-
 ## [v0.3.4]
 
 ### Updated

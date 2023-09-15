@@ -18446,7 +18446,8 @@ const fs = __nccwpck_require__(7147)
 const path = __nccwpck_require__(1017)
 
 const chartsDir = path.join(process.env.GITHUB_WORKSPACE, 'charts')
-const appVersion = core.getInput('app_version', { required: true })
+const appVersion = "0.42.0"
+// const appVersion = core.getInput('app_version', { required: true })
 
 function getCharts () {
   const files = fs.readdirSync(chartsDir)
@@ -18467,7 +18468,7 @@ function updateCharts () {
 
     chartData.appVersion = appVersion
     chartData.version = semver.inc(chartData.version, 'patch')
-    const updatedYaml = yaml.dump(chartData)
+    const updatedYaml = yaml.dump(chartData, {"lineWidth": -1})
     fs.writeFileSync(chartPath, updatedYaml, 'utf8')
     core.info(`The new version of ${chart} is ${chartData.version}`)
   })
@@ -18503,8 +18504,8 @@ async function draftPR () {
 async function run () {
   try {
     updateCharts()
-    await pushChanges()
-    await draftPR()
+    // await pushChanges()
+    // await draftPR()
   } catch (err) {
     return core.setFailed(`Error: ${err}`)
   }
