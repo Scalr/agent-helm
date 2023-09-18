@@ -18446,8 +18446,7 @@ const fs = __nccwpck_require__(7147)
 const path = __nccwpck_require__(1017)
 
 const chartsDir = path.join(process.env.GITHUB_WORKSPACE, 'charts')
-const appVersion = '0.42.0'
-// const appVersion = core.getInput('app_version', { required: true })
+const appVersion = core.getInput('app_version', { required: true })
 core.info(`The appVersion ${appVersion}`)
 
 function getCharts () {
