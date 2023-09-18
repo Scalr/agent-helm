@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "eslint-config-standard": "^17.1.0"
+  }
+}

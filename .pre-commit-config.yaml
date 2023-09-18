@@ -5,7 +5,7 @@ repos:
     hooks:
       - id: build-js-actions
         name: Build JS GitHub Actions
-        entry: bash -c 'actions_dir=".github/actions"; find "$actions_dir" -maxdepth 2 -type f -name "package.json" -exec dirname {} \; | uniq | xargs -I {} npm --prefix {} run build'
+        entry: bash -c 'actions_dir=".github/actions"; find "$actions_dir" -maxdepth 2 -type f -name "package.json" -exec dirname {} \; | grep -v "$actions_dir$" | uniq | xargs -I {} npm --prefix {} run all'
         language: system
         pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks

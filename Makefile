@@ -6,6 +6,10 @@ arch = $(shell uname -m)
 ct_version = 3.8.0
 kelik = "\\xF0\\x9F\\x8D\\xBA"
 
+# Install common ESLint config
+eslintrc:
+	npm --prefix .github/actions install
+
 dev:
 # Prerequisites
 	if [ "$(platform)" = "Linux" ]; then \
