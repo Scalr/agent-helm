@@ -6,10 +6,6 @@ arch = $(shell uname -m)
 ct_version = 3.8.0
 kelik = "\\xF0\\x9F\\x8D\\xBA"
 
-# Install common ESLint config
-eslintrc:
-	npm --prefix .github/actions install
-
 dev:
 # Prerequisites
 	if [ "$(platform)" = "Linux" ]; then \
@@ -98,6 +94,9 @@ dev:
 	curl -sSLO https://raw.githubusercontent.com/helm/chart-testing/v$(ct_version)/etc/lintconf.yaml; \
 	cd -;
 	echo "$(kelik) Imported ct config";
+	echo "=> Installing standard ESLint config..."; \
+	npm --prefix .github/actions install
+
 
 # Generate documentation using helm-docs
 docs:

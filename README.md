@@ -30,6 +30,10 @@ GitHub Action release workflow will then using [Helm chart releaser](https://git
 > **Note**
 > there might be a slight delay between the release and the `index.yaml` update, as GitHub pages have to be re-deployed.
 
+## Development installation
+
+* NodeJS for building and testing GH Actions: `https://nodejs.org/en/download/package-manager`
+* Install additional software: `make dev`
 
 ## TODO
 - Pre-commit hooks(lint, docs)
