@@ -15,7 +15,9 @@ spec:
       {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if not .Values.agent.tokenExistingSecret }}
         checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      {{- end }}
       labels:
         {{- include "agent-k8s.selectorLabels" . | nindent 8 }}
     spec:
@@ -34,7 +36,7 @@ spec:
             - name: SCALR_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "agent-k8s.name" . }}
+                  name: {{ .Values.agent.tokenExistingSecret | default (include "agent-k8s.name" .) }}
                   key: token
                   optional: false
             - name: SCALR_AGENT_NAME

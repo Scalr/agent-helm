@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.0]
+
+### Added
+
+- Added `agent.tokenExistingSecret` option to specify the custom secret for the agent token.
+
+### Updated
+
+- Synchronizing Chart `version` with `appVersion`.
+
 ## [v0.2.5]
 
 ### Added

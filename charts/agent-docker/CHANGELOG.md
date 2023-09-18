@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.0]
+
+### Updated
+
+- Synchronizing Chart `version` with `appVersion`.
+
+
 ## [v0.3.4]
 
 ### Updated

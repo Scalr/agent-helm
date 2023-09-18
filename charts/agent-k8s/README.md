@@ -1,6 +1,6 @@
 # agent-k8s
 
-![Version: 0.2.5](https://img.shields.io/badge/Version-0.2.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.5.0](https://img.shields.io/badge/AppVersion-0.5.0-informational?style=flat-square)
+![Version: 0.5.0](https://img.shields.io/badge/Version-0.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.5.0](https://img.shields.io/badge/AppVersion-0.5.0-informational?style=flat-square)
 
 A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
 where runs are executed in Pods in the same cluster.
@@ -79,6 +79,7 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 | agent.kubernetes_task_labels | object | `{}` | Extra labels to apply to the agent task pods. |
 | agent.log_format | string | `"json"` | The log formatter. Options: "plain" or "dev" or "json". |
 | agent.token | string | `""` | The agent pool token. |
+| agent.tokenExistingSecret | string | `""` | The name of the secret containing the agent pool token. Secret is created if left empty. |
 | agent.url | string | `""` | The Scalr url. |
 | agent.worker_drain_timeout | int | `3600` | The timeout for draining worker tasks in seconds. After this timeout, tasks will be terminated via the SIGTERM signal. |
 | agent.worker_on_stop_action | string | `"drain"` | Defines the SIGTERM/SIGHUP/SIGINT signal handler's shutdown behavior. Options: "drain" or "grace-shutdown" or "force-shutdown". |
