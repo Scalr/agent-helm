@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup-helm-docs
       - name: Main
         uses: ./.github/actions/update-app-version
         with:
