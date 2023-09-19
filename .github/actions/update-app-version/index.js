@@ -74,6 +74,10 @@ async function draftPR () {
   }
 }
 
+async function helmDocs () {
+  await exec.exec('helm-docs')
+}
+
 async function run () {
   try {
     const charts = getCharts()
@@ -81,6 +85,7 @@ async function run () {
       const chartNewVersion = updateCharts(chart)
       updateCHANGELOG(chart, chartNewVersion)
     })
+    await helmDocs()
     await pushChanges()
     await draftPR()
   } catch (err) {

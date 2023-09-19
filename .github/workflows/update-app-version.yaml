@@ -17,7 +17,10 @@ jobs:
     name: Update appVersion
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup helm-docs
+        uses: ./.github/actions/setup-helm-docs
       - name: Main
         uses: ./.github/actions/update-app-version
         with:

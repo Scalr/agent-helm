@@ -1,0 +1,20 @@
+name: Setup Helm Docs
+
+description: Installs Helm Docs CLI
+
+inputs:
+  version:
+    description: Helm Docs Version to install
+    required: true
+    default: 1.11.0
+
+runs:
+  using: composite
+
+  steps:
+    - run: |
+        cd /tmp
+        wget https://github.com/norwoodj/helm-docs/releases/download/v${{ inputs.version }}/helm-docs_${{ inputs.version }}_Linux_x86_64.tar.gz
+        tar -xvf helm-docs_${{ inputs.version }}_Linux_x86_64.tar.gz
+        sudo mv helm-docs /usr/local/sbin
+      shell: bash
