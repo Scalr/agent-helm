@@ -1,1 +1,4 @@
 .ct
+.vscode/
+
+**/node_modules/
