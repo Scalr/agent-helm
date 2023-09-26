@@ -59,6 +59,10 @@ fullnameOverride: ""
 controllerNodeSelector: {}
 # -- Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster.
 # The selector must match a node's labels for the pod to be scheduled on that node.
+controllerTolerations: {}
+# -- Kubernetes Node Tolerations for the controller.
+# Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>.
+# Example: `--set controllerTolerations[0].operator=Equal,controllerTolerations[0].effect=NoSchedule,controllerTolerations[0].key=dedicated,controllerTolerations[0].value=scalr-agent-worker-pool`
 workerNodeSelector: {}
 # -- Kubernetes Node Tolerations for the agent worker and the agent task pods.
 # Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>.
