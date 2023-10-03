@@ -94,6 +94,9 @@ dev:
 	curl -sSLO https://raw.githubusercontent.com/helm/chart-testing/v$(ct_version)/etc/lintconf.yaml; \
 	cd -;
 	echo "$(kelik) Imported ct config";
+	echo "=> Installing standard ESLint config..."; \
+	npm --prefix .github/actions install
+
 
 # Generate documentation using helm-docs
 docs:

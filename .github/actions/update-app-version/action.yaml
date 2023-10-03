@@ -1,0 +1,15 @@
+name: Update appVersion
+description: |-
+  This action updates the appVersion in all charts. It takes the app_version input
+  and applies it to each Chart.yaml, subsequently modifying the version within the Chart.yaml
+  file itself. The chart versions are updated using the semantic versioning patch strategy.
+  All changes are made in the $GITHUB_WORKSPACE directory.
+
+inputs:
+  app_version:
+    description: appVersion value
+    required: true
+
+runs:
+  using: node16
+  main: "index.dist.js"
