@@ -28,7 +28,7 @@ agent:
   # -- Determines if the agent should automatically disconnect from the Scalr agent pool when the service is stopping.
   disconnect_on_stop: true
   # -- The agent working directory on the cluster host node.
-  data_home: "/home/scalr/agent-k8s"
+  data_home: "/home/kubernetes/bin/scalr/agent-k8s"
   # -- The container task's (e.g., Kubernetes Pod) scheduling timeout in seconds.
   # The task will be waiting for the scheduling in the queued status; if the cluster
   # does not allocate resources for the container in that timeout, the task will be switched to the errored status.
