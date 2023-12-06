@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.4]
+
+### Updated
+
+- Bumping chart version to v0.5.4 for scalr-agent v0.10.1
+
+## [v0.5.3]
+
+### Updated
+
+- Bumping chart version to v0.5.3 for scalr-agent v0.9.1
+
+## [v0.5.2]
+
+### Updated
+
+- Bumping chart version to v0.5.2 for scalr-agent v0.9.0
+
+## [v0.5.1]
+
+### Updated
+
+- Bumping chart version to v0.5.1 for scalr-agent v0.8.1
+
 ## [v0.5.0]
 
 ### Added
