@@ -66,6 +66,11 @@ It is recommended to alter the default directory to `/home/kubernetes/bin/scalr/
 
 For EKS (Amazon Linux 2 or Bottlerocket OS), the recommended path is `/var/lib/{unique-name}`.
 
+Using a unique name in the path is necessary when installing multiple agents on the cluster
+to prevent collisions. Additionally, it is important to note that the Agent does not delete its
+data when uninstalling the chart or modifying the `agent.data_home` option, which may result
+in artifacts being left on the node's root disk.
+
 Example:
 
 ```console
