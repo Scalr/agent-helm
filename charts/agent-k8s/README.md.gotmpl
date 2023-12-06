@@ -46,7 +46,7 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 --set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool
 ```
 
-## Disk requirements
+## Disk Requirements
 
 Currently, the Agent is not fully cloud-native and utilizes the [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath)
 volume for storing a shared Terraform plugin cache and managing configuration version artifacts
@@ -55,7 +55,7 @@ for agent task Pods.
 The volume is configured via the `agent.data_home` option. The filesystem on this volume must be
 writable, executable, and stateful (within the lifecycle of the Scalr Agent Pod).
 
-### Chosing the data home directory
+### Choosing the Data Home Directory
 
 In the default template example, the node disk is utilized at the path `/home/kubernetes/flexvolume/agent-k8s`.
 This path is specific to Container-Optimized OS (GKE) and varies depending on the Kubernetes provider in use.
