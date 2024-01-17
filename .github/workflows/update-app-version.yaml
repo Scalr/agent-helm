@@ -8,10 +8,6 @@ on:
         required: true
         type: string
 
-
-env:
-  PR_BRANCH: 'actions/update-app-version-${{ inputs.app_version }}'
-
 jobs:
   update-app-version:
     name: Update appVersion
