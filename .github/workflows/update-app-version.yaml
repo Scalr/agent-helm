@@ -32,4 +32,4 @@ jobs:
         with:
             app_version: ${{inputs.app_version}}
         env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.TOKEN_TEST }}

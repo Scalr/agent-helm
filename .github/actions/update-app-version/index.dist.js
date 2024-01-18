@@ -18487,8 +18487,10 @@ function updateCHANGELOG (chart, chartNewVersion) {
 }
 
 async function pushChanges () {
-  await exec.exec('git config user.name "github-actions[bot]"')
-  await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
+  // await exec.exec('git config user.name "github-actions[bot]"')
+  // await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
+  await exec.exec('git config user.name "Volodymyr Skliar"')
+  await exec.exec('git config user.email "v.skliar@scalr.com"')
   await exec.exec(`git checkout -b ${process.env.PR_BRANCH}`)
   await exec.exec('touch test')
   await exec.exec('git add test')
