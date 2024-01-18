@@ -8,7 +8,6 @@ on:
         required: true
         type: string
 
-
 env:
   PR_BRANCH: 'actions/update-app-version-${{ inputs.app_version }}'
 
@@ -19,11 +18,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup helm-docs
-        uses: ./.github/actions/setup-helm-docs
+      - name: Sudo GitHub Token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{vars.SUDO_GHA_APP_ID}}
+          installation_id: ${{vars.SUDO_GHA_APP_INSTALLATION_ID}}
+          private_key: ${{secrets.SUDO_GHA_APP_PRIVATE_KEY}}
+      # - name: Setup helm-docs
+      #   uses: ./.github/actions/setup-helm-docs
       - name: Main
         uses: ./.github/actions/update-app-version
         with:
             app_version: ${{inputs.app_version}}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TOKEN_TEST }}
