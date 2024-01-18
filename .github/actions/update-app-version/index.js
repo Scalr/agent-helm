@@ -72,10 +72,10 @@ async function draftPR () {
     core.notice(
       `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
     )
+    return createResponse.data.number
   } catch (err) {
     core.setFailed(`Failed to create pull request: ${err}`)
   }
-  return createResponse.data.number
 }
 
 async function mergePR (prNumber) {
