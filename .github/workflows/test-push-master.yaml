@@ -15,6 +15,7 @@ jobs:
       - name: Main
         run: |
           git fetch origin master
+          git checkout master
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           touch test-push-master
