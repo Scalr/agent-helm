@@ -54,7 +54,7 @@ async function pushChanges () {
   await exec.exec('git add test1')
   //await exec.exec('git add charts')
   await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
-  await exec.exec(`git push origin master`)
+  await exec.exec(`git push origin master --force`)
 }
 
 async function helmDocs () {
