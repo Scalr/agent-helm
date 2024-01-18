@@ -87,10 +87,10 @@ async function mergePR (prNumber) {
       pull_number: prNumber,
     })
     core.notice(
-      `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
+      `Merged PR #${prNumber}`
     )
   } catch (err) {
-    core.setFailed(`Failed to create pull request: ${err}`)
+    core.setFailed(`Failed to merge pull request: ${err}`)
   }
 }
 
