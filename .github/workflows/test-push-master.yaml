@@ -30,4 +30,4 @@ jobs:
           git commit -m "test-push-master"
           git push -u origin master
         env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
