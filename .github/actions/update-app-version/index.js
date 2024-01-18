@@ -87,7 +87,7 @@ async function mergePR (prNumber) {
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       pull_number: prNumber,
-      merge_method: 'rebase'
+      merge_method: 'squash'
     })
     core.notice(
       `Merged PR #${prNumber}`
