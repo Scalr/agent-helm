@@ -68,7 +68,7 @@ async function draftPR () {
       repo: github.context.repo.repo,
       title: `Sync appVersion ${appVersion} triggered by upstream release workflow`,
       head: process.env.PR_BRANCH,
-      base: process.env.GITHUB_REF_NAME
+      base: "master"//process.env.GITHUB_REF_NAME
     })
     prNumber = createResponse.data.number
     core.notice(
