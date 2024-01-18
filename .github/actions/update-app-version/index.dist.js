@@ -18487,13 +18487,15 @@ function updateCHANGELOG (chart, chartNewVersion) {
 }
 
 async function pushChanges () {
+  await exec.exec('git fetch')
+  await exec.exec('git checkout master')
   await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
   await exec.exec('touch test1')
   await exec.exec('git add test1')
   //await exec.exec('git add charts')
   await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
-  await exec.exec(`git push origin master`)
+  await exec.exec(`git push -u origin master`)
 }
 
 async function helmDocs () {
