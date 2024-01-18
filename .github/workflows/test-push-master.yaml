@@ -30,5 +30,6 @@ jobs:
           touch test-push-master
           git add test-push-master
           git commit -m "test-push-master"
-          git push -u origin master --force
+          ls -l .git/hooks/
+          #git push -u origin master --force
         
