@@ -81,7 +81,7 @@ async function draftPR () {
 async function mergePR (prNumber) {
   try {
     const octokit = github.getOctokit(process.env.GH_TOKEN)
-    const createResponse = await octokit.rest.pulls.merge({
+    const mergeResponse = await octokit.rest.pulls.merge({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       pull_number: prNumber,
