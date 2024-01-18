@@ -28,6 +28,7 @@ jobs:
           touch test-push-master
           git add test-push-master
           git commit -m "test-push-master"
+          git remote -v
           git push -u origin master
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
