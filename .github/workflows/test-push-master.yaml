@@ -21,6 +21,7 @@ jobs:
           touch test-push-master
           git add test-push-master
           git commit -m "test-push-master"
-          git push -u origin master
+          curl -sS -f -I -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com
+          #git push -u origin master
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
