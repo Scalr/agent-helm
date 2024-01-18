@@ -50,9 +50,48 @@ function updateCHANGELOG (chart, chartNewVersion) {
 async function pushChanges () {
   await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
-  await exec.exec('git add charts')
-  await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
-  await exec.exec(`git push origin master`)
+  await exec.exec(`git checkout -b ${process.env.PR_BRANCH}`)
+  await exec.exec('touch test')
+  await exec.exec('git add test')
+  //await exec.exec('git add charts')
+  //await exec.exec(`git commit -m "Sync appVersion: ${appVersion}"`)
+  await exec.exec(`git commit -m "test"`)
+  await exec.exec(`git push origin ${process.env.PR_BRANCH} --force`)
+}
+
+async function draftPR () {
+  try {
+    const octokit = github.getOctokit(process.env.GH_TOKEN)
+    const createResponse = await octokit.rest.pulls.create({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      title: `Sync appVersion ${appVersion} triggered by upstream release workflow`,
+      head: process.env.PR_BRANCH,
+      base: process.env.GITHUB_REF_NAME
+    })
+    core.notice(
+      `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
+    )
+  } catch (err) {
+    core.setFailed(`Failed to create pull request: ${err}`)
+  }
+  return createResponse.data.number
+}
+
+async function mergePR (prNumber) {
+  try {
+    const octokit = github.getOctokit(process.env.GH_TOKEN)
+    const createResponse = await octokit.rest.pulls.merge({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: prNumber,
+    })
+    core.notice(
+      `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
+    )
+  } catch (err) {
+    core.setFailed(`Failed to create pull request: ${err}`)
+  }
 }
 
 async function helmDocs () {
@@ -61,13 +100,15 @@ async function helmDocs () {
 
 async function run () {
   try {
-    const charts = getCharts()
-    charts.forEach(function (chart) {
-      const chartNewVersion = updateCharts(chart)
-      updateCHANGELOG(chart, chartNewVersion)
-    })
-    await helmDocs()
+    // const charts = getCharts()
+    // charts.forEach(function (chart) {
+    //   const chartNewVersion = updateCharts(chart)
+    //   updateCHANGELOG(chart, chartNewVersion)
+    // })
+    // await helmDocs()
     await pushChanges()
+    prNumber = await draftPR()
+    await mergePR(prNumber)
   } catch (err) {
     return core.setFailed(`Error: ${err}`)
   }

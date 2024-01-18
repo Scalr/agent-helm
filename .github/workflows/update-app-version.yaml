@@ -15,8 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup helm-docs
-        uses: ./.github/actions/setup-helm-docs
+      # - name: Setup helm-docs
+      #   uses: ./.github/actions/setup-helm-docs
       - name: Main
         uses: ./.github/actions/update-app-version
         with:

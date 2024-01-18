@@ -3,7 +3,7 @@ name: Test push master
 on:
   push:
     branches:
-      - SCALRCORE-29806
+      - SCALRCORE-29806cad
 
 jobs:
   test-push-master:
