@@ -25,11 +25,13 @@ jobs:
           app_id: ${{vars.SUDO_GHA_APP_ID}}
           installation_id: ${{vars.SUDO_GHA_APP_INSTALLATION_ID}}
           private_key: ${{secrets.SUDO_GHA_APP_PRIVATE_KEY}}
+      - name: Get token
+        run: echo ${{ steps.generate_token.outputs.token }}
       # - name: Setup helm-docs
       #   uses: ./.github/actions/setup-helm-docs
-      - name: Main
-        uses: ./.github/actions/update-app-version
-        with:
-            app_version: ${{inputs.app_version}}
-        env:
-          GH_TOKEN: ${{ secrets.TOKEN_TEST }}
+      # - name: Main
+      #   uses: ./.github/actions/update-app-version
+      #   with:
+      #       app_version: ${{inputs.app_version}}
+      #   env:
+      #     GH_TOKEN: ${{ steps.generate_token.outputs.token }}
