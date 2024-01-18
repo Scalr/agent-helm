@@ -18499,6 +18499,7 @@ async function pushChanges () {
 }
 
 async function draftPR () {
+  let prNumber
   try {
     const octokit = github.getOctokit(process.env.GH_TOKEN)
     const createResponse = await octokit.rest.pulls.create({
@@ -18508,28 +18509,29 @@ async function draftPR () {
       head: process.env.PR_BRANCH,
       base: process.env.GITHUB_REF_NAME
     })
+    prNumber = createResponse.data.number
     core.notice(
-      `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
-    )
+      `Created PR #${prNumber} at ${createResponse.data.html_url}`
+    ) 
   } catch (err) {
     core.setFailed(`Failed to create pull request: ${err}`)
   }
-  return createResponse.data.number
+  return prNumber
 }
 
 async function mergePR (prNumber) {
   try {
     const octokit = github.getOctokit(process.env.GH_TOKEN)
-    const createResponse = await octokit.rest.pulls.merge({
+    const mergeResponse = await octokit.rest.pulls.merge({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       pull_number: prNumber,
     })
     core.notice(
-      `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
+      `Merged PR #${prNumber}`
     )
   } catch (err) {
-    core.setFailed(`Failed to create pull request: ${err}`)
+    core.setFailed(`Failed to merge pull request: ${err}`)
   }
 }
 
