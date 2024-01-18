@@ -60,6 +60,7 @@ async function pushChanges () {
 }
 
 async function draftPR () {
+  let prNumber
   try {
     const octokit = github.getOctokit(process.env.GH_TOKEN)
     const createResponse = await octokit.rest.pulls.create({
@@ -69,13 +70,14 @@ async function draftPR () {
       head: process.env.PR_BRANCH,
       base: process.env.GITHUB_REF_NAME
     })
+    prNumber = createResponse.data.number
     core.notice(
-      `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
-    )
-    return createResponse.data.number
+      `Created PR #${prNumber} at ${createResponse.data.html_url}`
+    ) 
   } catch (err) {
     core.setFailed(`Failed to create pull request: ${err}`)
   }
+  return prNumber
 }
 
 async function mergePR (prNumber) {
