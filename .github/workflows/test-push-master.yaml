@@ -1,0 +1,24 @@
+name: Test push master
+
+on:
+  push:
+    branches:
+      - SCALRCORE-29086
+
+jobs:
+  test-push-master:
+    name: Update appVersion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Main
+        run: |
+          git config user.name "github-actions[bot]"'
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          touch test-push-master
+          git add test-push-master
+          git commit -m "test-push-master"
+          git push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
