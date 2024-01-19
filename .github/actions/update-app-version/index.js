@@ -50,7 +50,7 @@ function updateCHANGELOG (chart, chartNewVersion) {
 async function pushChanges () {
   await exec.exec('git fetch')
   await exec.exec('git checkout master')
-  await exec.exec('git config user.name "Sudo GitHub Actions"')
+  await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
   await exec.exec('touch test1')
   await exec.exec('git add test1')

