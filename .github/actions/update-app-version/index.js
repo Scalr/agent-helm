@@ -52,7 +52,7 @@ async function pushChanges () {
   await exec.exec('git checkout dev')
   await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
-  await exec.exec('touch test1')
+  await exec.exec('rm test1')
   await exec.exec('git add test1')
   //await exec.exec(`git remote set-url origin https://sudo-github-actions:${ghToken}@github.com/Scalr/agent-helm.git`)
   //await exec.exec('git config --unset http.https://github.com/.extraheader')
