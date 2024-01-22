@@ -56,6 +56,7 @@ async function pushChanges () {
   await exec.exec('touch test1')
   await exec.exec('git add test1')
   await exec.exec(`git remote set-url origin https://sudo-github-actions:${ghToken}@github.com/Scalr/agent-helm.git`)
+  await exec.exec('git config http.https://github.com/.extraheader=')
   await exec.exec('git config --list')
   //await exec.exec('git add charts')
   await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
