@@ -26,15 +26,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: View
-        run: echo ${{ steps.generate_token.outputs.token }} | base64 -w 0
+          token: ${{ steps.generate_token.outputs.token }}
       - name: Setup helm-docs
         uses: ./.github/actions/setup-helm-docs
       - name: Main
         uses: ./.github/actions/update-app-version
         with:
             app_version: ${{inputs.app_version}}
-            gh_token: ${{ steps.generate_token.outputs.token }}
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}

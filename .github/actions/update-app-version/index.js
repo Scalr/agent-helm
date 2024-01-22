@@ -8,7 +8,6 @@ const path = require('path')
 
 const chartsDir = path.join(process.env.GITHUB_WORKSPACE, 'charts')
 const appVersion = core.getInput('app_version', { required: true })
-const ghToken = core.getInput('gh_token', { required: true })
 core.info(`The appVersion ${appVersion}`)
 
 function getCharts () {
@@ -51,12 +50,12 @@ function updateCHANGELOG (chart, chartNewVersion) {
 async function pushChanges () {
   await exec.exec('git fetch')
   await exec.exec('git checkout dev')
-  await exec.exec('git config user.name "sudo-github-actions"')
-  await exec.exec('git config user.email "sudo-github-actions@users.noreply.github.com"')
+  await exec.exec('git config user.name "github-actions[bot]"')
+  await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
   await exec.exec('touch test1')
   await exec.exec('git add test1')
-  await exec.exec(`git remote set-url origin https://sudo-github-actions:${ghToken}@github.com/Scalr/agent-helm.git`)
-  await exec.exec('git config --unset http.https://github.com/.extraheader')
+  //await exec.exec(`git remote set-url origin https://sudo-github-actions:${ghToken}@github.com/Scalr/agent-helm.git`)
+  //await exec.exec('git config --unset http.https://github.com/.extraheader')
   await exec.exec('git config --list')
   //await exec.exec('git add charts')
   await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
