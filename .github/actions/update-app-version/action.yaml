@@ -9,6 +9,9 @@ inputs:
   app_version:
     description: appVersion value
     required: true
+  gh_token:
+    description: appVersion value
+    required: true
 
 runs:
   using: node16

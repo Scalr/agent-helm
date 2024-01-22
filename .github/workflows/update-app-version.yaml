@@ -35,5 +35,6 @@ jobs:
         uses: ./.github/actions/update-app-version
         with:
             app_version: ${{inputs.app_version}}
+            gh_token: ${{ steps.generate_token.outputs.token }}
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
