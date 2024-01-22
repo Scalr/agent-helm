@@ -18502,12 +18502,12 @@ async function helmDocs () {
 
 async function run () {
   try {
-    // const charts = getCharts()
-    // charts.forEach(function (chart) {
-    //   const chartNewVersion = updateCharts(chart)
-    //   updateCHANGELOG(chart, chartNewVersion)
-    // })
-    // await helmDocs()
+    const charts = getCharts()
+    charts.forEach(function (chart) {
+      const chartNewVersion = updateCharts(chart)
+      updateCHANGELOG(chart, chartNewVersion)
+    })
+    await helmDocs()
     await pushChanges()
   } catch (err) {
     return core.setFailed(`Error: ${err}`)
