@@ -18487,55 +18487,13 @@ function updateCHANGELOG (chart, chartNewVersion) {
 }
 
 async function pushChanges () {
-  // await exec.exec('git config user.name "github-actions[bot]"')
-  // await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
-  await exec.exec('git config user.name "Volodymyr Skliar"')
-  await exec.exec('git config user.email "v.skliar@scalr.com"')
-  await exec.exec(`git checkout -b ${process.env.PR_BRANCH}`)
-  await exec.exec('touch test')
-  await exec.exec('git add test')
-  //await exec.exec('git add charts')
-  //await exec.exec(`git commit -m "Sync appVersion: ${appVersion}"`)
-  await exec.exec(`git commit -m "test"`)
-  await exec.exec(`git push origin ${process.env.PR_BRANCH} --force`)
-}
-
-async function draftPR () {
-  let prNumber
-  try {
-    const octokit = github.getOctokit(process.env.GH_TOKEN)
-    const createResponse = await octokit.rest.pulls.create({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      title: `Sync appVersion ${appVersion} triggered by upstream release workflow`,
-      head: process.env.PR_BRANCH,
-      base: "master"//process.env.GITHUB_REF_NAME
-    })
-    prNumber = createResponse.data.number
-    core.notice(
-      `Created PR #${prNumber} at ${createResponse.data.html_url}`
-    ) 
-  } catch (err) {
-    core.setFailed(`Failed to create pull request: ${err}`)
-  }
-  return prNumber
-}
-
-async function mergePR (prNumber) {
-  try {
-    const octokit = github.getOctokit(process.env.GH_TOKEN)
-    const mergeResponse = await octokit.rest.pulls.merge({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      pull_number: prNumber,
-      merge_method: 'squash'
-    })
-    core.notice(
-      `Merged PR #${prNumber}`
-    )
-  } catch (err) {
-    core.setFailed(`Failed to merge pull request: ${err}`)
-  }
+  await exec.exec('git fetch')
+  await exec.exec('git checkout master')
+  await exec.exec('git config user.name "github-actions[bot]"')
+  await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
+  await exec.exec('git add charts')
+  await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
+  await exec.exec(`git push -u origin master`)
 }
 
 async function helmDocs () {
@@ -18544,15 +18502,13 @@ async function helmDocs () {
 
 async function run () {
   try {
-    // const charts = getCharts()
-    // charts.forEach(function (chart) {
-    //   const chartNewVersion = updateCharts(chart)
-    //   updateCHANGELOG(chart, chartNewVersion)
-    // })
-    // await helmDocs()
+    const charts = getCharts()
+    charts.forEach(function (chart) {
+      const chartNewVersion = updateCharts(chart)
+      updateCHANGELOG(chart, chartNewVersion)
+    })
+    await helmDocs()
     await pushChanges()
-    prNumber = await draftPR()
-    await mergePR(prNumber)
   } catch (err) {
     return core.setFailed(`Error: ${err}`)
   }
