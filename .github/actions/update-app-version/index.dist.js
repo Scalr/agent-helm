@@ -18487,30 +18487,13 @@ function updateCHANGELOG (chart, chartNewVersion) {
 }
 
 async function pushChanges () {
+  await exec.exec('git fetch')
+  await exec.exec('git checkout master')
   await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
-  await exec.exec(`git checkout -b ${process.env.PR_BRANCH}`)
   await exec.exec('git add charts')
   await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
-  await exec.exec(`git push origin ${process.env.PR_BRANCH} --force`)
-}
-
-async function draftPR () {
-  try {
-    const octokit = github.getOctokit(process.env.GH_TOKEN)
-    const createResponse = await octokit.rest.pulls.create({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      title: `Sync appVersion ${appVersion} triggered by upstream release workflow`,
-      head: process.env.PR_BRANCH,
-      base: process.env.GITHUB_REF_NAME
-    })
-    core.notice(
-      `Created PR #${createResponse.data.number} at ${createResponse.data.html_url}`
-    )
-  } catch (err) {
-    core.setFailed(`Failed to create pull request: ${err}`)
-  }
+  await exec.exec(`git push -u origin master`)
 }
 
 async function helmDocs () {
@@ -18526,14 +18509,12 @@ async function run () {
     })
     await helmDocs()
     await pushChanges()
-    await draftPR()
   } catch (err) {
     return core.setFailed(`Error: ${err}`)
   }
 }
 
 run()
-
 })();
 
 module.exports = __webpack_exports__;
