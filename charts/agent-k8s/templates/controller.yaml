@@ -59,6 +59,8 @@ spec:
               value: "{{ .Values.agent.data_home }}"
             - name: SCALR_CONTAINER_TASK_SCHEDULING_TIMEOUT
               value: "{{ .Values.agent.container_task_scheduling_timeout }}"
+            - name: SCALR_CONTAINER_TASK_ACQUIRE_TIMEOUT
+              value: "{{ .Values.agent.container_task_acquire_timeout }}"
             - name: SCALR_CONTAINER_TASK_CPU_REQUEST
               value: "{{ .Values.agent.container_task_cpu_request }}"
             - name: SCALR_CONTAINER_TASK_CPU_LIMIT
