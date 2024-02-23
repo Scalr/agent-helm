@@ -15,7 +15,7 @@ agent:
   token: ""
   # -- The name of the secret containing the agent pool token. Secret is created if left empty.
   tokenExistingSecret: ""
-  # -- The key of the secret containing the agent pool token. 
+  # -- The key of the secret containing the agent pool token.
   tokenExistingSecretKey: "token"
   # -- Enable debug logs
   debug: false
