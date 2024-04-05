@@ -50,7 +50,7 @@ agent:
   # -- Memory resource limit defined in megabytes.
   container_task_mem_limit: 16384
   # -- The CA certificates bundle to mount it into the container task at `/etc/ssl/certs/ca-certificates.crt`.
-  # The CA file can be located inside the agent Pod, allowing selection of a 
+  # The CA file can be located inside the agent Pod, allowing selection of a
   # certificate by its path. Alternatively, a base64 string containing the
   # certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca | base64`.
   # The bundle should include both your private CAs and the standard set of public CAs.
