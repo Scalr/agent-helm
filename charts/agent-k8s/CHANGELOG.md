@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+- Added the `agent.container_task_ca_cert` configuration option for installing the CA bundle into a task container.
+
 ## [v0.5.9]
 
 ### Updated
