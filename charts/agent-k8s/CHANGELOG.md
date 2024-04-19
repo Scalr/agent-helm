@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.10]
+
+### Updated
+
+- Bumping chart version to v0.5.10 for scalr-agent v0.16.0
+
 - Added the `agent.container_task_ca_cert` configuration option for installing the CA bundle into a task container.
 
 ## [v0.5.9]
