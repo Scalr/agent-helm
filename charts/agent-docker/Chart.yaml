@@ -5,8 +5,8 @@ description: |
   where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
   Run phases are isolated into docker containers.
 type: application
-version: 0.5.11
-appVersion: 0.17.0
+version: 0.5.12
+appVersion: 0.18.0
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
 maintainers:
   - name: scalr
