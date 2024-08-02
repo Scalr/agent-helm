@@ -10,8 +10,8 @@ description: |
   > It has many advantages over the [`agent-docker`](/charts/agent-docker) chart and
   > would eventually replace it.
 type: application
-version: 0.5.16
-appVersion: 0.22.0
+version: 0.5.17
+appVersion: 0.23.0
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
 maintainers:
   - name: scalr
