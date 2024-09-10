@@ -78,6 +78,25 @@ $ helm upgrade ... \
     --set agent.data_home="/var/lib/{unique-name}"
 ```
 
+## Amazon EFS
+
+Amazon EFS can be used as a shared ReadWriteMany volume instead of a node disk. To configure it,
+install the `Amazon EFS CSI Driver` via an add-on. See the documentation: https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver.
+Ensure the add-on is active before proceeding.
+
+Next, configure the Amazon EFS file system ID using the `efsVolumeHandle` option:
+
+```console
+$ helm upgrade ... \
+    --set efsVolumeHandle="fs-582a03f3"
+    # Alternatively, if using an Access Point:
+    # see: https://docs.aws.amazon.com/efs/latest/ug/accessing-fs-nfs-permissions.html#accessing-fs-nfs-permissions-access-points
+    --set efsVolumeHandle="fs-582a03f3::fsap-01e050b7d9a3109d5"
+```
+
+When using EFS, all workers will operate within the same disk namespace, while the controller
+will continue to use an ephemeral directory as its data home.
+
 {{ template "chart.maintainersSection" . }}
 
 {{ template "chart.requirementsSection" . }}

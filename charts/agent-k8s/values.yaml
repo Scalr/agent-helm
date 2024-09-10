@@ -92,6 +92,18 @@ serviceAccount:
   # -- If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# -- Amazon EFS file system ID to use EFS storage as data home directory.
+efsVolumeHandle: ""
+
+# -- Amazon EFS mount options to define how the EFS storage volume should be mounted.
+efsMountOptions: []
+
+# -- The Agent Pods security context.
+securityContext:
+  runAsUser: 0
+  runAsGroup: 0
+
+# -- The Agent Pods annotations.
 podAnnotations: {}
 
 # -- Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted.

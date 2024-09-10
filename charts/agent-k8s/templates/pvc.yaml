@@ -1,0 +1,14 @@
+{{- if .Values.efsVolumeHandle -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-k8s-efs-claim
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: agent-k8s-efs-sc
+  resources:
+    requests:
+      storage: 5Gi
+{{- end }}
