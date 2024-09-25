@@ -11,6 +11,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `agent.tokenExistingSecretKey` option to specify the custom secret key for the agent token.
 
+## [v0.5.18]
+
+### Updated
+
+- Bumping chart version to v0.5.18 for scalr-agent v0.24.0
+
+## [v0.5.17]
+
+### Updated
+
+- Bumping chart version to v0.5.17 for scalr-agent v0.23.0
+
+## [v0.5.16]
+
+### Updated
+
+- Bumping chart version to v0.5.16 for scalr-agent v0.22.0
+
+## [v0.5.15]
+
+### Updated
+
+- Bumping chart version to v0.5.15 for scalr-agent v0.21.0
+
+## [v0.5.14]
+
+### Updated
+
+- Bumping chart version to v0.5.14 for scalr-agent v0.20.0
+
+## [v0.5.13]
+
+### Updated
+
+- Bumping chart version to v0.5.13 for scalr-agent v0.19.0
+
+## [v0.5.12]
+
+### Updated
+
+- Bumping chart version to v0.5.12 for scalr-agent v0.18.1
+
+## [v0.5.11]
+
+### Updated
+
+- Bumping chart version to v0.5.11 for scalr-agent v0.17.0
+
+## [v0.5.10]
+
+### Updated
+
+- Bumping chart version to v0.5.10 for scalr-agent v0.16.0
+
+- Added the `agent.container_task_ca_cert` configuration option for installing the CA bundle into a task container.
+
+## [v0.5.9]
+
+### Updated
+
+- Bumping chart version to v0.5.9 for scalr-agent v0.15.0
+
+## [v0.5.8]
+
+### Updated
+
+- Bumping chart version to v0.5.8 for scalr-agent v0.14.1
+
 ## [v0.5.7]
 
 ### Updated
