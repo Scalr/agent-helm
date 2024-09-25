@@ -117,6 +117,7 @@ as its data home.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| agent.automount_service_account_token | bool | `false` | Enable automatic mounting of the service account token into the agent task pods. |
 | agent.container_task_acquire_timeout | int | `180` | The timeout for the agent worker to acquire the container task (e.g., Kubernetes Pod). This timeout is primarily relevant in Kubernetes node autoscaling scenarios. It includes the time to spin up a new Kubernetes node, pull the agent worker image onto it, deploy the agent worker as part of a DaemonSet, and the time for the worker to launch and acquire the task to continue the run's execution. |
 | agent.container_task_ca_cert | string | `""` | The CA certificates bundle to mount it into the container task at `/etc/ssl/certs/ca-certificates.crt`. The CA file can be located inside the agent Pod, allowing selection of a certificate by its path. Alternatively, a base64 string containing the certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca \| base64`. The bundle should include both your private CAs and the standard set of public CAs. |
 | agent.container_task_cpu_limit | float | `8` | CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |

@@ -81,6 +81,8 @@ spec:
               value: "{{ .Values.agent.gc_plugins_workspace_size_limit }}"
             - name: SCALR_KUBERNETES_MODE
               value: "controller"
+            - name: SCALR_KUBERNETES_AUTOMOUNT_SERVICE_ACCOUNT_TOKEN
+              value: "{{ .Values.agent.automount_service_account_token }}"
             - name: SCALR_KUBERNETES_TASK_LABELS
               value: "{{ .Values.agent.kubernetes_task_labels | toJson | b64enc }}"
             - name: SCALR_KUBERNETES_TASK_ANNOTATIONS

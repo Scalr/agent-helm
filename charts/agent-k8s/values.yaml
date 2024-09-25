@@ -63,6 +63,8 @@ agent:
   kubernetes_task_labels: {}
   # -- Extra annotations to apply to the agent task pods.
   kubernetes_task_annotations: {}
+  # -- Enable automatic mounting of the service account token into the agent task pods.
+  automount_service_account_token: false
 
 imagePullSecrets: []
 nameOverride: ""
