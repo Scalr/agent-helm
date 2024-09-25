@@ -35,7 +35,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.agent.tokenExistingSecret | default (include "agent-k8s.name" .) }}
-                  key: token
+                  key: {{ .Values.agent.tokenExistingSecretKey | default "token" }}
                   optional: false
             - name: SCALR_AGENT_NAME
               valueFrom:
