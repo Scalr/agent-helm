@@ -49,7 +49,7 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 ## Disk Requirements
 
 Currently, the Agent is not fully cloud-native and utilizes the [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath)
-volume for storing a shared Terraform plugin cache and managing configuration version artifacts
+volume for storing a shared OpenTofu/Terraform plugin cache and managing configuration version artifacts
 for agent task Pods.
 
 The volume is configured via the `agent.data_home` option. The filesystem on this volume must be
@@ -77,6 +77,27 @@ Example of setting `agent.data_home`:
 $ helm upgrade ... \
     --set agent.data_home="/var/lib/{unique-name}"
 ```
+
+## Amazon EFS
+
+Amazon EFS can be used as a shared ReadWriteMany volume instead of a node disk. To configure it,
+install the `Amazon EFS CSI Driver` via an add-on. See the documentation: https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver.
+Ensure the add-on is active before proceeding.
+
+Next, configure the Amazon EFS file system ID using the `efsVolumeHandle` option:
+
+```console
+$ helm upgrade ... \
+    --set agent.data_home="/var/lib/{unique-name}" \
+    --set efsVolumeHandle="fs-582a03f3"
+    # Alternatively, if using an Access Point:
+    # see: https://docs.aws.amazon.com/efs/latest/ug/accessing-fs-nfs-permissions.html#accessing-fs-nfs-permissions-access-points
+    --set efsVolumeHandle="fs-582a03f3::fsap-01e050b7d9a3109d5"
+```
+
+The EFS storage will be mounted in all worker containers at the `agent.data_home` path. All child containers
+for Runs will inherit the EFS configuration. The controller will continue to use an ephemeral directory
+as its data home.
 
 {{ template "chart.maintainersSection" . }}
 

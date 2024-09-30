@@ -26,6 +26,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "agent-k8s.serviceAccountName" . }}
+      securityContext:
+      {{- with .Values.securityContext }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: agent-k8s
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -77,6 +81,8 @@ spec:
               value: "{{ .Values.agent.gc_plugins_workspace_size_limit }}"
             - name: SCALR_KUBERNETES_MODE
               value: "controller"
+            - name: SCALR_KUBERNETES_AUTOMOUNT_SERVICE_ACCOUNT_TOKEN
+              value: "{{ .Values.agent.automount_service_account_token }}"
             - name: SCALR_KUBERNETES_TASK_LABELS
               value: "{{ .Values.agent.kubernetes_task_labels | toJson | b64enc }}"
             - name: SCALR_KUBERNETES_TASK_ANNOTATIONS
@@ -85,8 +91,15 @@ spec:
               value: "{{ .Values.workerNodeSelector | toJson | b64enc }}"
             - name: SCALR_KUBERNETES_TASK_TOLERATIONS
               value: "{{ .Values.workerTolerations | toJson | b64enc }}"
+            {{- if .Values.efsVolumeHandle }}
+            - name: SCALR_KUBERNETES_EFS_CLAIM_NAME
+              value: "agent-k8s-efs-claim"
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data-home
+              mountPath: "{{ .Values.agent.data_home }}"
       {{- with .Values.controllerNodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -95,4 +108,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      - name: data-home
+        emptyDir: {}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}

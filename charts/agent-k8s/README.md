@@ -57,7 +57,7 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 ## Disk Requirements
 
 Currently, the Agent is not fully cloud-native and utilizes the [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath)
-volume for storing a shared Terraform plugin cache and managing configuration version artifacts
+volume for storing a shared OpenTofu/Terraform plugin cache and managing configuration version artifacts
 for agent task Pods.
 
 The volume is configured via the `agent.data_home` option. The filesystem on this volume must be
@@ -86,6 +86,27 @@ $ helm upgrade ... \
     --set agent.data_home="/var/lib/{unique-name}"
 ```
 
+## Amazon EFS
+
+Amazon EFS can be used as a shared ReadWriteMany volume instead of a node disk. To configure it,
+install the `Amazon EFS CSI Driver` via an add-on. See the documentation: https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver.
+Ensure the add-on is active before proceeding.
+
+Next, configure the Amazon EFS file system ID using the `efsVolumeHandle` option:
+
+```console
+$ helm upgrade ... \
+    --set agent.data_home="/var/lib/{unique-name}" \
+    --set efsVolumeHandle="fs-582a03f3"
+    # Alternatively, if using an Access Point:
+    # see: https://docs.aws.amazon.com/efs/latest/ug/accessing-fs-nfs-permissions.html#accessing-fs-nfs-permissions-access-points
+    --set efsVolumeHandle="fs-582a03f3::fsap-01e050b7d9a3109d5"
+```
+
+The EFS storage will be mounted in all worker containers at the `agent.data_home` path. All child containers
+for Runs will inherit the EFS configuration. The controller will continue to use an ephemeral directory
+as its data home.
+
 ## Maintainers
 
 | Name | Email | Url |
@@ -96,6 +117,7 @@ $ helm upgrade ... \
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| agent.automount_service_account_token | bool | `false` | Enable automatic mounting of the service account token into the agent task pods. |
 | agent.container_task_acquire_timeout | int | `180` | The timeout for the agent worker to acquire the container task (e.g., Kubernetes Pod). This timeout is primarily relevant in Kubernetes node autoscaling scenarios. It includes the time to spin up a new Kubernetes node, pull the agent worker image onto it, deploy the agent worker as part of a DaemonSet, and the time for the worker to launch and acquire the task to continue the run's execution. |
 | agent.container_task_ca_cert | string | `""` | The CA certificates bundle to mount it into the container task at `/etc/ssl/certs/ca-certificates.crt`. The CA file can be located inside the agent Pod, allowing selection of a certificate by its path. Alternatively, a base64 string containing the certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca \| base64`. The bundle should include both your private CAs and the standard set of public CAs. |
 | agent.container_task_cpu_limit | float | `8` | CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
@@ -120,17 +142,20 @@ $ helm upgrade ... \
 | agent.worker_on_stop_action | string | `"drain"` | Defines the SIGTERM/SIGHUP/SIGINT signal handler's shutdown behavior. Options: "drain" or "grace-shutdown" or "force-shutdown". |
 | controllerNodeSelector | object | `{}` | Kubernetes Node Selector for assigning controller agent to specific node in the cluster. Example: `--set controllerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"` |
 | controllerTolerations | list | `[]` | Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster. The selector must match a node's labels for the pod to be scheduled on that node. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set controllerTolerations[0].operator=Equal,controllerTolerations[0].effect=NoSchedule,controllerTolerations[0].key=dedicated,controllerTolerations[0].value=scalr-agent-controller-pool` |
+| efsMountOptions | list | `[]` | Amazon EFS mount options to define how the EFS storage volume should be mounted. |
+| efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"Always"` | The pullPolicy for a container and the tag of the image. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | nameOverride | string | `""` |  |
-| podAnnotations | object | `{}` |  |
+| podAnnotations | object | `{}` | The Agent Pods annotations. |
 | resources.limits.cpu | string | `"1000m"` |  |
 | resources.limits.memory | string | `"1024Mi"` |  |
 | resources.requests.cpu | string | `"250m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
+| securityContext | object | `{"runAsGroup":0,"runAsUser":0}` | The Agent Pods security context. |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
 | serviceAccount.name | string | `""` | If not set and create is true, a name is generated using the fullname template |
