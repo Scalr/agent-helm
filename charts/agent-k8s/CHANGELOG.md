@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added the option to mount the EFS filesystem to the EKS cluster as the `agent.data_home` directory.
 - Added the option to enable automatic mounting of service account tokens into the agent task pods.
+- Added `agent.tokenExistingSecretKey` option to specify the custom secret key for the agent token.
 
 ## [v0.5.18]
 
