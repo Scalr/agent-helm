@@ -134,6 +134,7 @@ as its data home.
 | agent.kubernetes_task_annotations | object | `{}` | Extra annotations to apply to the agent task pods. |
 | agent.kubernetes_task_labels | object | `{}` | Extra labels to apply to the agent task pods. |
 | agent.log_format | string | `"json"` | The log formatter. Options: "plain" or "dev" or "json". |
+| agent.restrictAwsMetadata | bool | `false` | Apply NetworkPolicy to agent pod that denies access to AWS IMDS |
 | agent.token | string | `""` | The agent pool token. |
 | agent.tokenExistingSecret | string | `""` | The name of the secret containing the agent pool token. Secret is created if left empty. |
 | agent.tokenExistingSecretKey | string | `"token"` | The key of the secret containing the agent pool token. |

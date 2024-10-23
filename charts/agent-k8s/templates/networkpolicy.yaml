@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-k8s-network-policy
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "agent-k8s.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+      - ipBlock:
+          # Allow all egress traffic by default
+          cidr: 0.0.0.0/0
+          except:
+            {{- if .Values.agent.restrictAwsMetadata }}
+            # Deny access to AWS IMDS
+            - 169.254.169.254/32
+            {{- end }}

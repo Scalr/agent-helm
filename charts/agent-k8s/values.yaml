@@ -67,6 +67,8 @@ agent:
   kubernetes_task_annotations: {}
   # -- Enable automatic mounting of the service account token into the agent task pods.
   automount_service_account_token: false
+  # -- Apply NetworkPolicy to agent pod that denies access to AWS IMDS
+  restrictAwsMetadata: false
 
 imagePullSecrets: []
 nameOverride: ""
