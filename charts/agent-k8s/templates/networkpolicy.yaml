@@ -1,3 +1,4 @@
+{{- if .Values.restrictMetadataService }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -15,7 +16,6 @@ spec:
           # Allow all egress traffic by default
           cidr: 0.0.0.0/0
           except:
-            {{- if .Values.agent.restrictAwsMetadata }}
-            # Deny access to AWS IMDS
+            # Deny access to IMDS
             - 169.254.169.254/32
-            {{- end }}
+{{- end }}

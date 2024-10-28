@@ -107,6 +107,25 @@ The EFS storage will be mounted in all worker containers at the `agent.data_home
 for Runs will inherit the EFS configuration. The controller will continue to use an ephemeral directory
 as its data home.
 
+## Restrict Access to VM Metadata Service
+
+The chart includes an optional feature to restrict the pods from accessing the VM metadata service at 169.254.169.254, which is common for both AWS and GCP environments.
+
+To enable it, use the `restrictMetadataService` option:
+
+```console
+$ helm upgrade ... \
+    --set restrictMetadataService=true
+```
+
+With this option enabled, a Kubernetes NetworkPolicy is applied to the agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+
+### Limitations
+
+Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
+
+If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
+
 ## Maintainers
 
 | Name | Email | Url |
@@ -134,7 +153,6 @@ as its data home.
 | agent.kubernetes_task_annotations | object | `{}` | Extra annotations to apply to the agent task pods. |
 | agent.kubernetes_task_labels | object | `{}` | Extra labels to apply to the agent task pods. |
 | agent.log_format | string | `"json"` | The log formatter. Options: "plain" or "dev" or "json". |
-| agent.restrictAwsMetadata | bool | `false` | Apply NetworkPolicy to agent pod that denies access to AWS IMDS |
 | agent.token | string | `""` | The agent pool token. |
 | agent.tokenExistingSecret | string | `""` | The name of the secret containing the agent pool token. Secret is created if left empty. |
 | agent.tokenExistingSecretKey | string | `"token"` | The key of the secret containing the agent pool token. |
@@ -156,6 +174,7 @@ as its data home.
 | resources.limits.memory | string | `"1024Mi"` |  |
 | resources.requests.cpu | string | `"250m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
+| restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
 | securityContext | object | `{"runAsGroup":0,"runAsUser":0}` | The Agent Pods security context. |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
