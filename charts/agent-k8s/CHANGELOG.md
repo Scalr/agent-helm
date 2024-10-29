@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `restrictMetadataService` option. When set to true, applies pod network policy that blocks outbound access to instance metadata service.
+
 ## [v0.5.21]
 
 ### Updated
