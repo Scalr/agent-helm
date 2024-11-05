@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.22]
+
+### Updated
+
+- Bumping chart version to v0.5.22 for scalr-agent v0.27.0
+
 ### Added
 
 - Added `restrictMetadataService` option. When set to true, applies pod network policy that blocks outbound access to instance metadata service.
