@@ -61,13 +61,13 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download agent-k8s RELEASE.md
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-notes-agent-k8s
           path: charts/agent-k8s
 
       - name: Download agent-docker RELEASE.md
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-notes-agent-docker
           path: charts/agent-docker
