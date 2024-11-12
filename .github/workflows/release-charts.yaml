@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "charts/*/Chart.yaml"
+#    paths:
+#      - "charts/*/Chart.yaml"
 permissions: {}
 jobs:
   prepare:
