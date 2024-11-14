@@ -25,11 +25,10 @@ jobs:
           git checkout master
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config credential.username oauth2 
+          git config credential.username oauth2
           git config credential.helper '!f() { test "$1" = get && echo "password=${{ steps.generate_token.outputs.token }}"; }; f'
           touch test-push-master
           git add test-push-master
           git commit -m "test-push-master"
           ls -l .git/hooks/
           #git push -u origin master --force
-        

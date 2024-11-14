@@ -90,3 +90,54 @@ jobs:
           CR_SKIP_EXISTING: true
           CR_MAKE_RELEASE_LATEST: false
           CR_RELEASE_NOTES_FILE: RELEASE.md
+
+  notify:
+    name: Notify About Agent Helm Release
+    needs: [prepare, release]
+    if: always()
+    runs-on: [standard-1-without-dind-amd64]
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    steps:
+    - name: Release Succeeded
+      if: ${{ needs.release.result == 'success' }}
+      uses: slackapi/slack-github-action@v1.25.0
+      with:
+        payload: |
+          {
+            "text": "The Agent Helm has been Released",
+            "attachments": [
+              {
+                "color": "36a64f",
+                "fields": [
+                  {
+                    "title": "Job URL",
+                    "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                    "short": false
+                  }
+                ]
+              }
+            ]
+          }
+
+    - name: Release Failed
+      if: ${{ contains(needs.*.result, 'failure')}}
+      uses: slackapi/slack-github-action@v1.25.0
+      with:
+        payload: |
+          {
+            "text": "The Agent Helm Release has been Failed",
+            "attachments": [
+              {
+                "color": "b52c2a",
+                "fields": [
+                  {
+                    "title": "Job URL",
+                    "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                    "short": false
+                  }
+                ]
+              }
+            ]
+          }
