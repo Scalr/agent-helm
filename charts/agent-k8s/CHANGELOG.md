@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- `enable_relay` option to enable HTTP Relay for Scalr-to-Agent communications. This option maintains a persistent channel via an HTTP long-polling connection, allowing agent tasks and cancellation commands to be delivered almost instantly. HTTP Relay was already used for proxying VCS agent requests and has now been extended to the new command interface for all Agents. The feature is currently in beta and is disabled by default.
+
 ## [v0.5.24]
 
 ### Updated

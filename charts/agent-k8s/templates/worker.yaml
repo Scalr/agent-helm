@@ -77,6 +77,8 @@ spec:
               value: "{{ .Values.agent.gc_plugins_global_size_limit }}"
             - name: SCALR_GC_PLUGINS_WORKSPACE_SIZE_LIMIT
               value: "{{ .Values.agent.gc_plugins_workspace_size_limit }}"
+            - name: SCALR_ENABLE_RELAY
+              value: "{{ .Values.agent.enable_relay }}"
             - name: SCALR_KUBERNETES_MODE
               value: "worker"
             {{- if .Values.efsVolumeHandle }}

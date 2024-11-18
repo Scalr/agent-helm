@@ -67,6 +67,10 @@ agent:
   kubernetes_task_annotations: {}
   # -- Enable automatic mounting of the service account token into the agent task pods.
   automount_service_account_token: false
+  # -- Enable HTTP Relay for Scalr-to-Agent communications. This option maintains a
+  # persistent channel via an HTTP long-polling connection, allowing agent tasks and
+  # cancellation commands to be delivered almost instantly (beta, disabled by default).
+  enable_relay: false
 
 imagePullSecrets: []
 nameOverride: ""
