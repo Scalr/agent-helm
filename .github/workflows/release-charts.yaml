@@ -95,7 +95,7 @@ jobs:
     name: Notify About Agent Helm Release
     needs: [prepare, release]
     if: always()
-    runs-on: [standard-1-without-dind-amd64]
+    runs-on: ubuntu-latest
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
