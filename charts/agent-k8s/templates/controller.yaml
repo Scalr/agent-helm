@@ -75,6 +75,8 @@ spec:
               value: "{{ .Values.agent.container_task_mem_limit }}"
             - name: SCALR_CONTAINER_TASK_CA_CERT
               value: "{{ .Values.agent.container_task_ca_cert }}"
+            - name: SCALR_CONTAINER_TASK_IMAGE_REGISTRY
+              value: "{{ .Values.agent.container_task_image_registry }}"
             - name: SCALR_GC_PLUGINS_GLOBAL_SIZE_LIMIT
               value: "{{ .Values.agent.gc_plugins_global_size_limit }}"
             - name: SCALR_GC_PLUGINS_WORKSPACE_SIZE_LIMIT
