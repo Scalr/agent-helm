@@ -130,7 +130,25 @@ $ helm upgrade ... \
 To configure SSL certificates globally, use the `agent.ca_cert` option.
 To configure SSL certificates only for isolated containers for the tasks (e.g. tofu/terraform/infracost operations), set the `agent.container_task_ca_cert` option.
 
-The CA file can be bundled into the agent's image, allowing a certificate to be selected by its file path.
+You can bundle your certificate into an agent image. Place the custom CA file at `extra_ca_root.crt` and build the customized image:
+
+```Dockerfile
+FROM scalr/agent:latest
+
+ADD extra_ca_root.crt /usr/local/share/ca-certificates/extra-ca.crt
+RUN apt update \
+    && apt install ca-certificates -y \
+    && chmod 644 /usr/local/share/ca-certificates/extra-ca.crt \
+    && update-ca-certificates
+ENV SCALR_CA_CERT="/etc/ssl/certs/ca-certificates.crt" # same as `agent.ca_cert` helm option
+# ENV SCALR_CONTAINER_TASK_CA_CERT="/etc/ssl/certs/ca-certificates.crt" # same as `agent.container_task_ca_cert` helm option
+```
+
+This step also bundles your certificate with the set of public certificates provided by `ca-certificates`
+system package. You can optionally skip this step and instead point `SCALR_CA_CERT` (or `SCALR_CONTAINER_TASK_CA_CERT`) to your certificate
+if it already includes public CA certificates or if they are not needed (e.g., in a setup completely hidden behind a proxy).
+
+Note that by default, the scalr agent uses the certificate bundle provided by the [certifi](https://github.com/certifi/python-certifi) package instead of the system certificate bundle provided by the `ca-certificates` package.
 
 Alternatively, a base64-encoded string containing the certificate bundle can be used.
 
@@ -144,28 +162,8 @@ Example of running agent with custom CA certifcates:
 
 ```console
 $ helm upgrade ... \
-  -e agent.ca_cert="base-64-encoded-certs" \
+  -e agent.ca_cert=<base-64-encoded-certs> \
 ```
-
-You can optionally bundle your certificate into an agent image. Place the custom CA file at `extra_ca_root.crt` and build the customized image:
-
-```Dockerfile
-FROM scalr/agent:latest
-
-ADD extra_ca_root.crt /usr/local/share/ca-certificates/extra-ca.crt
-RUN apt update \
-    && apt install ca-certificates -y \
-    && chmod 644 /usr/local/share/ca-certificates/extra-ca.crt \
-    && update-ca-certificates
-ENV SCALR_CA_CERT="/etc/ssl/certs/ca-certificates.crt"
-```
-
-This step also bundles your certificate with the set of public certificates provided by `ca-certificates`
-system package. You can optionally skip this step and instead point `SCALR_CA_CERT` to your certificate
-if it already includes public CA certificates or if they are not needed (e.g., in a setup completely
-hidden behind a proxy).
-
-Note that by default, the scalr agent uses the certificate bundle provided by the [certifi](https://github.com/certifi/python-certifi) package instead of the system certificate bundle provided by the `ca-certificates` package.
 
 ### Limitations
 
