@@ -2,6 +2,22 @@ apiVersion: v1
 entries:
   agent-docker:
   - apiVersion: v2
+    appVersion: 0.32.0
+    created: "2024-12-12T11:44:30.050531598Z"
+    description: 'A Helm chart for the scalr-agent deployment on ths Kubernetes cluster,
+      where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
+      Run phases are isolated into docker containers. '
+    digest: f583e00e305b4648099f2ca0f455dc8073642d1e7ca13e0a1239b67015165e73
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-docker
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.5.28/agent-docker-0.5.28.tgz
+    version: 0.5.28
+  - apiVersion: v2
     appVersion: 0.31.0
     created: "2024-11-29T17:26:04.124477975Z"
     description: 'A Helm chart for the scalr-agent deployment on ths Kubernetes cluster,
@@ -560,6 +576,24 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.1.0/agent-docker-0.1.0.tgz
     version: 0.1.0
   agent-k8s:
+  - apiVersion: v2
+    appVersion: 0.32.0
+    created: "2024-12-12T11:44:30.256431674Z"
+    description: 'A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
+      where runs are executed in Pods in the same cluster. Run phases are isolated
+      in kubernetes containers with resource limits.  > **Note** > This new deployment
+      architecture is currently in preview. > It has many advantages over the [`agent-docker`](/charts/agent-docker)
+      chart and > would eventually replace it. '
+    digest: 54e8d8ab4485e573b4981f8df9a631f5a096a62f3d1181556f3237fe0cb2bb68
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.5.28/agent-k8s-0.5.28.tgz
+    version: 0.5.28
   - apiVersion: v2
     appVersion: 0.31.0
     created: "2024-11-29T17:26:04.266125219Z"
@@ -1186,4 +1220,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.1.0/agent-k8s-0.1.0.tgz
     version: 0.1.0
-generated: "2024-11-29T17:26:04.266866335Z"
+generated: "2024-12-12T11:44:30.257193397Z"
