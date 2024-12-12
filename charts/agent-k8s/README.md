@@ -120,6 +120,61 @@ $ helm upgrade ... \
 
 With this option enabled, a Kubernetes NetworkPolicy is applied to the agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
 
+### HTTP Proxy
+
+To configure an HTTP proxy, set the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables.
+
+Example of running agent with HTTP proxy enabled:
+
+```console
+$ helm upgrade ... \
+  --set extraEnv.HTTP_PROXY="<proxy-address>" \
+  --set extraEnv.HTTPS_PROXY="<proxy-address>" \
+  --set extraEnv.NO_PROXY="<addr1>,<addr2>"
+```
+
+### SSL Certificate Bundles
+
+To configure SSL certificates globally, use the `agent.ca_cert` option.
+To configure SSL certificates only for isolated containers for the tasks (e.g. tofu/terraform/infracost operations), set the `agent.container_task_ca_cert` option.
+
+The CA file can be bundled into the agent's image, allowing a certificate to be selected by its file path.
+
+Alternatively, a base64-encoded string containing the certificate bundle can be used.
+
+Example of encoding a bundle:
+
+```console
+$~ cat /path/to/bundle.ca | base64
+```
+
+Example of running agent with custom CA certifcates:
+
+```console
+$ helm upgrade ... \
+  -e agent.ca_cert="base-64-encoded-certs" \
+```
+
+You can optionally bundle your certificate into an agent image. Place the custom CA file at `extra_ca_root.crt` and build the customized image:
+
+```Dockerfile
+FROM scalr/agent:latest
+
+ADD extra_ca_root.crt /usr/local/share/ca-certificates/extra-ca.crt
+RUN apt update \
+    && apt install ca-certificates -y \
+    && chmod 644 /usr/local/share/ca-certificates/extra-ca.crt \
+    && update-ca-certificates
+ENV SCALR_CA_CERT="/etc/ssl/certs/ca-certificates.crt"
+```
+
+This step also bundles your certificate with the set of public certificates provided by `ca-certificates`
+system package. You can optionally skip this step and instead point `SCALR_CA_CERT` to your certificate
+if it already includes public CA certificates or if they are not needed (e.g., in a setup completely
+hidden behind a proxy).
+
+Note that by default, the scalr agent uses the certificate bundle provided by the [certifi](https://github.com/certifi/python-certifi) package instead of the system certificate bundle provided by the `ca-certificates` package.
+
 ### Limitations
 
 Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
@@ -137,6 +192,7 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | agent.automount_service_account_token | bool | `false` | Enable automatic mounting of the service account token into the agent task pods. |
+| agent.ca_cert | string | `""` | The CA certificates bundle to use for all agent requests and container tasks. The CA file can be located inside the agent VM, allowing selection of a certificate by its path. If running the agent within Docker, ensure the certificate is mounted to an agent container. Alternatively, a base64 string containing the certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca | base64`. The bundle should include both your private CAs and the standard set of public CAs. |
 | agent.container_task_acquire_timeout | int | `180` | The timeout for the agent worker to acquire the container task (e.g., Kubernetes Pod). This timeout is primarily relevant in Kubernetes node autoscaling scenarios. It includes the time to spin up a new Kubernetes node, pull the agent worker image onto it, deploy the agent worker as part of a DaemonSet, and the time for the worker to launch and acquire the task to continue the run's execution. |
 | agent.container_task_ca_cert | string | `""` | The CA certificates bundle to mount it into the container task at `/etc/ssl/certs/ca-certificates.crt`. The CA file can be located inside the agent Pod, allowing selection of a certificate by its path. Alternatively, a base64 string containing the certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca \| base64`. The bundle should include both your private CAs and the standard set of public CAs. |
 | agent.container_task_cpu_limit | float | `8` | CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
@@ -164,6 +220,7 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 | controllerTolerations | list | `[]` | Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster. The selector must match a node's labels for the pod to be scheduled on that node. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set controllerTolerations[0].operator=Equal,controllerTolerations[0].effect=NoSchedule,controllerTolerations[0].key=dedicated,controllerTolerations[0].value=scalr-agent-controller-pool` |
 | efsMountOptions | list | `[]` | Amazon EFS mount options to define how the EFS storage volume should be mounted. |
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
+| extraEnv | object | `{}` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"Always"` | The pullPolicy for a container and the tag of the image. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
@@ -185,4 +242,4 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

@@ -31,6 +31,13 @@ agent:
   disconnect_on_stop: true
   # -- The agent working directory on the cluster host node.
   data_home: "/home/kubernetes/flexvolume/agent-k8s"
+  # -- The CA certificates bundle to use for all agent requests and container tasks.
+  # The CA file can be located inside the agent VM, allowing selection of a
+  # certificate by its path. If running the agent within Docker, ensure the certificate
+  # is mounted to an agent container. Alternatively, a base64 string containing the
+  # certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca | base64`.
+  # The bundle should include both your private CAs and the standard set of public CAs.
+  ca_cert: ""
   # -- The container task's (e.g., Kubernetes Pod) scheduling timeout in seconds.
   # The task will be waiting for the scheduling in the queued status; if the cluster
   # does not allocate resources for the container in that timeout, the task will be switched to the errored status.
@@ -120,6 +127,13 @@ restrictMetadataService: false
 
 # -- Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted.
 terminationGracePeriodSeconds: 3660
+
+# Additional environment variables for agent containers.
+# For instance to add a HTTP proxy.
+extraEnv: {}
+#   HTTPS_PROXY: "http://myproxy.com:3128"
+#   HTTP_PROXY: "http://myproxy.com:3128"
+#   NO_PROXY: "localhost,127.0.0.1"
 
 resources:
   limits:
