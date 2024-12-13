@@ -59,6 +59,8 @@ spec:
               value: "{{ .Values.agent.disconnect_on_stop }}"
             - name: SCALR_DATA_HOME
               value: "{{ .Values.agent.data_home }}"
+            - name: SCALR_CA_CERT
+              value: "{{ .Values.agent.ca_cert }}"
             - name: SCALR_CONTAINER_TASK_SCHEDULING_TIMEOUT
               value: "{{ .Values.agent.container_task_scheduling_timeout }}"
             - name: SCALR_CONTAINER_TASK_ACQUIRE_TIMEOUT
@@ -84,6 +86,12 @@ spec:
             {{- if .Values.efsVolumeHandle }}
             - name: SCALR_KUBERNETES_EFS_CLAIM_NAME
               value: "agent-k8s-efs-claim"
+            {{- end }}
+            {{- if .Values.extraEnv }}
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
