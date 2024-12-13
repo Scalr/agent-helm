@@ -100,7 +100,6 @@ spec:
               value: "agent-k8s-efs-claim"
             {{- end }}
             {{- if .Values.extraEnv }}
-            env:
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}
