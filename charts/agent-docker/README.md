@@ -41,7 +41,7 @@ Multiple Deployments can be created within a single Kubernetes cluster.
 | docker.image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
 | docker.image.repository | string | `"docker"` | Docker repository for the docker image. |
 | docker.image.tag | string | `"20.10.23-dind"` | Overrides the image tag. |
-| extraEnv | object | `{}` | Additional environment variables for agent containers.   For example, use this to add an agent configuration variable or set up an HTTP proxy.   See the full list of configuration options here:   https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments.   |
+| extraEnv | object | `{}` | Additional environment variables for agent containers. For example, use this to add an agent configuration variable or set up an HTTP proxy. See the full list of configuration options here: https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments. |
 | fullnameOverride | string | `""` | String to fully override the name used in resources |
 | imagePullSecrets | list | `[]` | List of secrets for pulling images from private registries |
 | nameOverride | string | `""` | String to partially override the name used in resources |
