@@ -7,9 +7,9 @@ replicaCount: 1
 
 agent:
   image:
-    # Docker repository for the Scalr Agent image.
+    # -- Docker repository for the Scalr Agent image.
     repository: scalr/agent
-    # The pullPolicy for a container and the tag of the image.
+    # -- The pullPolicy for a container and the tag of the image.
     pullPolicy: Always
     # -- Overrides the image tag whose default is the chart appVersion.
     tag: ""
@@ -26,6 +26,15 @@ docker:
     pullPolicy: IfNotPresent
     # -- Overrides the image tag.
     tag: "20.10.23-dind"
+
+# -- Additional environment variables for agent containers.
+# For example, use this to add an agent configuration variable or set up an HTTP proxy.
+# See the full list of configuration options here:
+# https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments.
+extraEnv: {}
+#   HTTPS_PROXY: "http://myproxy.com:3128"
+#   HTTP_PROXY: "http://myproxy.com:3128"
+#   NO_PROXY: "localhost,127.0.0.1"
 
 # -- List of secrets for pulling images from private registries
 imagePullSecrets: []
