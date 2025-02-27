@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added the `extraEnv` option to specify custom environment variables for the Scalr Agent deployment.
+
 ## [v0.5.37]
 
 ### Updated
@@ -236,7 +240,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Updated
 
 - Synchronizing Chart `version` with `appVersion`.
-
 
 ## [v0.3.4]
 
