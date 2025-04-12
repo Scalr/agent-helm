@@ -76,8 +76,14 @@ spec:
           - name: SCALR_TOKEN
             valueFrom:
               secretKeyRef:
+              {{- if .Values.agent.tokenExistingSecret }}
+                {{- with .Values.agent.tokenExistingSecret }}
+                  {{- toYaml . | nindent 16  }}
+                {{- end }}
+              {{- else }}
                 name: {{ include "agent-docker.name" . }}
                 key: token
+              {{- end }}
                 optional: false
           livenessProbe:
             exec:

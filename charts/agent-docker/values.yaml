@@ -15,6 +15,10 @@ agent:
     tag: ""
   # -- A value for agent.token must be provided for Scalr Agent authentication
   token:
+  # -- A pre-existing secret if agent.token can't be provided for Scalr Agent authentication
+  # tokenExistingSecret:
+  #  name:
+  #  key: token
   # -- A value for agent.url must be provided to specify the Scalr API endpoint
   url:
 
