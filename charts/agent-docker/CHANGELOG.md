@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## Added
+- Added the tokenExistingSecret option to specify existing token secret for the Scalr Agent deployment ([#79](https://github.com/Scalr/agent-helm/pull/79))
+
 ## [v0.5.40]
 
 ### Updated
