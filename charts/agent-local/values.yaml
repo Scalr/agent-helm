@@ -1,0 +1,80 @@
+# Default values for agent-docker.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# -- Number of replicas for the Scalr Agent deployment
+replicaCount: 1
+
+agent:
+  image:
+    # -- Docker repository for the Scalr Agent image.
+    repository: scalr/agent
+    # -- The pullPolicy for a container and the tag of the image.
+    pullPolicy: Always
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+  # -- A value for agent.token must be provided for Scalr Agent authentication
+  token:
+  # -- A pre-existing secret if agent.token can't be provided for Scalr Agent authentication
+  # tokenExistingSecret:
+  #  name:
+  #  key: token
+  # -- A value for agent.url must be provided to specify the Scalr API endpoint
+  url:
+
+# -- Additional environment variables for agent containers.
+# For example, use this to add an agent configuration variable or set up an HTTP proxy.
+# See the full list of configuration options here:
+# https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments.
+extraEnv: {}
+#   HTTPS_PROXY: "http://myproxy.com:3128"
+#   HTTP_PROXY: "http://myproxy.com:3128"
+#   NO_PROXY: "localhost,127.0.0.1"
+
+# -- List of secrets for pulling images from private registries
+imagePullSecrets: []
+
+# -- String to partially override the name used in resources
+nameOverride: ""
+
+# -- String to fully override the name used in resources
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: false
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use.
+  # -- If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# -- Additional annotations to be added to the Scalr Agent pods
+podAnnotations: {}
+
+# -- Pod security context for the Scalr Agent deployment
+podSecurityContext: {}
+
+securityContext:
+  # -- Set this value to true to run the container in privileged mode.
+  privileged: true
+
+  # -- Specifies the type of proc mount for the container.
+  # -- Accepted values are "Default", "Unmasked", or "Host".
+  procMount: Default
+
+# -- NodeSelector for specifying which nodes the Scalr Agent pods should be deployed on
+nodeSelector: {}
+
+# -- Tolerations for the Scalr Agent pods, allowing them to run on tainted nodes
+tolerations: []
+
+# -- Affinity rules to control how the Scalr Agent pods are scheduled on nodes
+affinity: {}
+
+resources:
+  limits:
+    memory: 2048Mi
+  requests:
+    cpu: 500m
+    memory: 2048Mi

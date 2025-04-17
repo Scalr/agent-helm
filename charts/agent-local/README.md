@@ -1,16 +1,15 @@
-# agent-docker
+# agent-local
 
 ![Version: 0.5.40](https://img.shields.io/badge/Version-0.5.40-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.42.0](https://img.shields.io/badge/AppVersion-0.42.0-informational?style=flat-square)
 
 A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
-where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
-Run phases are isolated into docker containers.
+where runs are executed using local driver.
 
 > **Note**
 > We suggest to install this chart only is you already rely on scalr-agent,
 > and migrating your AgentPool from other installation methods: e.g. rpm / deb / docker.
 > For new deployments we encourage you to try the new [`agent-k8s`](/charts/agent-k8s) chart,
-> that has many advantages over the `agent-docker`.
+> that has many advantages over the `agent-local`.
 
 Kuberentes deployment doesn't scale on multiple replicas.
 Consequently, the capacity of compute resources that can be managed
@@ -18,9 +17,9 @@ by a single agent remains constrained by a single node.
 
 Multiple Deployments can be created within a single Kubernetes cluster.
 
-![Agent in Docker deployment diagram](/charts/agent-docker/assets/agent-docker-deploy-diagram.jpg)
+![Agent in Docker deployment diagram](/charts/agent-local/assets/agent-local-deploy-diagram.jpg)
 
-**Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker>
+**Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-local>
 
 ## Maintainers
 
@@ -38,9 +37,6 @@ Multiple Deployments can be created within a single Kubernetes cluster.
 | agent.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | agent.token | string | `nil` | A value for agent.token must be provided for Scalr Agent authentication |
 | agent.url | string | `nil` | A value for agent.url must be provided to specify the Scalr API endpoint |
-| docker.image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
-| docker.image.repository | string | `"docker"` | Docker repository for the docker image. |
-| docker.image.tag | string | `"20.10.23-dind"` | Overrides the image tag. |
 | extraEnv | object | `{}` | Additional environment variables for agent containers. For example, use this to add an agent configuration variable or set up an HTTP proxy. See the full list of configuration options here: https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments. |
 | fullnameOverride | string | `""` | String to fully override the name used in resources |
 | imagePullSecrets | list | `[]` | List of secrets for pulling images from private registries |
