@@ -2,16 +2,11 @@
 
 ![Version: 0.5.40](https://img.shields.io/badge/Version-0.5.40-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.42.0](https://img.shields.io/badge/AppVersion-0.42.0-informational?style=flat-square)
 
-A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
-where runs are executed in Pods in the same cluster.
-Run phases are isolated in kubernetes containers with resource limits.
+A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+Uses a controller/worker model. Each run stage is isolated
+in Kubernetes containers with specified resource limits.
 
-> **Note**
-> This new deployment architecture is currently in preview.
-> It has many advantages over the [`agent-docker`](/charts/agent-docker) chart and
-> would eventually replace it.
-
-## Additional Information
+## Overview
 
 The Agent deploys as two components: a controller and a worker. The controller
 consumes jobs from Scalr and schedules pods, while the worker supervises the jobs.
@@ -20,12 +15,29 @@ The agent worker is a DaemonSet that scales up/down with the cluster, registerin
 and deregistering agents from the pool. When an Agent controller receives a job from Scalr,
 it schedules a Pod for execution. The Kubernetes workload scheduler assigns the Pod
 to a specific Node, where the Agent worker running on that Node oversees the execution
-of the job. By enabling the Kubernetes auto-scaler, Terraform workloads can scale
+of the job. By enabling the Kubernetes auto-scaler, Scalr Run workloads can scale
 linearly based on the load.
 
-![Agent in Kubernetes deployment diagram](/charts/agent-k8s/assets/agent-k8s-deploy-diagram.jpg)
+### Pros
 
-## Installing the Chart
+- Cost-efficient for bursty workloads — e.g., deployments with high number of Runs during short periods and low activity otherwise, as resources allocated on demand for each Scalr Run.
+- High multi-tenant isolation, as each Scalr Run always has its own newly provisioned environment.
+- Better observability, as each Scalr Run is tied to its own unique Pod.
+
+### Cons
+
+- Requires access to the Kubernetes API to launch new Pods.
+- Requires a ReadWriteMany Persistent Volume configuration for provider/binary caching. This type of volume is generally vendor-specific and not widely available across all cloud providers.
+- May spawn too many services without having its own dedicated node pool. [Details](#daemonset).
+- Relies on a hostPath volume. [Details](#hostpath-volume).
+
+## Deployment Diagram
+
+<p align="center">
+  <img src="assets/agent-k8s-deploy-diagram.jpg" />
+</p>
+
+## Installing
 
 To install the chart with the release name `scalr-agent`:
 
@@ -179,6 +191,49 @@ Ensure that your cluster is using a CNI plugin that supports egress NetworkPolic
 
 If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
 
+### Issues
+
+This implementation has several design choices that may prevent adoption.
+
+#### DaemonSet
+
+Scalr Agents from the start were Docker-based and built with multi-tenancy in mind, designed to run and isolate concurrent Scalr Runs within a single agent instance, keeping OpenTofu/Terraform workloads separated by design. They are also built using third-party software bundled via Docker images (OpenTofu, Terraform, OPA, Infracost, etc.), which introduces a Docker dependency.
+
+Our initial Kubernetes implementation followed the pattern introduced by the Docker-based agents. It uses a cloud-native controller/worker model.
+The Agent Controller is deployed as a Deployment, while agent workers are deployed as a DaemonSet across all nodes in the cluster or a specific node pool.
+The Agent Controller pulls tasks from Scalr and launches task pods to execute Run workflows. The DaemonSet ensures a single worker per node to handle multiple Run workflows and reduce resource usage.
+
+The DaemonSet auto-scales workers across all nodes. This is a valid solution only if you have a dedicated cluster or at least a separate node pool. Otherwise, it may scale across a large number of nodes, spawning too many idle workers.
+
+#### hostPath volume
+
+Another important aspect of this implementation is the reliance on a [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) volume.
+Since the Agent is based on the OpenTofu/Terraform architecture, which depends on plugins, each initialization triggers the download of all providers defined in the configuration.
+These downloads can be very large, so local persistent storage was necessary to cache providers and avoid redownloading them for each Scalr Run stage. There’s no scalable way to
+use local storage except through hostPath (per-node cache) or ReadWriteMany volumes, which are vendor-specific and complex to configure — making them impractical to provide out of the box.
+
+The hostPath volume is unacceptable for many users. It’s also restricted by some Kubernetes vendors, such as GKE Autopilot, which enforces stricter limitations.
+
+#### Planned Solutions
+
+We’re planning to replace the current DaemonSet-based architecture with a Job-based model.
+
+When a run is assigned to an agent pool by Scalr, the Agent Controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
+- runner: The environment where the run is executed, based on the golden `scalr/runner` image.
+- worker: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
+The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
+
+The key difference from the current approach is the use of ephemeral workers, created per run, instead of maintaining a static set of per-node workers via a DaemonSet.
+
+Regarding hostPath concerns — we’ve planning to remove it. The latest versions of the Scalr Agent (>=0.43) features optimized provider downloads by pulling providers locked via dependency files concurrently, which significantly improves the situation with time taken to pull providers.
+If a Scalr Agent installation requires persistent storage, users must configure an NFS volume (ReadWriteMany Kubernetes storage) themselves or set up a network mirror for the Terraform/OpenTofu registry.
+
+### New Diagram
+
+<p align="center">
+  <img src="assets/deploy-diagram.drawio.svg" />
+</p>
+
 ## Maintainers
 
 | Name | Email | Url |
@@ -240,4 +295,4 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

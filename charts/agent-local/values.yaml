@@ -1,0 +1,148 @@
+# Default values for the Scalr Agent Helm chart.
+# This is a YAML-formatted file used to configure the Scalr Agent deployment.
+
+# -- Number of replicas for the Scalr Agent deployment. Adjust for high availability.
+replicaCount: 1
+
+# -- Deployment strategy configuration.
+strategy:
+  # -- Type of deployment strategy. Options: RollingUpdate, Recreate.
+  type: RollingUpdate
+  # -- Rolling update parameters.
+  rollingUpdate:
+    # -- Maximum number of pods that can be created above the desired number during an update.
+    maxSurge: 25%
+    # -- Maximum number of pods that can be unavailable during an update.
+    maxUnavailable: 50%
+
+image:
+  # -- Docker repository for the Scalr Agent image.
+  repository: scalr/agent
+  # -- Image pull policy. 'IfNotPresent' is efficient for stable deployments.
+  pullPolicy: IfNotPresent
+  # -- Image tag. Overrides the default (chart appVersion). Leave empty to use chart default.
+  tag: ""
+
+# -- Scalr Agent authentication token (required unless tokenExistingSecret is used).
+token: ""
+
+# -- Pre-existing Kubernetes secret for the Scalr Agent token.
+tokenExistingSecret:
+  # -- Name of the secret containing the token.
+  name: ""
+  # -- Key within the secret that holds the token value.
+  key: "token"
+
+# -- Scalr API endpoint URL (required).
+url: ""
+
+# -- Additional environment variables for Scalr Agent containers.
+# Use to configure proxies or other runtime parameters.
+# See: https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments
+extraEnv:
+  []
+  # Example:
+  # - name: HTTPS_PROXY
+  #   value: "http://myproxy.com:3128"
+
+# -- List of Kubernetes secrets for pulling images from private registries.
+imagePullSecrets:
+  []
+  # Example:
+  # - name: my-registry-secret
+
+# -- Override the default resource name prefix for all resources.
+nameOverride: ""
+
+# -- Fully override the resource name for all resources.
+fullnameOverride: ""
+
+# -- Secret configuration for storing the Scalr Agent token.
+secret:
+  # -- Annotations for the Secret resource.
+  annotations: {}
+  # -- Additional labels for the Secret resource.
+  labels: {}
+
+serviceAccount:
+  # -- Create a Kubernetes service account for the Scalr Agent.
+  create: false
+  # -- Annotations for the service account.
+  annotations: {}
+  # -- Additional labels for the service account.
+  labels: {}
+  # -- Name of the service account. Generated if not set and 'create' is true.
+  name: ""
+
+# -- Annotations for Scalr Agent pods (e.g., for monitoring or logging).
+podAnnotations:
+  {}
+  # Example:
+  # prometheus.io/scrape: "true"
+
+# -- Pod security context for Scalr Agent pods.
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+securityContext:
+  # -- Run container in privileged mode. Enable only if required.
+  privileged: false
+  # -- Proc mount type. Valid values: Default, Unmasked, Host.
+  procMount: Default
+  # -- Restrict container capabilities for security.
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+
+# -- Node selector for scheduling Scalr Agent pods.
+nodeSelector:
+  {}
+  # Example:
+  # kubernetes.io/hostname: worker-node-1
+
+# -- Tolerations for scheduling pods on tainted nodes.
+tolerations:
+  []
+  # Example:
+  # - key: "dedicated"
+  #   operator: "Equal"
+  #   value: "scalr"
+  #   effect: "NoSchedule"
+
+# -- Affinity rules for pod scheduling.
+affinity:
+  {}
+  # Example:
+  # podAntiAffinity:
+  #   preferredDuringSchedulingIgnoredDuringExecution:
+  #   - weight: 100
+  #     podAffinityTerm:
+  #       labelSelector:
+  #         matchLabels:
+  #           app: scalr-agent
+  #       topologyKey: kubernetes.io/hostname
+
+# -- Resource limits and requests for Scalr Agent pods.
+resources:
+  limits:
+    cpu: "1000m"
+    memory: "2048Mi"
+  requests:
+    cpu: "500m"
+    memory: "1024Mi"
+
+# -- Volume configuration for Scalr Agent data.
+volume:
+  # -- Use an emptyDir volume for data storage. Can be replaced with persistentVolumeClaim.
+  emptyDir:
+    sizeLimit: 2Gi
+  # Example for persistent storage:
+  # persistentVolumeClaim:
+  #   claimName: scalr-agent-data
+
+# -- Termination grace period (in seconds) for pod shutdown.
+terminationGracePeriodSeconds: 360

@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agent-local.fullname" . }}
+  labels:
+    {{- include "agent-local.labels" . | nindent 4 }}
+spec:
+  strategy:
+    type: {{ .Values.strategy.type }}
+    rollingUpdate:
+      maxSurge: {{ .Values.strategy.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "agent-local.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "agent-local.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "agent-local.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            - name: SCALR_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SCALR_URL
+              value: {{ required ".Values.url must be provided!" .Values.url | quote }}
+            - name: SCALR_DRIVER
+              value: local
+            - name: SCALR_AGENT_CONCURRENCY
+              value: "1"
+            - name: SCALR_DATA_HOME
+              value: {{ .Values.dataHome | quote }}
+            - name: SCALR_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.tokenExistingSecret.name }}
+                  name: {{ .Values.tokenExistingSecret.name | quote }}
+                  key: {{ .Values.tokenExistingSecret.key | quote }}
+                  {{- else }}
+                  name: {{ include "agent-local.name" . }}-token
+                  key: token
+                  {{- end }}
+                  optional: false
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "test -f /var/lib/scalr-agent/.${SCALR_AGENT_NAME}.state"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 1
+            timeoutSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.dataHome }}
+      volumes:
+        - name: data
+          {{- toYaml .Values.volume | nindent 10 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
