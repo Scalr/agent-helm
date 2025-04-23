@@ -38,18 +38,23 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            {{- with .Values.extraEnv }}
-            {{- toYaml . | nindent 12 }}
+            {{- if .Values.extraEnv }}
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
             {{- end }}
             - name: SCALR_AGENT_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
             - name: SCALR_URL
-              value: {{ required ".Values.url must be provided!" .Values.url | quote }}
+              value: {{ .Values.url | quote }}
             - name: SCALR_DRIVER
               value: local
             - name: SCALR_AGENT_CONCURRENCY
+              value: "1"
+            - name: SCALR_DISCONNECT_ON_STOP
               value: "1"
             - name: SCALR_DATA_HOME
               value: {{ .Values.dataHome | quote }}
@@ -66,7 +71,10 @@ spec:
                   optional: false
           livenessProbe:
             exec:
-              command: ["sh", "-c", "test -f /var/lib/scalr-agent/.${SCALR_AGENT_NAME}.state"]
+              command:
+                - sh
+                - -c
+                - "test -f {{ trimSuffix "/" .Values.dataHome }}/.${SCALR_AGENT_NAME}.state"
             initialDelaySeconds: 10
             periodSeconds: 15
             failureThreshold: 1
@@ -74,11 +82,20 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - name: data
+            - name: data-home
               mountPath: {{ .Values.dataHome }}
+              {{- if .Values.persistence.persistentVolumeClaim.subPath }}
+              subPath: {{ .Values.persistence.persistentVolumeClaim.subPath }}
+              {{- end }}
       volumes:
-        - name: data
-          {{- toYaml .Values.volume | nindent 10 }}
+        - name: data-home
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | default (include "agent-local.fullname" .) }}
+          {{- else }}
+          emptyDir:
+            sizeLimit: {{ .Values.persistence.emptyDir.sizeLimit }}
+          {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

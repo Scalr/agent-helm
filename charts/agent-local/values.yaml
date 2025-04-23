@@ -33,17 +33,19 @@ tokenExistingSecret:
   # -- Key within the secret that holds the token value.
   key: "token"
 
-# -- Scalr API endpoint URL (required).
+# -- The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value
+# is optional, as the domain can be extracted from the token payload. However, it is recommended
+# to specify the URL explicitly for long-lived services to avoid issues if the account is renamed.
 url: ""
 
-# -- Additional environment variables for Scalr Agent containers.
-# Use to configure proxies or other runtime parameters.
-# See: https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments
-extraEnv:
-  []
-  # Example:
-  # - name: HTTPS_PROXY
-  #   value: "http://myproxy.com:3128"
+# -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
+# This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
+# It is mounted to the volume defined in the persistence section.
+dataHome: "/var/lib/scalr-agent"
+
+# -- Additional environment variables for Scalr Agent.
+# Use to configure HTTP proxies or other runtime parameters.
+extraEnv: {}
 
 # -- List of Kubernetes secrets for pulling images from private registries.
 imagePullSecrets:
@@ -75,10 +77,7 @@ serviceAccount:
   name: ""
 
 # -- Annotations for Scalr Agent pods (e.g., for monitoring or logging).
-podAnnotations:
-  {}
-  # Example:
-  # prometheus.io/scrape: "true"
+podAnnotations: {}
 
 # -- Pod security context for Scalr Agent pods.
 podSecurityContext:
@@ -129,20 +128,34 @@ affinity:
 # -- Resource limits and requests for Scalr Agent pods.
 resources:
   limits:
-    cpu: "1000m"
+    cpu: "2000m"
     memory: "2048Mi"
   requests:
-    cpu: "500m"
+    cpu: "1000m"
     memory: "1024Mi"
 
-# -- Volume configuration for Scalr Agent data.
-volume:
-  # -- Use an emptyDir volume for data storage. Can be replaced with persistentVolumeClaim.
+# -- Persistent storage configuration for the Scalr Agent data directory.
+persistence:
+  # -- Enable persistent storage. If false, uses emptyDir (ephemeral storage).
+  enabled: false
+  # -- Configuration for emptyDir volume (used when persistence.enabled is false).
   emptyDir:
+    # -- Size limit for the emptyDir volume.
     sizeLimit: 2Gi
-  # Example for persistent storage:
-  # persistentVolumeClaim:
-  #   claimName: scalr-agent-data
+  # -- Configuration for persistentVolumeClaim (used when persistence.enabled is true).
+  persistentVolumeClaim:
+    # -- Name of an existing PVC. If empty, a new PVC is created dynamically.
+    claimName: ""
+    # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
+    # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
+    storageClassName: ""
+    # -- Storage size for the PVC.
+    storage: 10Gi
+    # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
+    # Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS).
+    accessMode: ReadWriteOnce
+    # -- Optional subPath for mounting a specific subdirectory of the volume.
+    subPath: ""
 
 # -- Termination grace period (in seconds) for pod shutdown.
 terminationGracePeriodSeconds: 360

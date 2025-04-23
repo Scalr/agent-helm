@@ -24,12 +24,85 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 
 - Doesn’t support autoscaling out of the box. You need manually increase or decrease the number of replicas or configure Horizontal Pod Autoscaler.
 - Not cost-efficient for bursty workloads — e.g., deployments with high number of Runs during short periods and low activity otherwise, as resources remain allocated even when idle.
+- Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. This chart should only be used within a single RBAC perimeter and is unsuitable for untrusted environments.
 
 ## Deployment Diagram
 
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
+
+## Installing
+
+To install the chart with the release name `scalr-agent`:
+
+```console
+$ helm repo add scalr-charts https://scalr.github.io/agent-helm/
+$ helm install scalr-agent scalr-charts/agent-local --set token="<agent-token>"
+```
+
+_See [configuration](#values) below._
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+## Agent Configuration
+
+The Scalr Agent is configured using environment variables, which can be set using the `extraEnv` option in the Helm chart.
+
+```console
+$ helm install ...
+  --set extraEnv.SCALR_DEBUG=1 \
+  --set extraEnv.HTTPS_PROXY="http://myproxy.com:3128"
+```
+
+## Volume Configuration
+
+The Scalr Agent uses a data volume for caching run data, configuration versions,
+and OpenTofu/Terraform plugins, stored in the directory specified by `dataHome` (default: `/var/lib/scalr-agent`).
+This directory is mounted to a volume defined in the `persistence` section. Since the
+data is for caching, both ephemeral and persistent storage are suitable for production,
+though persistent storage avoids cache recreation (redownloading providers and binaries) on pod restarts.
+
+### Storage Options
+
+- **`emptyDir`**: Ephemeral storage, enabled by default. Data is lost on pod restarts, requiring cache rebuilding.
+- **`persistentVolumeClaim` (PVC)**: Persistent storage suitable for retaining cache across restarts or sharing it between different Scalr Agent replicas. Supports both dynamic PVC creation and use of existing PVCs.
+
+The volume is mounted at `dataHome`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+
+### Configuration Examples
+
+#### Single Replica with Persistent Storage
+
+Use `ReadWriteOnce` for single-replica deployments (`replicaCount: 1`):
+
+```yaml
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    storageClassName: gp2
+    storage: 10Gi
+    accessMode: ReadWriteOnce
+```
+
+#### Multi-Replica with Shared Storage
+
+For multiple replicas (`replicaCount: >1`) in clusters with `ReadWriteMany` support (e.g., NFS, AWS EFS), use a single shared PVC.
+
+```yaml
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    storageClassName: nfs
+    storage: 10Gi
+    accessMode: ReadWriteMany
+```
+
+#### Dynamic PVC Creation
+
+If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empty, a PVC is created with the chart's fullname (e.g., `release-name-agent-local`).
+
+For more details, see the [Kubernetes storage documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
 ---
 

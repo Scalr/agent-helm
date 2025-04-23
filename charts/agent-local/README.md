@@ -26,12 +26,85 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 
 - Doesn’t support autoscaling out of the box. You need manually increase or decrease the number of replicas or configure Horizontal Pod Autoscaler.
 - Not cost-efficient for bursty workloads — e.g., deployments with high number of Runs during short periods and low activity otherwise, as resources remain allocated even when idle.
+- Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. This chart should only be used within a single RBAC perimeter and is unsuitable for untrusted environments.
 
 ## Deployment Diagram
 
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
+
+## Installing
+
+To install the chart with the release name `scalr-agent`:
+
+```console
+$ helm repo add scalr-charts https://scalr.github.io/agent-helm/
+$ helm install scalr-agent scalr-charts/agent-local --set token="<agent-token>"
+```
+
+_See [configuration](#values) below._
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+## Agent Configuration
+
+The Scalr Agent is configured using environment variables, which can be set using the `extraEnv` option in the Helm chart.
+
+```console
+$ helm install ...
+  --set extraEnv.SCALR_DEBUG=1 \
+  --set extraEnv.HTTPS_PROXY="http://myproxy.com:3128"
+```
+
+## Volume Configuration
+
+The Scalr Agent uses a data volume for caching run data, configuration versions,
+and OpenTofu/Terraform plugins, stored in the directory specified by `dataHome` (default: `/var/lib/scalr-agent`).
+This directory is mounted to a volume defined in the `persistence` section. Since the
+data is for caching, both ephemeral and persistent storage are suitable for production,
+though persistent storage avoids cache recreation (redownloading providers and binaries) on pod restarts.
+
+### Storage Options
+
+- **`emptyDir`**: Ephemeral storage, enabled by default. Data is lost on pod restarts, requiring cache rebuilding.
+- **`persistentVolumeClaim` (PVC)**: Persistent storage suitable for retaining cache across restarts or sharing it between different Scalr Agent replicas. Supports both dynamic PVC creation and use of existing PVCs.
+
+The volume is mounted at `dataHome`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+
+### Configuration Examples
+
+#### Single Replica with Persistent Storage
+
+Use `ReadWriteOnce` for single-replica deployments (`replicaCount: 1`):
+
+```yaml
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    storageClassName: gp2
+    storage: 10Gi
+    accessMode: ReadWriteOnce
+```
+
+#### Multi-Replica with Shared Storage
+
+For multiple replicas (`replicaCount: >1`) in clusters with `ReadWriteMany` support (e.g., NFS, AWS EFS), use a single shared PVC.
+
+```yaml
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    storageClassName: nfs
+    storage: 10Gi
+    accessMode: ReadWriteMany
+```
+
+#### Dynamic PVC Creation
+
+If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empty, a PVC is created with the chart's fullname (e.g., `release-name-agent-local`).
+
+For more details, see the [Kubernetes storage documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
 ---
 
@@ -48,7 +121,8 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling. |
-| extraEnv | list | `[]` | Additional environment variables for Scalr Agent containers. Use to configure proxies or other runtime parameters. See: https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments |
+| dataHome | string | `"/var/lib/scalr-agent"` | The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache. This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries. It is mounted to the volume defined in the persistence section. |
+| extraEnv | object | `{}` | Additional environment variables for Scalr Agent. Use to configure HTTP proxies or other runtime parameters. |
 | fullnameOverride | string | `""` | Fully override the resource name for all resources. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
@@ -56,10 +130,20 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 | imagePullSecrets | list | `[]` | List of Kubernetes secrets for pulling images from private registries. |
 | nameOverride | string | `""` | Override the default resource name prefix for all resources. |
 | nodeSelector | object | `{}` | Node selector for scheduling Scalr Agent pods. |
+| persistence | object | `{"emptyDir":{"sizeLimit":"2Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"10Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
+| persistence.emptyDir | object | `{"sizeLimit":"2Gi"}` | Configuration for emptyDir volume (used when persistence.enabled is false). |
+| persistence.emptyDir.sizeLimit | string | `"2Gi"` | Size limit for the emptyDir volume. |
+| persistence.enabled | bool | `false` | Enable persistent storage. If false, uses emptyDir (ephemeral storage). |
+| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"10Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim (used when persistence.enabled is true). |
+| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments. Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS). |
+| persistence.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC is created dynamically. |
+| persistence.persistentVolumeClaim.storage | string | `"10Gi"` | Storage size for the PVC. |
+| persistence.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
+| persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
 | podAnnotations | object | `{}` | Annotations for Scalr Agent pods (e.g., for monitoring or logging). |
 | podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true}` | Pod security context for Scalr Agent pods. |
 | replicaCount | int | `1` | Number of replicas for the Scalr Agent deployment. Adjust for high availability. |
-| resources | object | `{"limits":{"cpu":"1000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"1024Mi"}}` | Resource limits and requests for Scalr Agent pods. |
+| resources | object | `{"limits":{"cpu":"2000m","memory":"2048Mi"},"requests":{"cpu":"1000m","memory":"1024Mi"}}` | Resource limits and requests for Scalr Agent pods. |
 | secret | object | `{"annotations":{},"labels":{}}` | Secret configuration for storing the Scalr Agent token. |
 | secret.annotations | object | `{}` | Annotations for the Secret resource. |
 | secret.labels | object | `{}` | Additional labels for the Secret resource. |
@@ -84,9 +168,7 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 | tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
 | tokenExistingSecret.name | string | `""` | Name of the secret containing the token. |
 | tolerations | list | `[]` | Tolerations for scheduling pods on tainted nodes. |
-| url | string | `""` | Scalr API endpoint URL (required). |
-| volume | object | `{"emptyDir":{"sizeLimit":"2Gi"}}` | Volume configuration for Scalr Agent data. |
-| volume.emptyDir | object | `{"sizeLimit":"2Gi"}` | Use an emptyDir volume for data storage. Can be replaced with persistentVolumeClaim. |
+| url | string | `""` | The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value is optional, as the domain can be extracted from the token payload. However, it is recommended to specify the URL explicitly for long-lived services to avoid issues if the account is renamed. |
 
 ----------------------------------------------
 Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)
