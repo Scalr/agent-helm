@@ -59,7 +59,7 @@ $ helm install ...
 
 ## Customizing Environment
 
-While native Scalr runners on hosted platform, Docker-based agents and [agent-k8s](../charts/agent-k8s)  execute workloads inside the [scalr/runner](https://hub.docker.com/r/scalr/runner) golden image, this chart uses the `local` driver, which runs tasks directly inside the container where the agent is running. This means all operations are executed within the image specified in the `image.repository` section [scalr/agent](https://hub.docker.com/r/scalr/agent). Use this image as a base to customize the environment.
+While native Scalr runners on the hosted platform, Docker-based agents, and the [agent-k8s](../charts/agent-k8s) chart execute workloads inside the [scalr/runner](https://hub.docker.com/r/scalr/runner) golden image, which includes a comprehensive set of additional software, this chart uses the `local` driver to run tasks directly within the container where the agent operates. Consequently, all operations are performed using the image specified in `image.repository` – [scalr/agent](https://hub.docker.com/r/scalr/agent). Use this image as a base for customizing the environment. The `scalr/agent` image is minimal, optimized for small size, and excludes additional tooling.
 
 ## Volume Configuration
 
