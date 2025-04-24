@@ -63,14 +63,11 @@ While native Scalr runners on the hosted platform, Docker-based agents, and the 
 
 The Scalr Agent uses a data volume for caching run data, configuration versions,
 and OpenTofu/Terraform plugins, stored in the directory specified by `dataHome` (default: `/var/lib/scalr-agent`).
-This directory is mounted to a volume defined in the `persistence` section. Since the
-data is for caching, both ephemeral and persistent storage are suitable for production,
-though persistent storage avoids cache recreation (redownloading providers and binaries) on pod restarts.
-Using persistent storage will positively impact the Run Stages initialization times.
+This directory is mounted to a volume defined in the `persistence` section. Since the data volume is used for temporary files and caching, both ephemeral and persistent storage are suitable for production. However, persistent storage avoids re-downloading providers and binaries on pod restarts and positively impacts Run Stage initialization times.
 
 ### Storage Options
 
-- **`emptyDir`**: Ephemeral storage, enabled by default. Data is lost on pod restarts, requiring cache rebuilding.
+- **`emptyDir`**: Ephemeral storage is enabled by default. Data is lost on pod restarts, requiring providers and binaries to be re-downloaded each time.
 - **`persistentVolumeClaim` (PVC)**: Persistent storage suitable for retaining cache across restarts or sharing it between different Scalr Agent replicas. Supports both dynamic PVC creation and use of existing PVCs.
 
 The volume is mounted at `dataHome`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
@@ -102,6 +99,10 @@ persistence:
     storage: 10Gi
     accessMode: ReadWriteMany
 ```
+
+Using `ReadWriteMany` enables all replicas to access a shared provider and binary cache, preventing each replica from re-downloading providers and binaries and warming up its own cache, as happens with the default ephemeral volume.
+
+You can also use `ReadWriteOnce` in a multi-replica setup, but it limits all replicas to a single node where the PVC is mounted.
 
 #### Dynamic PVC Creation
 
