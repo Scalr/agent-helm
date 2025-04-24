@@ -57,6 +57,10 @@ $ helm install ...
   --set extraEnv.HTTPS_PROXY="http://myproxy.com:3128"
 ```
 
+## Customizing Environment
+
+While native Scalr runners on hosted platform, Docker-based agents and [agent-k8s](../charts/agent-k8s)  execute workloads inside the [scalr/runner](https://hub.docker.com/r/scalr/runner) golden image, this chart uses the `local` driver, which runs tasks directly inside the container where the agent is running. This means all operations are executed within the image specified in the `image.repository` section [scalr/agent](https://hub.docker.com/r/scalr/agent). Use this image as a base to customize the environment.
+
 ## Volume Configuration
 
 The Scalr Agent uses a data volume for caching run data, configuration versions,
@@ -154,6 +158,7 @@ For more details, see the [Kubernetes storage documentation](https://kubernetes.
 | securityContext.runAsNonRoot | bool | `true` |  |
 | securityContext.runAsUser | int | `1000` |  |
 | serviceAccount.annotations | object | `{}` | Annotations for the service account. |
+| serviceAccount.automountToken | bool | `false` | Whether to automount the service account token in the Scalr Agent pod. |
 | serviceAccount.create | bool | `false` | Create a Kubernetes service account for the Scalr Agent. |
 | serviceAccount.labels | object | `{}` | Additional labels for the service account. |
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
