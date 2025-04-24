@@ -43,6 +43,14 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         uses: helm/kind-action@v1.4.0
 
+      - name: Set chart-specific extra args
+        run: |
+          if [[ "${{ matrix.chart }}" == "agent-local" ]]; then
+            echo "EXTRA_ARGS=-token=foo" >> $GITHUB_ENV
+          else
+            echo "EXTRA_ARGS=--set agent.url=https://scalr.test --set agent.token=foo" >> $GITHUB_ENV
+          fi
+
       - name: Run chart-testing (install)
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct install --target-branch ${{ github.event.repository.default_branch }} --helm-extra-set-args '--set agent.url=https://scalr.test --set agent.token=foo --token=foo'
+        run: ct install --target-branch ${{ github.event.repository.default_branch }} --helm-extra-set-args "${{ env.EXTRA_ARGS }}"
