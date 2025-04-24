@@ -104,9 +104,9 @@ Using `ReadWriteMany` enables all replicas to access a shared provider and binar
 
 You can also use `ReadWriteOnce` in a multi-replica setup, but it limits all replicas to a single node where the PVC is mounted.
 
-#### Dynamic PVC Creation
+#### Use Its Own PVC
 
-If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empty, a PVC is created with the chart's fullname (e.g., `release-name-agent-local`).
+If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empty, a PVC is created with the chart's full name (e.g., `{release-name}-agent-local`). To configure an existing PVC, use the `persistentVolumeClaim.claimName` option.
 
 For more details, see the [Kubernetes storage documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
