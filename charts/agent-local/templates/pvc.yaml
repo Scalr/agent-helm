@@ -1,9 +1,9 @@
 {{- if and .Values.persistence.enabled (not .Values.persistence.persistentVolumeClaim.claimName) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
-namespace: {{ .Release.Namespace | quote }}
 metadata:
   name: {{ include "agent-local.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
   {{- with .Values.secret.annotations }}
