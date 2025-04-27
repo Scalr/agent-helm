@@ -149,7 +149,7 @@ For more details, see the [Kubernetes storage documentation](https://kubernetes.
 | podAnnotations | object | `{}` | Annotations for Scalr Agent pods (e.g., for monitoring or logging). |
 | podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true}` | Pod security context for Scalr Agent pods. |
 | replicaCount | int | `1` | Number of replicas for the Scalr Agent deployment. Adjust for high availability. |
-| resources | object | `{"limits":{"cpu":"2000m","memory":"2048Mi"},"requests":{"cpu":"1000m","memory":"1024Mi"}}` | Resource limits and requests for Scalr Agent pods. |
+| resources | object | `{"limits":{"cpu":"2000m","memory":"2048Mi"},"requests":{"cpu":"1000m","memory":"1024Mi"}}` | Resource limits and requests for Scalr Agent pods. Set identical resource limits and requests to enable Guaranteed QoS and minimize eviction risk. See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes |
 | secret | object | `{"annotations":{},"labels":{}}` | Secret configuration for storing the Scalr Agent token. |
 | secret.annotations | object | `{}` | Annotations for the Secret resource. |
 | secret.labels | object | `{}` | Additional labels for the Secret resource. |

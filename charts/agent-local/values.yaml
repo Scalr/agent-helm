@@ -128,6 +128,8 @@ affinity:
   #       topologyKey: kubernetes.io/hostname
 
 # -- Resource limits and requests for Scalr Agent pods.
+# Set identical resource limits and requests to enable Guaranteed QoS and minimize eviction risk.
+# See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes
 resources:
   limits:
     cpu: "2000m"
