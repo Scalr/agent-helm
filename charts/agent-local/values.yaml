@@ -23,20 +23,21 @@ image:
   # -- Image tag. Overrides the default (chart appVersion). Leave empty to use chart default.
   tag: ""
 
-# -- Scalr Agent authentication token (required unless tokenExistingSecret is used).
-token: ""
+agent:
+  # -- The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value
+  # is optional, as the domain can be extracted from the token payload. However, it is recommended
+  # to specify the URL explicitly for long-lived services to avoid issues if the account is renamed.
+  url: ""
 
-# -- Pre-existing Kubernetes secret for the Scalr Agent token.
-tokenExistingSecret:
-  # -- Name of the secret containing the token.
-  name: ""
-  # -- Key within the secret that holds the token value.
-  key: "token"
+  # -- The agent pool token.
+  token: ""
 
-# -- The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value
-# is optional, as the domain can be extracted from the token payload. However, it is recommended
-# to specify the URL explicitly for long-lived services to avoid issues if the account is renamed.
-url: ""
+  # -- Pre-existing Kubernetes secret for the Scalr Agent token.
+  tokenExistingSecret:
+    # -- Name of the secret containing the token.
+    name: ""
+    # -- Key within the secret that holds the token value.
+    key: "token"
 
 # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
 # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.

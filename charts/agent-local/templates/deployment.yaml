@@ -53,7 +53,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: SCALR_URL
-              value: {{ .Values.url | quote }}
+              value: {{ .Values.agent.url | quote }}
             - name: SCALR_DRIVER
               value: local
             - name: SCALR_AGENT_CONCURRENCY
@@ -67,9 +67,9 @@ spec:
             - name: SCALR_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.tokenExistingSecret.name }}
-                  name: {{ .Values.tokenExistingSecret.name | quote }}
-                  key: {{ .Values.tokenExistingSecret.key | quote }}
+                  {{- if .Values.agent.tokenExistingSecret.name }}
+                  name: {{ .Values.agent.tokenExistingSecret.name | quote }}
+                  key: {{ .Values.agent.tokenExistingSecret.key | quote }}
                   {{- else }}
                   name: {{ include "agent-local.name" . }}-token
                   key: token
