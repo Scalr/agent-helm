@@ -75,16 +75,6 @@ spec:
                   key: token
                   {{- end }}
                   optional: false
-          livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - "test -f {{ trimSuffix "/" .Values.dataDir }}/.${SCALR_AGENT_NAME}.state"
-            initialDelaySeconds: 10
-            periodSeconds: 15
-            failureThreshold: 1
-            timeoutSeconds: 30
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
