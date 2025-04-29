@@ -64,7 +64,7 @@ While native Scalr runners on the hosted platform, Docker-based agents, and the 
 ## Volume Configuration
 
 The Scalr Agent uses a data volume for caching run data, configuration versions,
-and OpenTofu/Terraform plugins, stored in the directory specified by `dataHome` (default: `/var/lib/scalr-agent`).
+and OpenTofu/Terraform plugins, stored in the directory specified by `dataDir` (default: `/var/lib/scalr-agent`).
 This directory is mounted to a volume defined in the `persistence` section. Since the data volume is used for temporary files and caching, both ephemeral and persistent storage are suitable for production. However, persistent storage avoids re-downloading providers and binaries on pod restarts and positively impacts Run Stage initialization times.
 
 ### Storage Options
@@ -72,7 +72,7 @@ This directory is mounted to a volume defined in the `persistence` section. Sinc
 - **`emptyDir`**: Ephemeral storage is enabled by default. Data is lost on pod restarts, requiring providers and binaries to be re-downloaded each time.
 - **`persistentVolumeClaim` (PVC)**: Persistent storage suitable for retaining cache across restarts or sharing it between different Scalr Agent replicas. Supports both dynamic PVC creation and use of existing PVCs.
 
-The volume is mounted at `dataHome`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+The volume is mounted at `dataDir`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
 
 ### Configuration Examples
 
@@ -127,18 +127,18 @@ For more details, see the [Kubernetes storage documentation](https://kubernetes.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling. |
+| agent.dataDir | string | `"/var/lib/scalr-agent"` | The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache. This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries. It is mounted to the volume defined in the persistence section. |
 | agent.token | string | `""` | The agent pool token. |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. |
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
 | agent.tokenExistingSecret.name | string | `""` | Name of the secret containing the token. |
 | agent.url | string | `""` | The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value is optional, as the domain can be extracted from the token payload. However, it is recommended to specify the URL explicitly for long-lived services to avoid issues if the account is renamed. |
-| dataHome | string | `"/var/lib/scalr-agent"` | The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache. This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries. It is mounted to the volume defined in the persistence section. |
 | extraEnv | object | `{}` | Additional environment variables for Scalr Agent. Use to configure HTTP proxies or other runtime parameters. |
 | fullnameOverride | string | `""` | Fully override the resource name for all resources. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Image tag. Overrides the default (chart appVersion). Leave empty to use chart default. |
-| imagePullSecrets | list | `[]` | List of Kubernetes secrets for pulling images from private registries. |
+| imagePullSecrets | list | `[]` | Image pull secret to use for registry authentication. |
 | nameOverride | string | `""` | Override the default resource name prefix for all resources. |
 | nodeSelector | object | `{}` | Node selector for scheduling Scalr Agent pods. |
 | persistence | object | `{"emptyDir":{"sizeLimit":"2Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"10Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |

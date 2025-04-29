@@ -62,8 +62,8 @@ spec:
               value: "1"
             - name: SCALR_WORKER_ON_STOP_ACTION
               value: drain
-            - name: SCALR_DATA_HOME
-              value: {{ .Values.dataHome | quote }}
+            - name: SCALR_WORK_DIR
+              value: {{ .Values.agent.dataDir | quote }}
             - name: SCALR_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -80,7 +80,7 @@ spec:
               command:
                 - sh
                 - -c
-                - "test -f {{ trimSuffix "/" .Values.dataHome }}/.${SCALR_AGENT_NAME}.state"
+                - "test -f {{ trimSuffix "/" .Values.dataDir }}/.${SCALR_AGENT_NAME}.state"
             initialDelaySeconds: 10
             periodSeconds: 15
             failureThreshold: 1
@@ -88,13 +88,13 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - name: data-home
-              mountPath: {{ .Values.dataHome }}
+            - name: data-dir
+              mountPath: {{ .Values.dataDir }}
               {{- if .Values.persistence.persistentVolumeClaim.subPath }}
               subPath: {{ .Values.persistence.persistentVolumeClaim.subPath }}
               {{- end }}
       volumes:
-        - name: data-home
+        - name: data-dir
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | default (include "agent-local.fullname" .) }}

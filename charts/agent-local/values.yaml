@@ -15,6 +15,13 @@ strategy:
     # -- Maximum number of pods that can be unavailable during an update.
     maxUnavailable: 50%
 
+# -- Image pull secret to use for registry authentication.
+imagePullSecrets:
+  []
+  # Example:
+  # - name: my-registry-secret
+
+# Image sets the repo, name and tag of the Scalr Agent image to use.
 image:
   # -- Docker repository for the Scalr Agent image.
   repository: scalr/agent
@@ -39,20 +46,14 @@ agent:
     # -- Key within the secret that holds the token value.
     key: "token"
 
-# -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
-# This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
-# It is mounted to the volume defined in the persistence section.
-dataHome: "/var/lib/scalr-agent"
+  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
+  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
+  # It is mounted to the volume defined in the persistence section.
+  dataDir: "/var/lib/scalr-agent"
 
 # -- Additional environment variables for Scalr Agent.
 # Use to configure HTTP proxies or other runtime parameters.
 extraEnv: {}
-
-# -- List of Kubernetes secrets for pulling images from private registries.
-imagePullSecrets:
-  []
-  # Example:
-  # - name: my-registry-secret
 
 # -- Override the default resource name prefix for all resources.
 nameOverride: ""
