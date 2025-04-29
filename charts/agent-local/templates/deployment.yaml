@@ -79,7 +79,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: data-dir
-              mountPath: {{ .Values.dataDir }}
+              mountPath: {{ .Values.agent.dataDir }}
               {{- if .Values.persistence.persistentVolumeClaim.subPath }}
               subPath: {{ .Values.persistence.persistentVolumeClaim.subPath }}
               {{- end }}

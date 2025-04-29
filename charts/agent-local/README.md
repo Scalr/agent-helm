@@ -40,7 +40,7 @@ To install the chart with the release name `scalr-agent`:
 
 ```console
 $ helm repo add scalr-charts https://scalr.github.io/agent-helm/
-$ helm install scalr-agent scalr-charts/agent-local --set token="<agent-token>"
+$ helm install scalr-agent scalr-charts/agent-local --set agent.token="<agent-token>"
 ```
 
 _See [configuration](#values) below._
@@ -64,7 +64,7 @@ While native Scalr runners on the hosted platform, Docker-based agents, and the 
 ## Volume Configuration
 
 The Scalr Agent uses a data volume for caching run data, configuration versions,
-and OpenTofu/Terraform plugins, stored in the directory specified by `dataDir` (default: `/var/lib/scalr-agent`).
+and OpenTofu/Terraform plugins, stored in the directory specified by `dataHome` (default: `/var/lib/scalr-agent`).
 This directory is mounted to a volume defined in the `persistence` section. Since the data volume is used for temporary files and caching, both ephemeral and persistent storage are suitable for production. However, persistent storage avoids re-downloading providers and binaries on pod restarts and positively impacts Run Stage initialization times.
 
 ### Storage Options
@@ -72,7 +72,7 @@ This directory is mounted to a volume defined in the `persistence` section. Sinc
 - **`emptyDir`**: Ephemeral storage is enabled by default. Data is lost on pod restarts, requiring providers and binaries to be re-downloaded each time.
 - **`persistentVolumeClaim` (PVC)**: Persistent storage suitable for retaining cache across restarts or sharing it between different Scalr Agent replicas. Supports both dynamic PVC creation and use of existing PVCs.
 
-The volume is mounted at `dataDir`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+The volume is mounted at `dataHome`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
 
 ### Configuration Examples
 
