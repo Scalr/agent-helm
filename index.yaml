@@ -1730,4 +1730,20 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.1.0/agent-k8s-0.1.0.tgz
     version: 0.1.0
-generated: "2025-04-25T12:00:47.258896377Z"
+  agent-local:
+  - apiVersion: v2
+    appVersion: 0.42.0
+    created: "2025-05-02T14:56:39.414981098Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Best suited for simple deployments and VCS agents. '
+    digest: 69f58a34bed7ca7aaf16a7928c067450c74e040b6848e2ee89a1a775b852d14a
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
+    version: 0.5.40
+generated: "2025-05-02T14:56:39.415223392Z"
