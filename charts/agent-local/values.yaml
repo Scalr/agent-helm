@@ -83,6 +83,11 @@ serviceAccount:
 # -- Annotations for Scalr Agent pods (e.g., for monitoring or logging).
 podAnnotations: {}
 
+# -- Security context for Scalr Agent pod.
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
 # -- Security context for Scalr Agent container.
 securityContext:
   # -- Run container in privileged mode. Enable only if required.
@@ -96,7 +101,6 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
-  fsGroup: 1000
 
 # -- Node selector for scheduling Scalr Agent pods.
 nodeSelector:
