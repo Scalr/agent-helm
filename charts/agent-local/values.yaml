@@ -1,0 +1,168 @@
+# Default values for the Scalr Agent Helm chart.
+# This is a YAML-formatted file used to configure the Scalr Agent deployment.
+
+# -- Number of replicas for the Scalr Agent deployment. Adjust for high availability.
+replicaCount: 1
+
+# -- Deployment strategy configuration.
+strategy:
+  # -- Type of deployment strategy. Options: RollingUpdate, Recreate.
+  type: RollingUpdate
+  # -- Rolling update parameters.
+  rollingUpdate:
+    # -- Maximum number of pods that can be created above the desired number during an update.
+    maxSurge: 25%
+    # -- Maximum number of pods that can be unavailable during an update.
+    maxUnavailable: 50%
+
+# -- Image pull secret to use for registry authentication.
+imagePullSecrets:
+  []
+  # Example:
+  # - name: my-registry-secret
+
+# Image sets the repo, name and tag of the Scalr Agent image to use.
+image:
+  # -- Docker repository for the Scalr Agent image.
+  repository: scalr/agent
+  # -- Image pull policy. 'IfNotPresent' is efficient for stable deployments.
+  pullPolicy: IfNotPresent
+  # -- Image tag. Overrides the default (chart appVersion). Leave empty to use chart default.
+  tag: ""
+
+agent:
+  # -- The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value
+  # is optional, as the domain can be extracted from the token payload. However, it is recommended
+  # to specify the URL explicitly for long-lived services to avoid issues if the account is renamed.
+  url: ""
+
+  # -- The agent pool token.
+  token: ""
+
+  # -- Pre-existing Kubernetes secret for the Scalr Agent token.
+  tokenExistingSecret:
+    # -- Name of the secret containing the token.
+    name: ""
+    # -- Key within the secret that holds the token value.
+    key: "token"
+
+  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
+  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
+  # It is mounted to the volume defined in the persistence section.
+  dataDir: "/var/lib/scalr-agent"
+
+# -- Additional environment variables for Scalr Agent.
+# Use to configure HTTP proxies or other runtime parameters.
+extraEnv: {}
+
+# -- Override the default resource name prefix for all resources.
+nameOverride: ""
+
+# -- Fully override the resource name for all resources.
+fullnameOverride: ""
+
+# -- Secret configuration for storing the Scalr Agent token.
+secret:
+  # -- Annotations for the Secret resource.
+  annotations: {}
+  # -- Additional labels for the Secret resource.
+  labels: {}
+
+serviceAccount:
+  # -- Create a Kubernetes service account for the Scalr Agent.
+  create: false
+  # -- Whether to automount the service account token in the Scalr Agent pod.
+  automountToken: false
+  # -- Annotations for the service account.
+  annotations: {}
+  # -- Additional labels for the service account.
+  labels: {}
+  # -- Name of the service account. Generated if not set and 'create' is true.
+  name: ""
+
+# -- Annotations for Scalr Agent pods (e.g., for monitoring or logging).
+podAnnotations: {}
+
+# -- Security context for Scalr Agent pod.
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+# -- Security context for Scalr Agent container.
+securityContext:
+  # -- Run container in privileged mode. Enable only if required.
+  privileged: false
+  # -- Proc mount type. Valid values: Default, Unmasked, Host.
+  procMount: Default
+  # -- Restrict container capabilities for security.
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+
+# -- Node selector for scheduling Scalr Agent pods.
+nodeSelector:
+  {}
+  # Example:
+  # kubernetes.io/hostname: worker-node-1
+
+# -- Tolerations for scheduling pods on tainted nodes.
+tolerations:
+  []
+  # Example:
+  # - key: "dedicated"
+  #   operator: "Equal"
+  #   value: "scalr"
+  #   effect: "NoSchedule"
+
+# -- Affinity rules for pod scheduling.
+affinity:
+  {}
+  # Example:
+  # podAntiAffinity:
+  #   preferredDuringSchedulingIgnoredDuringExecution:
+  #   - weight: 100
+  #     podAffinityTerm:
+  #       labelSelector:
+  #         matchLabels:
+  #           app: scalr-agent
+  #       topologyKey: kubernetes.io/hostname
+
+# -- Resource limits and requests for Scalr Agent pods.
+# Set identical resource limits and requests to enable Guaranteed QoS and minimize eviction risk.
+# See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes
+resources:
+  limits:
+    cpu: "2000m"
+    memory: "2048Mi"
+  requests:
+    cpu: "1000m"
+    memory: "1024Mi"
+
+# -- Persistent storage configuration for the Scalr Agent data directory.
+persistence:
+  # -- Enable persistent storage. If false, uses emptyDir (ephemeral storage).
+  enabled: false
+  # -- Configuration for emptyDir volume (used when persistence.enabled is false).
+  emptyDir:
+    # -- Size limit for the emptyDir volume.
+    sizeLimit: 2Gi
+  # -- Configuration for persistentVolumeClaim (used when persistence.enabled is true).
+  persistentVolumeClaim:
+    # -- Name of an existing PVC. If empty, a new PVC is created dynamically.
+    claimName: ""
+    # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
+    # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
+    storageClassName: ""
+    # -- Storage size for the PVC.
+    storage: 10Gi
+    # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
+    # Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS).
+    accessMode: ReadWriteOnce
+    # -- Optional subPath for mounting a specific subdirectory of the volume.
+    subPath: ""
+
+# -- Termination grace period (in seconds) for pod shutdown.
+terminationGracePeriodSeconds: 360

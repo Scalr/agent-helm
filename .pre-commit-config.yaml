@@ -8,6 +8,12 @@ repos:
         entry: bash -c 'find ".github/actions" -mindepth 2 -maxdepth 2 -type f -name "package.json" -exec dirname {} \; | xargs -I {} npm --prefix {} run all'
         language: system
         pass_filenames: false
+        files: ^\.github/actions/
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.28
+    hooks:
+      - id: helmlint
+        files: ^\.charts/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
     hooks:
@@ -16,4 +22,6 @@ repos:
       - id: end-of-file-fixer
         exclude: *compiled_js
       - id: check-yaml
+        args: [--allow-multiple-documents]
+        exclude: "^(charts/agent-k8s/templates|charts/agent-docker/templates|charts/agent-local/templates)"
       - id: check-added-large-files

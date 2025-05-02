@@ -1,4 +1,4 @@
 .ct
 .vscode/
-
+.env
 **/node_modules/
