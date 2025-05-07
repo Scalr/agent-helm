@@ -5,7 +5,7 @@
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Best suited for simple deployments and VCS agents.
 
-> [WARN!]
+> [!WARNING]
 > This chart is compatible with Scalr Agent >= 0.45.0
 
 ## Overview

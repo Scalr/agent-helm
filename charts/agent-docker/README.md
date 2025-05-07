@@ -6,7 +6,7 @@ A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
 where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
 Run phases are isolated into docker containers.
 
-> [WARN!]
+> [!WARNING]
 > For new deployments we encourage you to try the new [`agent-local`](/charts/agent-local)
 > or [`agent-k8s`](/charts/agent-k8s) charts.
 
