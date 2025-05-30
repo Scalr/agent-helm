@@ -1,6 +1,6 @@
 # agent-local
 
-![Version: 0.5.44](https://img.shields.io/badge/Version-0.5.44-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.46.0](https://img.shields.io/badge/AppVersion-0.46.0-informational?style=flat-square)
+![Version: 0.5.45](https://img.shields.io/badge/Version-0.5.45-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.47.0](https://img.shields.io/badge/AppVersion-0.47.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Best suited for simple deployments and VCS agents.
