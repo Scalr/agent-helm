@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+- Split the `securityContext` configuration into a more detailed `podSecurityContext` and per-container `securityContext`.
+- Drop Linux capabilities in `securityContext` by default.
+- Add an option to configure `automountServiceAccountToken`. It is enabled by default to preserve the previous behavior.
+
 ## [v0.5.48]
 
 ### Updated
