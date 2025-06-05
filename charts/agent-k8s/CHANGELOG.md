@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changes
+
+- **Amazon EFS**: Set default efsMountOptions for EFS/NFS cache timings:
+
+```yaml
+efsMountOptions:
+  - acregmin=1
+  - acregmax=3
+  - acdirmin=1
+  - acdirmax=3
+```
+
+These settings ensure that the NFS attribute cache is kept minimal, providing better read-after-write consistency across pods.
+For more information, see: <https://www.ibm.com/docs/en/aix/7.2.0?topic=client-nfs-file-attribute-cache-tuning>
+
 ## [v0.5.48]
 
 ### Updated
