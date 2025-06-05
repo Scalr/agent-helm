@@ -15,4 +15,8 @@ spec:
   csi:
     driver: efs.csi.aws.com
     volumeHandle: {{ .Values.efsVolumeHandle }}
+  mountOptions:
+  {{- with .Values.efsMountOptions }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
