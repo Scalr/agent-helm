@@ -5,6 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-k8s.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
 spec:
   selector:
     matchLabels:
@@ -24,14 +25,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "agent-k8s.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
       securityContext:
-      {{- with .Values.securityContext }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: agent-k8s
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           env:
             - name: SCALR_URL
               value: {{ required ".Values.agent.url must be provided!" .Values.agent.url }}
