@@ -100,12 +100,15 @@ workerNodeSelector: {}
 workerTolerations: []
 
 serviceAccount:
-  # -- Specifies whether a service account should be created
-  create: true
-  # -- Annotations to add to the service account
+  # -- Create a Kubernetes service account for the Scalr Agent.
+  create: false
+  # -- Whether to automount the service account token in the Scalr Agent pod.
+  automountToken: true
+  # -- Annotations for the service account.
   annotations: {}
-  # -- The name of the service account to use.
-  # -- If not set and create is true, a name is generated using the fullname template
+  # -- Additional labels for the service account.
+  labels: {}
+  # -- Name of the service account. Generated if not set and 'create' is true.
   name: ""
 
 # -- Amazon EFS file system ID to use EFS storage as data home directory.
@@ -118,8 +121,22 @@ efsMountOptions:
   - acdirmin=1
   - acdirmax=3
 
-# -- The Agent Pods security context.
+# -- Security context for Scalr Agent pod.
+podSecurityContext:
+  runAsNonRoot: false
+  fsGroup: 0
+
+# -- Security context for Scalr Agent container.
 securityContext:
+  # -- Run container in privileged mode. Enable only if required.
+  privileged: false
+  # -- Proc mount type. Valid values: Default, Unmasked, Host.
+  procMount: Default
+  # -- Restrict container capabilities for security.
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: false
   runAsUser: 0
   runAsGroup: 0
 

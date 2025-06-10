@@ -293,15 +293,21 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | imagePullSecrets | list | `[]` |  |
 | nameOverride | string | `""` |  |
 | podAnnotations | object | `{}` | The Agent Pods annotations. |
+| podSecurityContext | object | `{"fsGroup":0,"runAsNonRoot":false}` | Security context for Scalr Agent pod. |
 | resources.limits.cpu | string | `"1000m"` |  |
 | resources.limits.memory | string | `"1024Mi"` |  |
 | resources.requests.cpu | string | `"250m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
 | restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
-| securityContext | object | `{"runAsGroup":0,"runAsUser":0}` | The Agent Pods security context. |
-| serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
-| serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
-| serviceAccount.name | string | `""` | If not set and create is true, a name is generated using the fullname template |
+| securityContext | object | `{"capabilities":{"drop":["ALL"]},"privileged":false,"procMount":"Default","runAsGroup":0,"runAsNonRoot":false,"runAsUser":0}` | Security context for Scalr Agent container. |
+| securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
+| securityContext.privileged | bool | `false` | Run container in privileged mode. Enable only if required. |
+| securityContext.procMount | string | `"Default"` | Proc mount type. Valid values: Default, Unmasked, Host. |
+| serviceAccount.annotations | object | `{}` | Annotations for the service account. |
+| serviceAccount.automountToken | bool | `true` | Whether to automount the service account token in the Scalr Agent pod. |
+| serviceAccount.create | bool | `false` | Create a Kubernetes service account for the Scalr Agent. |
+| serviceAccount.labels | object | `{}` | Additional labels for the service account. |
+| serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
 | terminationGracePeriodSeconds | int | `3660` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
 | workerNodeSelector | object | `{}` | Kubernetes Node Selector for the agent worker and the agent task pods. Example: `--set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-worker-pool"` |
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
