@@ -62,7 +62,7 @@ $ helm install ...
 
 ## Customizing Environment
 
-While native Scalr runners on the hosted platform, Docker-based agents, and the [agent-k8s](../charts/agent-k8s) chart execute workloads inside the [scalr/runner](https://hub.docker.com/r/scalr/runner) golden image, which includes a comprehensive set of additional software, this chart uses the `local` driver to run tasks directly within the container where the agent operates. Consequently, all operations are performed using the image specified in `image.repository` – [scalr/agent](https://hub.docker.com/r/scalr/agent). Use this image as a base for customizing the environment. The `scalr/agent` image is minimal, optimized for small size, and excludes additional tooling.
+This chart uses the local driver to run tasks directly within the container where the agent operates. Therefore, it requires an image that includes both the Scalr Agent service and the additional tooling provided by the [scalr/runner](https://hub.docker.com/r/scalr/runner) image. As a result, this chart uses the [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) image, which combines the minimal Scalr Agent image ([scalr/agent](https://hub.docker.com/r/scalr/agent)) with the extra tools from `scalr/runner`. You can use this image, or `scalr/agent` (as a minimal base for building your own lightweight images), as a starting point for customizing your environment.
 
 ## Volume Configuration
 
@@ -139,7 +139,7 @@ For more details, see the [Kubernetes storage documentation](https://kubernetes.
 | extraEnv | object | `{}` | Additional environment variables for Scalr Agent. Use to configure HTTP proxies or other runtime parameters. |
 | fullnameOverride | string | `""` | Fully override the resource name for all resources. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. |
-| image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
+| image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Image tag. Overrides the default (chart appVersion). Leave empty to use chart default. |
 | imagePullSecrets | list | `[]` | Image pull secret to use for registry authentication. |
 | nameOverride | string | `""` | Override the default resource name prefix for all resources. |
