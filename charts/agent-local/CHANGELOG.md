@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Switch the agent-local chart from the scalr/agent image to the scalr/agent-runner image, which includes extra tooling (git, aws-cli, gcloud, azure-cli, etc.).
 
+### Fixed
+
+- Resolved the error `git must be available and on the PATH` when installing Terraform modules via Git with the default configuration.
+
 ## [v0.5.45]
 
 ### Updated
