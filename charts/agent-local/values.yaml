@@ -24,7 +24,7 @@ imagePullSecrets:
 # Image sets the repo, name and tag of the Scalr Agent image to use.
 image:
   # -- Docker repository for the Scalr Agent image.
-  repository: scalr/agent
+  repository: scalr/agent-runner
   # -- Image pull policy. 'IfNotPresent' is efficient for stable deployments.
   pullPolicy: IfNotPresent
   # -- Image tag. Overrides the default (chart appVersion). Leave empty to use chart default.
