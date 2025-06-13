@@ -36,7 +36,7 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           env:
             - name: SCALR_URL
-              value: {{ required ".Values.agent.url must be provided!" .Values.agent.url }}
+              value: {{ .Values.agent.url | quote }}
             - name: SCALR_TOKEN
               valueFrom:
                 secretKeyRef:
