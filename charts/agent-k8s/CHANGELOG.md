@@ -28,6 +28,7 @@ For more information, see: <https://www.ibm.com/docs/en/aix/7.2.0?topic=client-n
 - Drop Linux capabilities in `securityContext` by default.
 - Add an option to configure `automountServiceAccountToken`. It is enabled by default to preserve the previous behavior.
 - Add `app.kubernetes.io/component` label for worker and controller.
+- Make `agent.url` Helm config optional.
 
 ## [v0.5.48]
 
