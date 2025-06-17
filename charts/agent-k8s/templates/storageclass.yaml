@@ -11,6 +11,6 @@ parameters:
   directoryPerms: "775"
 mountOptions:
 {{- with .Values.efsMountOptions }}
-  {{- toYaml . | nindent 8 }}
+  {{- toYaml . | nindent 4 }}
 {{- end }}
 {{- end }}

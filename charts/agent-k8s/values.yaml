@@ -115,7 +115,11 @@ serviceAccount:
 efsVolumeHandle: ""
 
 # -- Amazon EFS mount options to define how the EFS storage volume should be mounted.
-efsMountOptions: []
+efsMountOptions:
+  - acregmin=1
+  - acregmax=3
+  - acdirmin=1
+  - acdirmax=3
 
 # -- Security context for Scalr Agent pod.
 podSecurityContext:

@@ -9,10 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changes
+
+- **Amazon EFS**: Set default efsMountOptions for EFS/NFS cache timings:
+
+```yaml
+efsMountOptions:
+  - acregmin=1
+  - acregmax=3
+  - acdirmin=1
+  - acdirmax=3
+```
+
+These settings ensure that the NFS attribute cache is kept minimal, providing better read-after-write consistency across pods.
+For more information, see: <https://www.ibm.com/docs/en/aix/7.2.0?topic=client-nfs-file-attribute-cache-tuning>
+
 - Split the `securityContext` configuration into a more detailed `podSecurityContext` and per-container `securityContext`.
 - Drop Linux capabilities in `securityContext` by default.
 - Add an option to configure `automountServiceAccountToken`. It is enabled by default to preserve the previous behavior.
 - Add `app.kubernetes.io/component` label for worker and controller.
+- Make `agent.url` Helm config optional.
 
 ## [v0.5.48]
 

@@ -119,6 +119,18 @@ The EFS storage will be mounted in all worker containers at the `agent.data_home
 for Runs will inherit the EFS configuration. The controller will continue to use an ephemeral directory
 as its data home.
 
+The EFS configuration includes default mount options to ensure that the NFS attribute cache is kept minimal, providing better read-after-write consistency across pods:
+
+```yaml
+efsMountOptions:
+  - acregmin=1
+  - acregmax=3
+  - acdirmin=1
+  - acdirmax=3
+```
+
+Changing these defaults may affect Scalr Agent behavior. For more information, see: <https://www.ibm.com/docs/en/aix/7.2.0?topic=client-nfs-file-attribute-cache-tuning>
+
 ## Restrict Access to VM Metadata Service
 
 The chart includes an optional feature to restrict the pods from accessing the VM metadata service at 169.254.169.254, that is common for both AWS and GCP environments.
@@ -271,7 +283,7 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | agent.worker_on_stop_action | string | `"drain"` | Defines the SIGTERM/SIGHUP/SIGINT signal handler's shutdown behavior. Options: "drain" or "grace-shutdown" or "force-shutdown". |
 | controllerNodeSelector | object | `{}` | Kubernetes Node Selector for assigning controller agent to specific node in the cluster. Example: `--set controllerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"` |
 | controllerTolerations | list | `[]` | Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster. The selector must match a node's labels for the pod to be scheduled on that node. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set controllerTolerations[0].operator=Equal,controllerTolerations[0].effect=NoSchedule,controllerTolerations[0].key=dedicated,controllerTolerations[0].value=scalr-agent-controller-pool` |
-| efsMountOptions | list | `[]` | Amazon EFS mount options to define how the EFS storage volume should be mounted. |
+| efsMountOptions | list | `["acregmin=1","acregmax=3","acdirmin=1","acdirmax=3"]` | Amazon EFS mount options to define how the EFS storage volume should be mounted. |
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
 | extraEnv | object | `{}` |  |
 | fullnameOverride | string | `""` |  |
