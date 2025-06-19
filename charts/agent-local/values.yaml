@@ -70,7 +70,7 @@ secret:
 
 serviceAccount:
   # -- Create a Kubernetes service account for the Scalr Agent.
-  create: true
+  create: false
   # -- Whether to automount the service account token in the Scalr Agent pod.
   automountToken: false
   # -- Annotations for the service account.

@@ -305,7 +305,7 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | securityContext.procMount | string | `"Default"` | Proc mount type. Valid values: Default, Unmasked, Host. |
 | serviceAccount.annotations | object | `{}` | Annotations for the service account. |
 | serviceAccount.automountToken | bool | `true` | Whether to automount the service account token in the Scalr Agent pod. |
-| serviceAccount.create | bool | `false` | Create a Kubernetes service account for the Scalr Agent. |
+| serviceAccount.create | bool | `true` | Create a Kubernetes service account for the Scalr Agent. |
 | serviceAccount.labels | object | `{}` | Additional labels for the service account. |
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
 | terminationGracePeriodSeconds | int | `3660` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
