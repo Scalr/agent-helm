@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.50]
+
+### Updated
+
+- Bumping chart version to v0.5.50 for scalr-agent v0.48.0
+
 ### Fixed
 
 - Fixed a regression introduced in 0.5.49, where the default for `serviceAccount.create` was changed to `false`. The default has been restored to `true`.
