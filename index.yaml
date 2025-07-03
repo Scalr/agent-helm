@@ -2,6 +2,22 @@ apiVersion: v1
 entries:
   agent-docker:
   - apiVersion: v2
+    appVersion: 0.49.0
+    created: "2025-07-03T10:02:21.644255317Z"
+    description: 'A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
+      where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
+      Run phases are isolated into docker containers. '
+    digest: 8901f500d576f97813e80d5ad0cec501624cba4ab7759e3eaf77d0ebe54b4c98
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-docker
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.5.51/agent-docker-0.5.51.tgz
+    version: 0.5.51
+  - apiVersion: v2
     appVersion: 0.48.0
     created: "2025-06-20T12:37:04.583809042Z"
     description: 'A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
@@ -928,6 +944,22 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.1.0/agent-docker-0.1.0.tgz
     version: 0.1.0
   agent-k8s:
+  - apiVersion: v2
+    appVersion: 0.49.0
+    created: "2025-07-03T10:02:22.02365263Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Uses a controller/worker model. Each run stage is isolated in Kubernetes containers
+      with specified resource limits. '
+    digest: 27e7ba9e65b6b1cafed29c352dee42aec6dbcd2d619f82a127ab317f2c4c818a
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.5.51/agent-k8s-0.5.51.tgz
+    version: 0.5.51
   - apiVersion: v2
     appVersion: 0.48.0
     created: "2025-06-20T12:37:04.717964311Z"
@@ -1956,6 +1988,21 @@ entries:
     version: 0.1.0
   agent-local:
   - apiVersion: v2
+    appVersion: 0.49.0
+    created: "2025-07-03T10:02:22.224757249Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Best suited for simple deployments and VCS agents. '
+    digest: efbd301257ad583d264473d0ea2ef27ad35089f113d2519f4ccee50795c08092
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.48/agent-local-0.5.48.tgz
+    version: 0.5.48
+  - apiVersion: v2
     appVersion: 0.48.0
     created: "2025-06-20T12:37:04.847894045Z"
     description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
@@ -2075,4 +2122,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
     version: 0.5.40
-generated: "2025-06-20T12:37:04.848488234Z"
+generated: "2025-07-03T10:02:22.22550617Z"
