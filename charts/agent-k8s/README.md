@@ -197,6 +197,23 @@ $ helm upgrade ... \
   -e agent.ca_cert=<base-64-encoded-certs>
 ```
 
+### Troubleshooting
+
+If you encounter internal system errors or unexpected behavior, please open a Scalr Support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+
+Before doing so, enable debug logs using the `agent.debug` option. Then collect the debug-level application logs covering the time window when the incident occurred, and attach them to your support ticket.
+
+This chart uses a controller-worker model with one controller pod and zero or more worker pods. Be sure to include logs from at least the controller pod and any affected worker pods.
+
+To archive all logs from the Scalr agent namespace in a single bundle, replace the `ns` variable with the name of your Helm release namespace and run:
+
+```shell
+ns="scalr-agent"
+mkdir -p logs && for pod in $(kubectl get pods -n $ns -o name); do kubectl logs -n $ns $pod > "logs/${pod##*/}.log"; done && zip -r agent-k8s-logs.zip logs && rm -rf logs
+```
+
+It's best to pull the logs immediately after an incident, since this command will not retrieve logs from restarted or terminated pods.
+
 ### Limitations
 
 Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.

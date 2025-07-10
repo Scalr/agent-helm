@@ -115,6 +115,21 @@ If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empt
 
 For more details, see the [Kubernetes storage documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
+### Troubleshooting
+
+If you encounter internal system errors or unexpected behavior, please open a Scalr Support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+
+Before doing so, enable debug logs using the `extraEnv.SCALR_AGENT_DEBUG` option. Then collect the debug-level application logs covering the time window when the incident occurred, and attach them to your support ticket.
+
+To archive all logs from the Scalr agent namespace in a single bundle, replace the `ns` variable with the name of your Helm release namespace and run:
+
+```shell
+ns="scalr-agent"
+mkdir -p logs && for pod in $(kubectl get pods -n $ns -o name); do kubectl logs -n $ns $pod > "logs/${pod##*/}.log"; done && zip -r agent-local-logs.zip logs && rm -rf logs
+```
+
+It's best to pull the logs immediately after an incident, since this command will not retrieve logs from restarted or terminated pods.
+
 ---
 
 **Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-local>
