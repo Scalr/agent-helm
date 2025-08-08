@@ -5,8 +5,8 @@ description: |
   Uses a controller/worker model. Each run stage is isolated
   in Kubernetes containers with specified resource limits.
 type: application
-version: 0.5.53
-appVersion: 0.51.0
+version: 0.5.54
+appVersion: 0.52.0
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
 maintainers:
   - name: scalr
