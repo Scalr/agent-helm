@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `controllerPodAnnotations` and `workerPodAnnotations` for component-specific pod annotations.
 
+## [v0.5.56]
+
+### Updated
+
+- Bumping chart version to v0.5.56 for scalr-agent v0.52.2
+
 ## [v0.5.55]
 
 ### Updated
