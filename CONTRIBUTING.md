@@ -12,8 +12,7 @@ Contributions are welcome via GitHub pull requests. This document outlines the p
 * Must follow [Charts best practices](https://helm.sh/docs/topics/chart_best_practices/)
 * Must pass CI jobs for linting and installing changed charts with the [chart-testing](https://github.com/helm/chart-testing) tool
 * Variable naming and patterns should strive to be consistent across all charts. If certain options exist in a neighboring chart, they should be added or updated in sync to maintain consistency.
-
-### Versioning
+* All Helm variable declarations must be documented, and the documentation must be kept up to date using [helm-docs](https://github.com/norwoodj/helm-docs) via `make docs`.
 
 The chart `version` follow [semver](https://semver.org/).
 
