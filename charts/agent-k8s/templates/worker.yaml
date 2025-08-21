@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-      {{- with .Values.podAnnotations }}
+      {{- with (merge (deepCopy .Values.podAnnotations) .Values.workerPodAnnotations) }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
         checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}

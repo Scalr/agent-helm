@@ -299,6 +299,7 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | agent.worker_drain_timeout | int | `3600` | The timeout for draining worker tasks in seconds. After this timeout, tasks will be terminated via the SIGTERM signal. |
 | agent.worker_on_stop_action | string | `"drain"` | Defines the SIGTERM/SIGHUP/SIGINT signal handler's shutdown behavior. Options: "drain" or "grace-shutdown" or "force-shutdown". |
 | controllerNodeSelector | object | `{}` | Kubernetes Node Selector for assigning controller agent to specific node in the cluster. Example: `--set controllerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"` |
+| controllerPodAnnotations | object | `{}` | Controller specific pod annotations (merged with podAnnotations, overrides duplicate keys) |
 | controllerTolerations | list | `[]` | Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster. The selector must match a node's labels for the pod to be scheduled on that node. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set controllerTolerations[0].operator=Equal,controllerTolerations[0].effect=NoSchedule,controllerTolerations[0].key=dedicated,controllerTolerations[0].value=scalr-agent-controller-pool` |
 | efsMountOptions | list | `["acregmin=1","acregmax=3","acdirmin=1","acdirmax=3"]` | Amazon EFS mount options to define how the EFS storage volume should be mounted. |
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
@@ -327,6 +328,7 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
 | terminationGracePeriodSeconds | int | `3660` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
 | workerNodeSelector | object | `{}` | Kubernetes Node Selector for the agent worker and the agent task pods. Example: `--set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-worker-pool"` |
+| workerPodAnnotations | object | `{}` | Worker specific pod annotations (merged with podAnnotations, overrides duplicate keys) |
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
 
 ----------------------------------------------

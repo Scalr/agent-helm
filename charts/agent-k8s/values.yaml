@@ -143,6 +143,12 @@ securityContext:
 # -- The Agent Pods annotations.
 podAnnotations: {}
 
+# -- Controller specific pod annotations (merged with podAnnotations, overrides duplicate keys)
+controllerPodAnnotations: {}
+
+# -- Worker specific pod annotations (merged with podAnnotations, overrides duplicate keys)
+workerPodAnnotations: {}
+
 # -- Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254)
 restrictMetadataService: false
 
