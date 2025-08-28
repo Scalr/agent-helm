@@ -7,6 +7,9 @@ metadata:
     {{- include "agent-local.labels" . | nindent 4 }}
   annotations:
     cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    karpenter.sh/do-not-evict: "true"
+    karpenter.sh/do-not-disrupt: "true"
+    autopilot.gke.io/priority: high
 spec:
   strategy:
     type: {{ .Values.strategy.type }}
