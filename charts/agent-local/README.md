@@ -90,9 +90,6 @@ persistence:
     storageClassName: gp2
     storage: 10Gi
     accessMode: ReadWriteOnce
-strategy:
-  # Note: Default RollingUpdate strategy is not possible with ReadWriteOnce volume.
-  type: Recreate
 ```
 
 #### Multi-Replica with Shared Storage
