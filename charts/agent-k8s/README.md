@@ -287,7 +287,6 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | agent.debug | bool | `false` | Enable debug logs |
 | agent.disconnect_on_stop | bool | `true` | Determines if the agent should automatically disconnect from the Scalr agent pool when the service is stopping. |
 | agent.gc_plugins_global_size_limit | int | `2560` | Size limit (in megabytes) of the global plugin cache with providers from the public registries. |
-| agent.gc_plugins_workspace_size_limit | int | `512` | Size limit (in megabytes) of the workspace plugin cache with providers from the private registries. |
 | agent.grace_shutdown_timeout | int | `60` | The timeout in seconds for gracefully shutting down active tasks via the SIGTERM signal. After this timeout, tasks will be terminated with the SIGKILL signal. |
 | agent.kubernetes_task_annotations | object | `{}` | Extra annotations to apply to the agent task pods. |
 | agent.kubernetes_task_labels | object | `{}` | Extra labels to apply to the agent task pods. |

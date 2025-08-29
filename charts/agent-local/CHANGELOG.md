@@ -9,11 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
 - Added new labels for Karpenter and GKE Autopilot to reduce the risk of pod eviction:
   - `karpenter.sh/do-not-evict: "true"`
   - `karpenter.sh/do-not-disrupt: "true"`
   - `autopilot.gke.io/priority: high`
+
+### Changes
+
 - Update default size limit of emptyDir and PVC to 20Gi.
+- Use the Helm fullname for the default secret instead of the name, to allow installing multiple releases in a single namespace.
+- Use the newer `SCALR_AGENT` prefix for environment variables.
 
 ## [v0.5.54]
 

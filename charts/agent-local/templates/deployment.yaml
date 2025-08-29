@@ -59,17 +59,17 @@ spec:
                   fieldPath: metadata.name
             - name: SCALR_URL
               value: {{ .Values.agent.url | quote }}
-            - name: SCALR_DRIVER
+            - name: SCALR_AGENT_DRIVER
               value: local
             - name: SCALR_AGENT_CONCURRENCY
               value: "1"
-            - name: SCALR_DISCONNECT_ON_STOP
+            - name: SCALR_AGENT_DISCONNECT_ON_STOP
               value: "1"
-            - name: SCALR_WORKER_ON_STOP_ACTION
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
               value: drain
-            - name: SCALR_WORK_DIR
+            - name: SCALR_AGENT_DATA_DIR
               value: {{ .Values.agent.dataDir | quote }}
-            - name: SCALR_TOKEN
+            - name: SCALR_AGENT_TOKEN
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.agent.tokenExistingSecret.name }}

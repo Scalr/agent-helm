@@ -71,9 +71,9 @@ spec:
                 fieldPath: metadata.name
           - name: SCALR_URL
             value: {{ required ".Values.agent.url must be provided!" .Values.agent.url }}
-          - name: SCALR_WORK_DIR
+          - name: SCALR_AGENT_DATA_DIR
             value: /var/lib/agent-docker
-          - name: SCALR_TOKEN
+          - name: SCALR_AGENT_TOKEN
             valueFrom:
               secretKeyRef:
               {{- if .Values.agent.tokenExistingSecret }}
