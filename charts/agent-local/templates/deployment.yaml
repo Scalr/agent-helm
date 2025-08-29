@@ -76,7 +76,7 @@ spec:
                   name: {{ .Values.agent.tokenExistingSecret.name | quote }}
                   key: {{ .Values.agent.tokenExistingSecret.key | quote }}
                   {{- else }}
-                  name: {{ include "agent-local.name" . }}-token
+                  name: {{ include "agent-local.fullname" . }}-token
                   key: token
                   {{- end }}
                   optional: false
