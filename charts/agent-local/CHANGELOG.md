@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added new labels for Karpenter and GKE Autopilot to reduce the risk of pod eviction:
+- Added new annotations for Karpenter and GKE Autopilot to reduce the risk of pod eviction:
   - `karpenter.sh/do-not-evict: "true"`
   - `karpenter.sh/do-not-disrupt: "true"`
   - `autopilot.gke.io/priority: high`
