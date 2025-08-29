@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.55]
+
+### Updated
+
+- Bumping chart version to v0.5.55 for scalr-agent v0.53.0
+
 ### Added
 
 - Added new annotations for Karpenter and GKE Autopilot to reduce the risk of pod eviction:
