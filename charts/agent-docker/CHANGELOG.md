@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changes
+
+- Use the newer `SCALR_AGENT` prefix for environment variables.
+
 ## [v0.5.57]
 
 ### Updated
@@ -112,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumping chart version to v0.5.41 for scalr-agent v0.43.0
 
 ## Added
+
 - Added the tokenExistingSecret option to specify existing token secret for the Scalr Agent deployment ([#79](https://github.com/Scalr/agent-helm/pull/79))
 
 ## [v0.5.40]

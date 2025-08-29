@@ -41,7 +41,7 @@ spec:
           env:
             - name: SCALR_URL
               value: {{ .Values.agent.url | quote }}
-            - name: SCALR_TOKEN
+            - name: SCALR_AGENT_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.agent.tokenExistingSecret | default (include "agent-k8s.name" .) }}
@@ -51,58 +51,56 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: SCALR_LOG_FORMAT
-              value: "{{ .Values.agent.log_format }}"
-            - name: SCALR_DEBUG
-              value: "{{ .Values.agent.debug }}"
-            - name: SCALR_WORKER_ON_STOP_ACTION
-              value: "{{ .Values.agent.worker_on_stop_action }}"
-            - name: SCALR_WORKER_DRAIN_TIMEOUT
-              value: "{{ .Values.agent.worker_drain_timeout }}"
-            - name: SCALR_WORKER_GRACE_SHUTDOWN_TIMEOUT
-              value: "{{ .Values.agent.grace_shutdown_timeout }}"
-            - name: SCALR_DISCONNECT_ON_STOP
-              value: "{{ .Values.agent.disconnect_on_stop }}"
-            - name: SCALR_DATA_HOME
-              value: "{{ .Values.agent.data_home }}"
-            - name: SCALR_CA_CERT
-              value: "{{ .Values.agent.ca_cert }}"
-            - name: SCALR_CONTAINER_TASK_SCHEDULING_TIMEOUT
-              value: "{{ .Values.agent.container_task_scheduling_timeout }}"
-            - name: SCALR_CONTAINER_TASK_ACQUIRE_TIMEOUT
-              value: "{{ .Values.agent.container_task_acquire_timeout }}"
-            - name: SCALR_CONTAINER_TASK_CPU_REQUEST
-              value: "{{ .Values.agent.container_task_cpu_request }}"
-            - name: SCALR_CONTAINER_TASK_CPU_LIMIT
-              value: "{{ .Values.agent.container_task_cpu_limit }}"
-            - name: SCALR_CONTAINER_TASK_MEM_REQUEST
-              value: "{{ .Values.agent.container_task_mem_request }}"
-            - name: SCALR_CONTAINER_TASK_MEM_LIMIT
-              value: "{{ .Values.agent.container_task_mem_limit }}"
-            - name: SCALR_CONTAINER_TASK_CA_CERT
-              value: "{{ .Values.agent.container_task_ca_cert }}"
-            - name: SCALR_CONTAINER_TASK_IMAGE_REGISTRY
-              value: "{{ .Values.agent.container_task_image_registry }}"
-            - name: SCALR_GC_PLUGINS_GLOBAL_SIZE_LIMIT
-              value: "{{ .Values.agent.gc_plugins_global_size_limit }}"
-            - name: SCALR_GC_PLUGINS_WORKSPACE_SIZE_LIMIT
-              value: "{{ .Values.agent.gc_plugins_workspace_size_limit }}"
-            - name: SCALR_KUBERNETES_MODE
+            - name: SCALR_AGENT_KUBERNETES_MODE
               value: "controller"
-            - name: SCALR_KUBERNETES_AUTOMOUNT_SERVICE_ACCOUNT_TOKEN
-              value: "{{ .Values.agent.automount_service_account_token }}"
-            - name: SCALR_KUBERNETES_TASK_LABELS
-              value: "{{ .Values.agent.kubernetes_task_labels | toJson | b64enc }}"
-            - name: SCALR_KUBERNETES_TASK_ANNOTATIONS
-              value: "{{ .Values.agent.kubernetes_task_annotations | toJson | b64enc }}"
-            - name: SCALR_KUBERNETES_TASK_NODE_SELECTOR
-              value: "{{ .Values.workerNodeSelector | toJson | b64enc }}"
-            - name: SCALR_KUBERNETES_TASK_TOLERATIONS
-              value: "{{ .Values.workerTolerations | toJson | b64enc }}"
             {{- if .Values.efsVolumeHandle }}
-            - name: SCALR_KUBERNETES_EFS_CLAIM_NAME
+            - name: SCALR_AGENT_KUBERNETES_EFS_CLAIM_NAME
               value: "agent-k8s-efs-claim"
             {{- end }}
+            - name: SCALR_AGENT_DATA_DIR
+              value: "{{ .Values.agent.data_home }}"
+            - name: SCALR_AGENT_LOG_FORMAT
+              value: "{{ .Values.agent.log_format }}"
+            - name: SCALR_AGENT_DEBUG
+              value: "{{ .Values.agent.debug }}"
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+              value: "{{ .Values.agent.worker_on_stop_action }}"
+            - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+              value: "{{ .Values.agent.worker_drain_timeout }}"
+            - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              value: "{{ .Values.agent.grace_shutdown_timeout }}"
+            - name: SCALR_AGENT_DISCONNECT_ON_STOP
+              value: "{{ .Values.agent.disconnect_on_stop }}"
+            - name: SCALR_AGENT_CA_CERT
+              value: "{{ .Values.agent.ca_cert }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_SCHEDULING_TIMEOUT
+              value: "{{ .Values.agent.container_task_scheduling_timeout }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_ACQUIRE_TIMEOUT
+              value: "{{ .Values.agent.container_task_acquire_timeout }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_CPU_REQUEST
+              value: "{{ .Values.agent.container_task_cpu_request }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_CPU_LIMIT
+              value: "{{ .Values.agent.container_task_cpu_limit }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_MEM_REQUEST
+              value: "{{ .Values.agent.container_task_mem_request }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_MEM_LIMIT
+              value: "{{ .Values.agent.container_task_mem_limit }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_CA_CERT
+              value: "{{ .Values.agent.container_task_ca_cert }}"
+            - name: SCALR_AGENT_CONTAINER_TASK_IMAGE_REGISTRY
+              value: "{{ .Values.agent.container_task_image_registry }}"
+            - name: SCALR_AGENT_PROVIDER_CACHE_SIZE_LIMIT_MB
+              value: "{{ .Values.agent.gc_plugins_global_size_limit }}"
+            - name: SCALR_AGENT_KUBERNETES_AUTOMOUNT_SERVICE_ACCOUNT_TOKEN
+              value: "{{ .Values.agent.automount_service_account_token }}"
+            - name: SCALR_AGENT_KUBERNETES_TASK_LABELS
+              value: "{{ .Values.agent.kubernetes_task_labels | toJson | b64enc }}"
+            - name: SCALR_AGENT_KUBERNETES_TASK_ANNOTATIONS
+              value: "{{ .Values.agent.kubernetes_task_annotations | toJson | b64enc }}"
+            - name: SCALR_AGENT_KUBERNETES_TASK_NODE_SELECTOR
+              value: "{{ .Values.workerNodeSelector | toJson | b64enc }}"
+            - name: SCALR_AGENT_KUBERNETES_TASK_TOLERATIONS
+              value: "{{ .Values.workerTolerations | toJson | b64enc }}"
             {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}

@@ -71,8 +71,6 @@ agent:
   container_task_image_registry: ""
   # -- Size limit (in megabytes) of the global plugin cache with providers from the public registries.
   gc_plugins_global_size_limit: 2560
-  # -- Size limit (in megabytes) of the workspace plugin cache with providers from the private registries.
-  gc_plugins_workspace_size_limit: 512
   # -- Extra labels to apply to the agent task pods.
   kubernetes_task_labels: {}
   # -- Extra annotations to apply to the agent task pods.

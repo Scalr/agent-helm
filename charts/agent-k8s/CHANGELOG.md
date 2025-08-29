@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changes
+
+- Use the newer `SCALR_AGENT` prefix for environment variables.
+
+### Removed
+
+- Deprecated configuration options for workspace plugins GC.
+
 ## [v0.5.57]
 
 ### Updated

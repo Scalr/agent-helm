@@ -148,7 +148,7 @@ persistence:
   # -- Configuration for emptyDir volume (used when persistence.enabled is false).
   emptyDir:
     # -- Size limit for the emptyDir volume.
-    sizeLimit: 2Gi
+    sizeLimit: 20Gi
   # -- Configuration for persistentVolumeClaim (used when persistence.enabled is true).
   persistentVolumeClaim:
     # -- Name of an existing PVC. If empty, a new PVC is created dynamically.
@@ -157,7 +157,7 @@ persistence:
     # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
     storageClassName: ""
     # -- Storage size for the PVC.
-    storage: 10Gi
+    storage: 20Gi
     # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
     # Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS).
     accessMode: ReadWriteOnce
