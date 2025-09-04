@@ -1,12 +1,23 @@
 # Default values for agent-k8s.
 
+# -- Main application image for the Scalr Agent.
 image:
   # -- Docker repository for the Scalr Agent image.
   repository: scalr/agent
   # -- The pullPolicy for a container and the tag of the image.
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion.
   tag: ""
+
+# -- The runner image for the execution environment.
+# Used only for `jobWorker` mode.
+runnerImage:
+  # -- Docker repository for the runner image.
+  repository: scalr/agent-runner
+  # -- The pullPolicy for a container and the tag of the image.
+  pullPolicy: IfNotPresent
+  # -- The runner image tag.
+  tag: "0.53.0"
 
 agent:
   # -- The Scalr url.
@@ -78,6 +89,11 @@ agent:
   # -- Enable automatic mounting of the service account token into the agent task pods.
   automount_service_account_token: false
 
+  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
+  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
+  # It is mounted to the volume defined in the persistence section.
+  dataDir: "/var/lib/scalr-agent"
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -108,6 +124,8 @@ serviceAccount:
   labels: {}
   # -- Name of the service account. Generated if not set and 'create' is true.
   name: ""
+  # -- The token expiration period.
+  tokenTTL: 3600
 
 # -- Amazon EFS file system ID to use EFS storage as data home directory.
 efsVolumeHandle: ""
@@ -151,7 +169,7 @@ workerPodAnnotations: {}
 restrictMetadataService: false
 
 # -- Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted.
-terminationGracePeriodSeconds: 3660
+terminationGracePeriodSeconds: 60
 
 # Additional environment variables for agent containers.
 # For instance to add a HTTP proxy.
@@ -162,8 +180,35 @@ extraEnv: {}
 
 resources:
   limits:
-    cpu: 1000m
+    cpu: 2000m
     memory: 1024Mi
   requests:
     cpu: 250m
     memory: 256Mi
+
+# -- Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs.
+# When this mode is enabled, the DaemonSet resource is terminated.
+# This mode is in beta.
+jobWorker: false
+
+# -- Persistent storage configuration for the Scalr Agent data directory.
+persistence:
+  # -- Enable persistent storage. If false, uses emptyDir (ephemeral storage).
+  enabled: false
+  # -- Configuration for emptyDir volume (used when persistence.enabled is false).
+  emptyDir:
+    # -- Size limit for the emptyDir volume.
+    sizeLimit: 20Gi
+  # -- Configuration for persistentVolumeClaim (used when persistence.enabled is true).
+  persistentVolumeClaim:
+    # -- Name of an existing PVC. If empty, a new PVC is created dynamically.
+    claimName: ""
+    # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
+    # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
+    storageClassName: ""
+    # -- Storage size for the PVC.
+    storage: 20Gi
+    # -- Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default. 
+    accessMode: ReadWriteMany
+    # -- Optional subPath for mounting a specific subdirectory of the volume.
+    subPath: ""

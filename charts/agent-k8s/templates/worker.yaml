@@ -1,3 +1,4 @@
+{{- if not .Values.jobWorker }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -53,8 +54,13 @@ spec:
             - name: SCALR_AGENT_KUBERNETES_EFS_CLAIM_NAME
               value: "agent-k8s-efs-claim"
             {{- end }}
+            {{- if .Values.jobWorker }}
+            - name: SCALR_AGENT_DATA_DIR
+              value: "{{ .Values.agent.dataDir }}"
+            {{- else }}
             - name: SCALR_AGENT_DATA_DIR
               value: "{{ .Values.agent.data_home }}"
+            {{- end }}
             - name: SCALR_AGENT_LOG_FORMAT
               value: "{{ .Values.agent.log_format }}"
             - name: SCALR_AGENT_DEBUG
@@ -117,3 +123,112 @@ spec:
             type: DirectoryOrCreate
           {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+{{- else }}
+apiVersion: scalr.io/v1
+kind: AgentWorker
+metadata:
+  name: scalr-agent-worker
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-k8s.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 60 # delete 1 minute after finish
+      template:
+        spec:
+          restartPolicy: Never
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "agent-k8s.serviceAccountName" . }}
+          automountServiceAccountToken: false
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+          - name: worker
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            command: ["python", "-m", "tacoagent.cmd", "run"]
+            volumeMounts:
+              - name: sa-token
+                mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                readOnly: true
+              {{- if .Values.persistence.enabled }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/bin
+                subPath: {{ printf "%s/bin" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/providers
+                subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/providers-metadata
+                subPath: {{ printf "%s/providers-metadata" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/providers-downloads
+                subPath: {{ printf "%s/providers-downloads" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              {{- end }}
+          initContainers:
+          - name: runner
+            image: "{{ .Values.runnerImage.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.runnerImage.pullPolicy }}
+            command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
+            workingDir: /opt/workdir
+            # When a container in initContainers has restartPolicy: Always,
+            # it is treated as a sidecar. Kubernetes v1.29 is required.
+            restartPolicy: Always
+            volumeMounts:
+              {{- if .Values.persistence.enabled }}
+              - name: cache
+                mountPath: /opt/bin
+                subPath: {{ printf "%s/bin" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: /opt/plugin-cache
+                subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              {{- end }}
+            readinessProbe:
+              exec:
+                command: ["/bin/sh", "-c", "[ -f /tmp/exec-loop/health ]"]
+              initialDelaySeconds: 0
+              periodSeconds: 1
+              timeoutSeconds: 1
+              failureThreshold: 1
+              successThreshold: 1
+          volumes:
+            - name: cfg
+              emptyDir: {}
+            - name: sa-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      path: token
+                      expirationSeconds: {{ .Values.serviceAccount.tokenTTL | default 3600 }}
+                  - configMap:
+                      name: kube-root-ca.crt
+                      items:
+                        - key: ca.crt
+                          path: ca.crt
+                  - downwardAPI:
+                      items:
+                        - path: namespace
+                          fieldRef:
+                            fieldPath: metadata.namespace
+            {{- if .Values.persistence.enabled }}
+            - name: cache
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | default (include "agent-k8s.fullname" .) }}
+            {{- end }}
+      {{- with .Values.workerNodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 12 }}
+      {{- end }}
+      {{- with .Values.workerTolerations }}
+      tolerations:
+        {{- toYaml . | nindent 12 }}
+      {{- end }}
+{{- end }}

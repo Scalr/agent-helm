@@ -283,6 +283,7 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | agent.container_task_mem_limit | int | `16384` | Memory resource limit defined in megabytes. |
 | agent.container_task_mem_request | int | `1024` | Memory resource request defined in megabytes. |
 | agent.container_task_scheduling_timeout | int | `120` | The container task's (e.g., Kubernetes Pod) scheduling timeout in seconds. The task will be waiting for the scheduling in the queued status; if the cluster does not allocate resources for the container in that timeout, the task will be switched to the errored status. |
+| agent.dataDir | string | `"/var/lib/scalr-agent"` | The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache. This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries. It is mounted to the volume defined in the persistence section. |
 | agent.data_home | string | `"/home/kubernetes/flexvolume/agent-k8s"` | The agent working directory on the cluster host node. |
 | agent.debug | bool | `false` | Enable debug logs |
 | agent.disconnect_on_stop | bool | `true` | Determines if the agent should automatically disconnect from the Scalr agent pool when the service is stopping. |
@@ -304,18 +305,34 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
 | extraEnv | object | `{}` |  |
 | fullnameOverride | string | `""` |  |
-| image.pullPolicy | string | `"Always"` | The pullPolicy for a container and the tag of the image. |
+| image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent","tag":""}` | Main application image for the Scalr Agent. |
+| image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
+| jobWorker | bool | `false` | Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs. When this mode is enabled, the DaemonSet resource is terminated. This mode is in beta. |
 | nameOverride | string | `""` |  |
+| persistence | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
+| persistence.emptyDir | object | `{"sizeLimit":"20Gi"}` | Configuration for emptyDir volume (used when persistence.enabled is false). |
+| persistence.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
+| persistence.enabled | bool | `false` | Enable persistent storage. If false, uses emptyDir (ephemeral storage). |
+| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim (used when persistence.enabled is true). |
+| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default.  |
+| persistence.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC is created dynamically. |
+| persistence.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. |
+| persistence.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
+| persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
 | podAnnotations | object | `{}` | The Agent Pods annotations. |
 | podSecurityContext | object | `{"fsGroup":0,"runAsNonRoot":false}` | Security context for Scalr Agent pod. |
-| resources.limits.cpu | string | `"1000m"` |  |
+| resources.limits.cpu | string | `"2000m"` |  |
 | resources.limits.memory | string | `"1024Mi"` |  |
 | resources.requests.cpu | string | `"250m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
 | restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
+| runnerImage | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.1.4"}` | The runner image for the execution environment. |
+| runnerImage.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
+| runnerImage.repository | string | `"scalr/runner"` | Docker repository for the runner image. |
+| runnerImage.tag | string | `"0.1.4"` | The runner image tag. |
 | securityContext | object | `{"capabilities":{"drop":["ALL"]},"privileged":false,"procMount":"Default","runAsGroup":0,"runAsNonRoot":false,"runAsUser":0}` | Security context for Scalr Agent container. |
 | securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
 | securityContext.privileged | bool | `false` | Run container in privileged mode. Enable only if required. |
@@ -325,10 +342,11 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | serviceAccount.create | bool | `true` | Create a Kubernetes service account for the Scalr Agent. |
 | serviceAccount.labels | object | `{}` | Additional labels for the service account. |
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
-| terminationGracePeriodSeconds | int | `3660` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
+| serviceAccount.tokenTTL | int | `3600` | The token expiration period. |
+| terminationGracePeriodSeconds | int | `60` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
 | workerNodeSelector | object | `{}` | Kubernetes Node Selector for the agent worker and the agent task pods. Example: `--set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-worker-pool"` |
 | workerPodAnnotations | object | `{}` | Worker specific pod annotations (merged with podAnnotations, overrides duplicate keys) |
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)
