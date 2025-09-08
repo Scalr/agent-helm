@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `jobWorker` option (Alpha) to enable stateless Job worker mode. When enabled, workers for run stages are spawned as short-lived Kubernetes Jobs and the DaemonSet resource is terminated. Disabled by default.
+
+### Changes
+
+- Added new Job resource permissions to the Role for the default service account. These permissions are only used when jobWorker mode is enabled.
+- Added the agentworkers CRD with a corresponding ClusterRole. This is only used when jobWorker mode is enabled.
+
 ## [v0.5.58]
 
 ### Updated

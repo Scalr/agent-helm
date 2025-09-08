@@ -200,8 +200,6 @@ spec:
               failureThreshold: 1
               successThreshold: 1
           volumes:
-            - name: cfg
-              emptyDir: {}
             - name: sa-token
               projected:
                 sources:

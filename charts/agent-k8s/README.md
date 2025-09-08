@@ -263,6 +263,9 @@ If a Scalr Agent installation requires persistent storage, users must configure 
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
 
+> [!INFO]
+> This mode is in alpha and available via `jobWorker` config option.
+
 ## Maintainers
 
 | Name | Email | Url |
@@ -310,14 +313,14 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
-| jobWorker | bool | `false` | Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs. When this mode is enabled, the DaemonSet resource is terminated. This mode is in beta. |
+| jobWorker | bool | `false` | Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs. When this mode is enabled, the DaemonSet resource is terminated. This mode is in alpha. |
 | nameOverride | string | `""` |  |
 | persistence | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
 | persistence.emptyDir | object | `{"sizeLimit":"20Gi"}` | Configuration for emptyDir volume (used when persistence.enabled is false). |
 | persistence.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
 | persistence.enabled | bool | `false` | Enable persistent storage. If false, uses emptyDir (ephemeral storage). |
 | persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim (used when persistence.enabled is true). |
-| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default.  |
+| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default. |
 | persistence.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC is created dynamically. |
 | persistence.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. |
 | persistence.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
@@ -329,10 +332,10 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | resources.requests.cpu | string | `"250m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
 | restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
-| runnerImage | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.1.4"}` | The runner image for the execution environment. |
+| runnerImage | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":"0.53.0"}` | The runner image for the execution environment. Used only for `jobWorker` mode. |
 | runnerImage.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
-| runnerImage.repository | string | `"scalr/runner"` | Docker repository for the runner image. |
-| runnerImage.tag | string | `"0.1.4"` | The runner image tag. |
+| runnerImage.repository | string | `"scalr/agent-runner"` | Docker repository for the runner image. |
+| runnerImage.tag | string | `"0.53.0"` | The runner image tag. |
 | securityContext | object | `{"capabilities":{"drop":["ALL"]},"privileged":false,"procMount":"Default","runAsGroup":0,"runAsNonRoot":false,"runAsUser":0}` | Security context for Scalr Agent container. |
 | securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
 | securityContext.privileged | bool | `false` | Run container in privileged mode. Enable only if required. |

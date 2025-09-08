@@ -188,7 +188,7 @@ resources:
 
 # -- Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs.
 # When this mode is enabled, the DaemonSet resource is terminated.
-# This mode is in beta.
+# This mode is in alpha.
 jobWorker: false
 
 # -- Persistent storage configuration for the Scalr Agent data directory.
@@ -208,7 +208,7 @@ persistence:
     storageClassName: ""
     # -- Storage size for the PVC.
     storage: 20Gi
-    # -- Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default. 
+    # -- Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default.
     accessMode: ReadWriteMany
     # -- Optional subPath for mounting a specific subdirectory of the volume.
     subPath: ""
