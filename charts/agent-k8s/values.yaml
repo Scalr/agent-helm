@@ -179,12 +179,42 @@ extraEnv: {}
 #   NO_PROXY: "localhost,127.0.0.1"
 
 resources:
-  limits:
-    cpu: 2000m
-    memory: 1024Mi
+  # -- Default resources.
   requests:
     cpu: 250m
     memory: 256Mi
+  limits:
+    cpu: 2000m
+    memory: 1024Mi
+
+  # -- Resources for the controller container in jobWorker mode.
+  controller:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 2000m
+      memory: 1024Mi
+
+  # -- Resources for the worker container in jobWorker mode.
+  worker:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 2000m
+      memory: 1024Mi
+
+  # -- Default resources for the runner container in jobWorker mode
+  # May be overridden by the controller using billing limits based
+  # on the billing plan.
+  runner:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 2000m
+      memory: 1024Mi
 
 # -- Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs.
 # When this mode is enabled, the DaemonSet resource is terminated.

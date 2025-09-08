@@ -1,6 +1,6 @@
 # agent-docker
 
-![Version: 0.5.58](https://img.shields.io/badge/Version-0.5.58-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.53.0](https://img.shields.io/badge/AppVersion-0.53.0-informational?style=flat-square)
+![Version: 0.5.59](https://img.shields.io/badge/Version-0.5.59-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.54.0](https://img.shields.io/badge/AppVersion-0.54.0-informational?style=flat-square)
 
 A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
 where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
