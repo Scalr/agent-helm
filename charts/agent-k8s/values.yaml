@@ -169,7 +169,7 @@ workerPodAnnotations: {}
 restrictMetadataService: false
 
 # -- Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted.
-terminationGracePeriodSeconds: 60
+terminationGracePeriodSeconds: 3660
 
 # Additional environment variables for agent containers.
 # For instance to add a HTTP proxy.

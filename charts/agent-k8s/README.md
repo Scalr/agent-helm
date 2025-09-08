@@ -346,7 +346,7 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | serviceAccount.labels | object | `{}` | Additional labels for the service account. |
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
 | serviceAccount.tokenTTL | int | `3600` | The token expiration period. |
-| terminationGracePeriodSeconds | int | `60` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
+| terminationGracePeriodSeconds | int | `3660` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
 | workerNodeSelector | object | `{}` | Kubernetes Node Selector for the agent worker and the agent task pods. Example: `--set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-worker-pool"` |
 | workerPodAnnotations | object | `{}` | Worker specific pod annotations (merged with podAnnotations, overrides duplicate keys) |
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
