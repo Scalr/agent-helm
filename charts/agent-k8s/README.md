@@ -220,7 +220,7 @@ Ensure that your cluster is using a CNI plugin that supports egress NetworkPolic
 
 If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
 
-### Issues
+### JobWorker Mode
 
 This implementation has several design choices that may prevent adoption.
 
@@ -243,9 +243,9 @@ use local storage except through hostPath (per-node cache) or ReadWriteMany volu
 
 The hostPath volume is unacceptable for many users. It’s also restricted by some Kubernetes vendors, such as GKE Autopilot, which enforces stricter limitations.
 
-#### Planned Solutions
+#### Solution
 
-We’re planning to replace the current DaemonSet-based architecture with a Job-based model.
+To address these issues, we’re introducing a `jobWorker` mode that replaces the current DaemonSet-based architecture with a Job-based model.
 
 When a run is assigned to an agent pool by Scalr, the Agent Controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
 - runner: The environment where the run is executed, based on the golden `scalr/runner` image.
@@ -254,8 +254,17 @@ The runner and worker containers will share a single disk volume, allowing the w
 
 The key difference from the current approach is the use of ephemeral workers, created per run, instead of maintaining a static set of per-node workers via a DaemonSet.
 
-Regarding hostPath concerns — we’ve planning to remove it. The latest versions of the Scalr Agent (>=0.43) features optimized provider downloads by pulling providers locked via dependency files concurrently, which significantly improves the situation with time taken to pull providers.
-If a Scalr Agent installation requires persistent storage, users must configure an NFS volume (ReadWriteMany Kubernetes storage) themselves or set up a network mirror for the Terraform/OpenTofu registry.
+When `jobWorker` is enabled, ephemeral volumes are used instead of `hostPath`.
+To enable [provider cache](https://docs.scalr.io/docs/providers-cache) in this mode, a `ReadWriteMany` volume can be attached via the `persistence` configuration:
+
+```console
+helm upgrade --install scalr-agent scalr-agent-helm/agent-k8s \
+  ...
+  --set persistence.enabled=true \
+  --set persistence.persistentVolumeClaim.claimName="nfs-disk-pvc"
+```
+
+PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 
 ### New Diagram
 
@@ -264,7 +273,8 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 </p>
 
 > [!INFO]
-> This mode is in alpha and available via `jobWorker` config option.
+> This mode is in Alpha and can be enabled using the `jobWorker` config option.
+> Once stabilized, it will become the default in a future major version of the chart.
 
 ## Maintainers
 
@@ -327,10 +337,12 @@ If a Scalr Agent installation requires persistent storage, users must configure 
 | persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
 | podAnnotations | object | `{}` | The Agent Pods annotations. |
 | podSecurityContext | object | `{"fsGroup":0,"runAsNonRoot":false}` | Security context for Scalr Agent pod. |
+| resources.controller | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resources for the controller container in jobWorker mode. |
 | resources.limits.cpu | string | `"2000m"` |  |
 | resources.limits.memory | string | `"1024Mi"` |  |
-| resources.requests.cpu | string | `"250m"` |  |
-| resources.requests.memory | string | `"256Mi"` |  |
+| resources.requests | object | `{"cpu":"250m","memory":"256Mi"}` | Default resources. |
+| resources.runner | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Default resources for the runner container in jobWorker mode May be overridden by the controller using billing limits based on the billing plan. |
+| resources.worker | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resources for the worker container in jobWorker mode. |
 | restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
 | runnerImage | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":"0.53.0"}` | The runner image for the execution environment. Used only for `jobWorker` mode. |
 | runnerImage.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
