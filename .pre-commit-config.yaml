@@ -23,5 +23,5 @@ repos:
         exclude: *compiled_js
       - id: check-yaml
         args: [--allow-multiple-documents]
-        exclude: "^(charts/agent-k8s/templates|charts/agent-docker/templates|charts/agent-local/templates)"
+        exclude: "^(charts/agent-k8s/templates|charts/agent-docker/templates|charts/agent-local/templates|charts/agent-job/templates)"
       - id: check-added-large-files

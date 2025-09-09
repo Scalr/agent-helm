@@ -1,6 +1,6 @@
 # agent-k8s
 
-![Version: 0.5.59](https://img.shields.io/badge/Version-0.5.59-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.54.0](https://img.shields.io/badge/AppVersion-0.54.0-informational?style=flat-square)
+![Version: 0.5.58](https://img.shields.io/badge/Version-0.5.58-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.53.0](https://img.shields.io/badge/AppVersion-0.53.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Uses a controller/worker model. Each run stage is isolated
@@ -28,8 +28,8 @@ linearly based on the load.
 
 - Requires access to the Kubernetes API to launch new Pods.
 - Requires a ReadWriteMany Persistent Volume configuration for provider/binary caching. This type of volume is generally vendor-specific and not widely available across all cloud providers.
-- May spawn too many services without having its own dedicated node pool. [See](#job-worker-mode).
-- Relies on a hostPath volume. [See](#job-worker-mode).
+- May spawn too many services without having its own dedicated node pool. [Details](#daemonset).
+- Relies on a hostPath volume. [Details](#hostpath-volume).
 
 ## Deployment Diagram
 
@@ -220,40 +220,32 @@ Ensure that your cluster is using a CNI plugin that supports egress NetworkPolic
 
 If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
 
-### Job Worker Mode
+### Issues
 
-> [!WARNING]
-> This mode is in Alpha, and implementation details are subject to change.
-> Once stabilized, it will become the default in a future major version of the chart.
+This implementation has several design choices that may prevent adoption.
 
-The chart provides an alternative deployment mode, available through the `jobWorker` configuration option.
+#### DaemonSet
 
-In Job Worker mode, when a run is assigned to an agent pool by Scalr, the agent controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
-- runner: The environment where the run is executed, based on the golden `scalr/runner` image.
-- worker: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
-The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
+Scalr Agents from the start were Docker-based and built with multi-tenancy in mind, designed to run and isolate concurrent Scalr Runs within a single agent instance, keeping OpenTofu/Terraform workloads separated by design. They are also built using third-party software bundled via Docker images (OpenTofu, Terraform, OPA, Infracost, etc.), which introduces a Docker dependency.
 
-This mode aims to provide a more cloud-native deployment option by removing hostPath, simplifying maintenance by eliminating DaemonSet-based persistent workers, and improving robustness through the use of individual, fully isolated, stateless per-run workers.
+Our initial Kubernetes implementation followed the pattern introduced by the Docker-based agents. It uses a cloud-native controller/worker model.
+The Agent Controller is deployed as a Deployment, while agent workers are deployed as a DaemonSet across all nodes in the cluster or a specific node pool.
+The Agent Controller pulls tasks from Scalr and launches task pods to execute Run workflows. The DaemonSet ensures a single worker per node to handle multiple Run workflows and reduce resource usage.
 
-It also improves customizability of the run environment, since the job template is managed via the Helm chart rather than being built programmatically, giving users full access to customize it — for example, by injecting sidecar containers.
+The DaemonSet auto-scales workers across all nodes. This is a valid solution only if you have a dedicated cluster or at least a separate node pool. Otherwise, it may scale across a large number of nodes, spawning too many idle workers.
 
-When `jobWorker` is enabled, ephemeral volumes are used instead of `hostPath`.
-To enable [provider cache](https://docs.scalr.io/docs/providers-cache) in this mode, a `ReadWriteMany` volume can be attached via the `persistence` configuration:
+#### hostPath volume
 
-```console
-helm upgrade --install scalr-agent scalr-agent-helm/agent-k8s \
-  ...
-  --set persistence.enabled=true \
-  --set persistence.persistentVolumeClaim.claimName="nfs-disk-pvc"
-```
+Another important aspect of this implementation is the reliance on a [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) volume.
+Since the Agent is based on the OpenTofu/Terraform architecture, which depends on plugins, each initialization triggers the download of all providers defined in the configuration.
+These downloads can be very large, so local persistent storage was necessary to cache providers and avoid redownloading them for each Scalr Run stage. There’s no scalable way to
+use local storage except through hostPath (per-node cache) or ReadWriteMany volumes, which are vendor-specific and complex to configure — making them impractical to provide out of the box.
 
-PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
+The hostPath volume is unacceptable for many users. It’s also restricted by some Kubernetes vendors, such as GKE Autopilot, which enforces stricter limitations.
 
-#### Deployment Diagram
+#### Solution
 
-<p align="center">
-  <img src="assets/deploy-diagram.drawio.svg" />
-</p>
+This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Alpha).
 
 ## Maintainers
 
@@ -295,27 +287,15 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | efsMountOptions | list | `["acregmin=1","acregmax=3","acdirmin=1","acdirmax=3"]` | Amazon EFS mount options to define how the EFS storage volume should be mounted. |
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
 | extraEnv | object | `{}` |  |
-| fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
-| image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent","tag":""}` | Main application image for the Scalr Agent. |
-| image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
+| fullnameOverride | string | `""` |  |
+| image.pullPolicy | string | `"Always"` | The pullPolicy for a container and the tag of the image. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| imagePullSecrets | list | `[]` | Image pull secrets for private registries. |
-| jobWorker | bool | `false` | Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs. When this mode is enabled, the DaemonSet resource is terminated. This mode is in alpha. |
-| nameOverride | string | `""` | Override the chart name portion of resource names. |
-| persistence | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
-| persistence.emptyDir | object | `{"sizeLimit":"20Gi"}` | Configuration for emptyDir volume (used when persistence.enabled is false). |
-| persistence.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
-| persistence.enabled | bool | `false` | Enable persistent storage. If false, uses emptyDir (ephemeral storage). |
-| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim (used when persistence.enabled is true). |
-| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default. |
-| persistence.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC is created dynamically. |
-| persistence.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. |
-| persistence.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
-| persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
+| imagePullSecrets | list | `[]` |  |
+| nameOverride | string | `""` |  |
 | podAnnotations | object | `{}` | The Agent Pods annotations. |
 | podSecurityContext | object | `{"fsGroup":0,"runAsNonRoot":false}` | Security context for Scalr Agent pod. |
-| resources.limits.cpu | string | `"2000m"` |  |
+| resources.limits.cpu | string | `"1000m"` |  |
 | resources.limits.memory | string | `"1024Mi"` |  |
 | resources.requests.cpu | string | `"250m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
@@ -329,7 +309,6 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | serviceAccount.create | bool | `true` | Create a Kubernetes service account for the Scalr Agent. |
 | serviceAccount.labels | object | `{}` | Additional labels for the service account. |
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
-| serviceAccount.tokenTTL | int | `3600` | The token expiration period. |
 | terminationGracePeriodSeconds | int | `3660` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
 | workerNodeSelector | object | `{}` | Kubernetes Node Selector for the agent worker and the agent task pods. Example: `--set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-worker-pool"` |
 | workerPodAnnotations | object | `{}` | Worker specific pod annotations (merged with podAnnotations, overrides duplicate keys) |

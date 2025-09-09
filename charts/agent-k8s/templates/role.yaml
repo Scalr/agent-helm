@@ -5,36 +5,22 @@ metadata:
   name: agent-k8s-role
   namespace: {{ .Release.Namespace | quote }}
 rules:
-  # Core Pods
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
-
-  # Pod subresources
-  - apiGroups: [""]
-    resources: ["pods/log"]
-    verbs: ["get"]
-  - apiGroups: [""]
-    resources: ["pods/exec"]
-    verbs: ["get", "create"]
-  - apiGroups: [""]
-    resources: ["pods/status"]
-    verbs: ["get", "patch", "update"]
-
-  # Jobs
-  {{- if .Values.jobWorker }}
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
-    verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
-  - apiGroups: ["batch"]
-    resources: ["jobs/status"]
-    verbs: ["get", "patch", "update"]
-  {{- end }}
-
-  # ConfigMaps & Secrets
-  - apiGroups: [""]
-    resources: ["configmaps", "secrets"]
-    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  - apiGroups:
+      - ""
+    resources:
+      - "pods"
+      - "pods/status"
+      - "pods/log"
+      - "pods/exec"
+      - "configmaps"
+      - "secrets"
+    verbs:
+      - "create"
+      - "delete"
+      - "get"
+      - "list"
+      - "patch"
+      - "watch"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -49,29 +35,4 @@ roleRef:
   kind: Role
   name: agent-k8s-role
   apiGroup: rbac.authorization.k8s.io
----
-{{- if .Values.jobWorker }}
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: agent-k8s-cluster-role-{{ .Release.Name }}
-rules:
-  - apiGroups: ["scalr.io"]
-    resources: ["agentworkers"]
-    verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: agent-k8s-cluster-role-binding
-  namespace: {{ .Release.Namespace | quote }}
-subjects:
-  - kind: ServiceAccount
-    name: {{ include "agent-k8s.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace | quote }}
-roleRef:
-  kind: ClusterRole
-  name: agent-k8s-cluster-role-{{ .Release.Name }}
-  apiGroup: rbac.authorization.k8s.io
-{{- end }}
 {{- end }}

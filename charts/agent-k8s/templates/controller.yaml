@@ -1,11 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  {{- if .Values.jobWorker }}
-  name: "scalr-agent-controller"
-  {{- else }}
   name: "{{ include "agent-k8s.fullname" . }}-controller"
-  {{- end }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-k8s.labels" . | nindent 4 }}
@@ -37,11 +33,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        {{- if .Values.jobWorker }}
-        - name: controller
-        {{- else }}
         - name: agent-k8s
-        {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
@@ -65,10 +57,6 @@ spec:
             - name: SCALR_AGENT_KUBERNETES_EFS_CLAIM_NAME
               value: "agent-k8s-efs-claim"
             {{- end }}
-            {{- if .Values.jobWorker }}
-            - name: SCALR_AGENT_DATA_DIR
-              value: "{{ .Values.agent.dataDir }}"
-            {{- else }}
             - name: SCALR_AGENT_DATA_DIR
               value: "{{ .Values.agent.data_home }}"
             - name: SCALR_AGENT_LOG_FORMAT
@@ -113,9 +101,6 @@ spec:
               value: "{{ .Values.workerNodeSelector | toJson | b64enc }}"
             - name: SCALR_AGENT_KUBERNETES_TASK_TOLERATIONS
               value: "{{ .Values.workerTolerations | toJson | b64enc }}"
-            {{- end }}
-            - name: SCALR_AGENT_KUBERNETES_JOB_WORKER_ENABLED
-              value: "{{ .Values.jobWorker }}"
             {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}
@@ -123,10 +108,7 @@ spec:
             {{- end }}
             {{- end }}
           resources:
-            requests:
-              {{- toYaml .Values.resources.requests | nindent 12 }}
-            limits:
-              {{- toYaml .Values.resources.limits | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: data-home
               mountPath: "{{ .Values.agent.data_home }}"

@@ -1,0 +1,21 @@
+{{- if .Values.restrictMetadataService }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-job-network-policy
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "agent-job.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+      - ipBlock:
+          # Allow all egress traffic by default
+          cidr: 0.0.0.0/0
+          except:
+            # Deny access to IMDS
+            - 169.254.169.254/32
+{{- end }}
