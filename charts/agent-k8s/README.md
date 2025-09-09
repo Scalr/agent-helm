@@ -28,8 +28,8 @@ linearly based on the load.
 
 - Requires access to the Kubernetes API to launch new Pods.
 - Requires a ReadWriteMany Persistent Volume configuration for provider/binary caching. This type of volume is generally vendor-specific and not widely available across all cloud providers.
-- May spawn too many services without having its own dedicated node pool. [Details](#daemonset).
-- Relies on a hostPath volume. [Details](#hostpath-volume).
+- May spawn too many services without having its own dedicated node pool. [See](#job-worker-mode).
+- Relies on a hostPath volume. [See](#job-worker-mode).
 
 ## Deployment Diagram
 
@@ -245,7 +245,7 @@ helm upgrade --install scalr-agent scalr-agent-helm/agent-k8s \
 
 PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 
-### New Diagram
+#### Deployment Diagram
 
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
