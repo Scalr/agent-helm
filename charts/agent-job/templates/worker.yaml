@@ -49,8 +49,8 @@ spec:
               {{- end }}
           initContainers:
           - name: runner
-            image: "{{ .Values.runnerImage.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-            imagePullPolicy: {{ .Values.runnerImage.pullPolicy }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
             command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
             workingDir: /opt/workdir
             # When a container in initContainers has restartPolicy: Always,

@@ -120,9 +120,9 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
 | extraEnv | object | `{}` |  |
 | fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
-| image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent","tag":""}` | Main application image for the Scalr Agent. |
+| image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":""}` | Main application image for the Scalr Agent. |
 | image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
-| image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
+| image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries. |
 | nameOverride | string | `""` | Override the chart name portion of resource names. |

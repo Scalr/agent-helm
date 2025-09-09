@@ -3,7 +3,7 @@
 # -- Main application image for the Scalr Agent.
 image:
   # -- Docker repository for the Scalr Agent image.
-  repository: scalr/agent
+  repository: scalr/agent-runner
   # -- The pullPolicy for a container and the tag of the image.
   pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion.
