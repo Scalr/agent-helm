@@ -222,14 +222,12 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 
 ### Job Worker Mode
 
-The chart provides an alternative deployment mode, available through the jobWorker configuration option.
+The chart provides an alternative deployment mode, available through the `jobWorker` configuration option.
 
 In Job Worker mode, when a run is assigned to an agent pool by Scalr, the agent controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
 - runner: The environment where the run is executed, based on the golden `scalr/runner` image.
 - worker: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
 The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
-
-The key difference from the current approach is the use of ephemeral workers, created per run, instead of maintaining a static set of per-node workers via a DaemonSet.
 
 This mode aims to provide a more cloud-native deployment option by removing hostPath, simplifying maintenance by eliminating DaemonSet-based persistent workers, and improving robustness through the use of individual, fully isolated, stateless per-run workers.
 
