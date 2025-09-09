@@ -1,14 +1,5 @@
 # Default values for agent-k8s.
 
-# -- Main application image for the Scalr Agent.
-image:
-  # -- Docker repository for the Scalr Agent image.
-  repository: scalr/agent-runner
-  # -- The pullPolicy for a container and the tag of the image.
-  pullPolicy: IfNotPresent
-  # -- Overrides the image tag whose default is the chart appVersion.
-  tag: ""
-
 agent:
   # -- The Scalr url.
   url: ""
@@ -140,3 +131,31 @@ persistence:
     accessMode: ReadWriteMany
     # -- Optional subPath for mounting a specific subdirectory of the volume.
     subPath: ""
+
+
+controller:
+  image:
+    # -- Docker repository for the Scalr Agent image.
+    repository: scalr/agent
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+    # -- The pullPolicy for a container and the tag of the image.
+    pullPolicy: IfNotPresent
+
+worker:
+  image:
+      # -- Docker repository for the Scalr Agent image.
+      repository: scalr/agent
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+      # -- The pullPolicy for a container and the tag of the image.
+      pullPolicy: IfNotPresent
+
+  runner:
+    image:
+      # -- Docker repository for the Scalr Agent runner image.
+      repository: scalr/agent-runner
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+      # -- The pullPolicy for a container and the tag of the image.
+      pullPolicy: IfNotPresent

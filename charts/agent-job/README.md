@@ -15,6 +15,7 @@ The Agent deploys as two components: a controller and a worker. The controller
 consumes jobs from Scalr and schedules pods, while the worker supervises the jobs.
 
 When a run is assigned to an agent pool by Scalr, the agent controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
+
 - runner: The environment where the run is executed, based on the golden `scalr/runner` image.
 - worker: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
 The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
@@ -113,6 +114,9 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | agent.tokenExistingSecret | string | `""` | The name of the secret containing the agent pool token. Secret is created if left empty. |
 | agent.tokenExistingSecretKey | string | `"token"` | The key of the secret containing the agent pool token. |
 | agent.url | string | `""` | The Scalr url. |
+| controller.image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
+| controller.image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
+| controller.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | controllerNodeSelector | object | `{}` | Kubernetes Node Selector for assigning controller agent to specific node in the cluster. Example: `--set controllerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"` |
 | controllerPodAnnotations | object | `{}` | Controller specific pod annotations (merged with podAnnotations, overrides duplicate keys) |
 | controllerTolerations | list | `[]` | Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster. The selector must match a node's labels for the pod to be scheduled on that node. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set controllerTolerations[0].operator=Equal,controllerTolerations[0].effect=NoSchedule,controllerTolerations[0].key=dedicated,controllerTolerations[0].value=scalr-agent-controller-pool` |
@@ -120,10 +124,6 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
 | extraEnv | object | `{}` |  |
 | fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
-| image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":""}` | Main application image for the Scalr Agent. |
-| image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
-| image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent image. |
-| image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries. |
 | nameOverride | string | `""` | Override the chart name portion of resource names. |
 | persistence | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
@@ -154,6 +154,12 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
 | serviceAccount.tokenTTL | int | `3600` | The token expiration period. |
 | terminationGracePeriodSeconds | int | `360` | Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted. |
+| worker.image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
+| worker.image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
+| worker.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
+| worker.runner.image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
+| worker.runner.image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent runner image. |
+| worker.runner.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | workerNodeSelector | object | `{}` | Kubernetes Node Selector for the agent worker and the agent task pods. Example: `--set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-worker-pool"` |
 | workerPodAnnotations | object | `{}` | Worker specific pod annotations (merged with podAnnotations, overrides duplicate keys) |
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |

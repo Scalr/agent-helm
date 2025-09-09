@@ -12,6 +12,7 @@ The Agent deploys as two components: a controller and a worker. The controller
 consumes jobs from Scalr and schedules pods, while the worker supervises the jobs.
 
 When a run is assigned to an agent pool by Scalr, the agent controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
+
 - runner: The environment where the run is executed, based on the golden `scalr/runner` image.
 - worker: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
 The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
