@@ -27,8 +27,8 @@ spec:
           containers:
           - name: worker
             image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}"
-            imagePullPolicy: {{ .Values.image.pullPolicy }}
-            command: ["python", "-m", "tacoagent.cmd", "run"]
+            imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+            command: ["python", "-m", "tacoagent.cmd"]
             volumeMounts:
               - name: sa-token
                 mountPath: /var/run/secrets/kubernetes.io/serviceaccount

@@ -36,6 +36,7 @@ spec:
         - name: controller
           image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "tacoagent.cmd"]
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           env:
