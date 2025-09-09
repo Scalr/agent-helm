@@ -222,6 +222,10 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 
 ### Job Worker Mode
 
+> [!WARNING]
+> This mode is in Alpha, and implementation details are subject to change.
+> Once stabilized, it will become the default in a future major version of the chart.
+
 The chart provides an alternative deployment mode, available through the `jobWorker` configuration option.
 
 In Job Worker mode, when a run is assigned to an agent pool by Scalr, the agent controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
@@ -250,10 +254,6 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
-
-> [!NOTE]
-> This mode is in Alpha, and implementation details are subject to change.
-> Once stabilized, it will become the default in a future major version of the chart.
 
 ## Maintainers
 
