@@ -71,7 +71,6 @@ spec:
             {{- else }}
             - name: SCALR_AGENT_DATA_DIR
               value: "{{ .Values.agent.data_home }}"
-            {{- end }}
             - name: SCALR_AGENT_LOG_FORMAT
               value: "{{ .Values.agent.log_format }}"
             - name: SCALR_AGENT_DEBUG
@@ -114,6 +113,7 @@ spec:
               value: "{{ .Values.workerNodeSelector | toJson | b64enc }}"
             - name: SCALR_AGENT_KUBERNETES_TASK_TOLERATIONS
               value: "{{ .Values.workerTolerations | toJson | b64enc }}"
+            {{- end }}
             - name: SCALR_AGENT_KUBERNETES_JOB_WORKER_ENABLED
               value: "{{ .Values.jobWorker }}"
             {{- if .Values.extraEnv }}

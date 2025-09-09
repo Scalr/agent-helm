@@ -28,6 +28,16 @@ agent:
   tokenExistingSecret: ""
   # -- The key of the secret containing the agent pool token.
   tokenExistingSecretKey: "token"
+  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
+  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
+  # It is mounted to the volume defined in the persistence section.
+  # Same as data_home but used for jobWorker mode.
+  dataDir: "/var/lib/scalr-agent"
+
+  #
+  # The options below would be ignored for jobWorker mode.
+  #
+
   # -- Enable debug logs
   debug: false
   # -- The log formatter. Options: "plain" or "dev" or "json".
@@ -88,11 +98,6 @@ agent:
   kubernetes_task_annotations: {}
   # -- Enable automatic mounting of the service account token into the agent task pods.
   automount_service_account_token: false
-
-  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
-  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
-  # It is mounted to the volume defined in the persistence section.
-  dataDir: "/var/lib/scalr-agent"
 
 imagePullSecrets: []
 nameOverride: ""

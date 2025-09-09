@@ -219,30 +219,7 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 
 ### JobWorker Mode
 
-This implementation has several design choices that may prevent adoption.
-
-#### DaemonSet
-
-Scalr Agents from the start were Docker-based and built with multi-tenancy in mind, designed to run and isolate concurrent Scalr Runs within a single agent instance, keeping OpenTofu/Terraform workloads separated by design. They are also built using third-party software bundled via Docker images (OpenTofu, Terraform, OPA, Infracost, etc.), which introduces a Docker dependency.
-
-Our initial Kubernetes implementation followed the pattern introduced by the Docker-based agents. It uses a cloud-native controller/worker model.
-The Agent Controller is deployed as a Deployment, while agent workers are deployed as a DaemonSet across all nodes in the cluster or a specific node pool.
-The Agent Controller pulls tasks from Scalr and launches task pods to execute Run workflows. The DaemonSet ensures a single worker per node to handle multiple Run workflows and reduce resource usage.
-
-The DaemonSet auto-scales workers across all nodes. This is a valid solution only if you have a dedicated cluster or at least a separate node pool. Otherwise, it may scale across a large number of nodes, spawning too many idle workers.
-
-#### hostPath volume
-
-Another important aspect of this implementation is the reliance on a [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) volume.
-Since the Agent is based on the OpenTofu/Terraform architecture, which depends on plugins, each initialization triggers the download of all providers defined in the configuration.
-These downloads can be very large, so local persistent storage was necessary to cache providers and avoid redownloading them for each Scalr Run stage. There’s no scalable way to
-use local storage except through hostPath (per-node cache) or ReadWriteMany volumes, which are vendor-specific and complex to configure — making them impractical to provide out of the box.
-
-The hostPath volume is unacceptable for many users. It’s also restricted by some Kubernetes vendors, such as GKE Autopilot, which enforces stricter limitations.
-
-#### Solution
-
-To address these issues, we’re introducing a `jobWorker` mode that replaces the current DaemonSet-based architecture with a Job-based model.
+The chart provides an alternative deployment mode, available through the jobWorker configuration option.
 
 When a run is assigned to an agent pool by Scalr, the Agent Controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
 - runner: The environment where the run is executed, based on the golden `scalr/runner` image.
@@ -250,6 +227,8 @@ When a run is assigned to an agent pool by Scalr, the Agent Controller will crea
 The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
 
 The key difference from the current approach is the use of ephemeral workers, created per run, instead of maintaining a static set of per-node workers via a DaemonSet.
+
+This mode aims to provide more cloud-native deployment option by removing hostPath, simplify maintenance by eliminating DaemonSet-based persistent workers, and improve robustness by deploying individual, fully isolated, stateless per-run workers.
 
 When `jobWorker` is enabled, ephemeral volumes are used instead of `hostPath`.
 To enable [provider cache](https://docs.scalr.io/docs/providers-cache) in this mode, a `ReadWriteMany` volume can be attached via the `persistence` configuration:

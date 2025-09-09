@@ -54,13 +54,8 @@ spec:
             - name: SCALR_AGENT_KUBERNETES_EFS_CLAIM_NAME
               value: "agent-k8s-efs-claim"
             {{- end }}
-            {{- if .Values.jobWorker }}
-            - name: SCALR_AGENT_DATA_DIR
-              value: "{{ .Values.agent.dataDir }}"
-            {{- else }}
             - name: SCALR_AGENT_DATA_DIR
               value: "{{ .Values.agent.data_home }}"
-            {{- end }}
             - name: SCALR_AGENT_LOG_FORMAT
               value: "{{ .Values.agent.log_format }}"
             - name: SCALR_AGENT_DEBUG
@@ -191,14 +186,6 @@ spec:
                 mountPath: /opt/plugin-cache
                 subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
               {{- end }}
-            readinessProbe:
-              exec:
-                command: ["/bin/sh", "-c", "[ -f /tmp/exec-loop/health ]"]
-              initialDelaySeconds: 0
-              periodSeconds: 1
-              timeoutSeconds: 1
-              failureThreshold: 1
-              successThreshold: 1
           volumes:
             - name: sa-token
               projected:
