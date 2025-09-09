@@ -252,7 +252,7 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 </p>
 
 > [!NOTE]
-> This mode is in Alpha and can be enabled using the `jobWorker` config option.
+> This mode is in Alpha, and implementation details are subject to change.
 > Once stabilized, it will become the default in a future major version of the chart.
 
 ## Maintainers
