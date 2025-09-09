@@ -20,7 +20,7 @@ When a run is assigned to an agent pool by Scalr, the agent controller will crea
 - worker: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
 The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
 
-This mode aims to provide a more cloud-native deployment option by removing hostPath, simplifying maintenance by eliminating DaemonSet-based persistent workers, and improving robustness through the use of individual, fully isolated, stateless per-run workers.
+This chart aims to provide a more cloud-native deployment compared to [agent-k8s](/charts/agent-k8s/) by removing hostPath, simplifying maintenance through the elimination of DaemonSet-based persistent workers, and improving robustness with individual, fully isolated, stateless per-run workers.
 
 It also improves customizability of the run environment, since the job template is managed via the Helm chart rather than being built programmatically, giving users full access to customize it — for example, by injecting sidecar containers.
 
@@ -88,7 +88,7 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 
 ### Disk
 
-To enable [provider cache](https://docs.scalr.io/docs/providers-cache) in this mode, a `ReadWriteMany` volume can be attached via the `persistence` configuration:
+To enable [provider cache](https://docs.scalr.io/docs/providers-cache), a `ReadWriteMany` volume can be attached via the `persistence` configuration:
 
 ```console
 helm upgrade --install scalr-agent scalr-agent-helm/agent-job \
