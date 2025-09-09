@@ -95,7 +95,10 @@ spec:
             {{- end }}
             {{- end }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            requests:
+              {{- toYaml .Values.resources.requests | nindent 12 }}
+            limits:
+              {{- toYaml .Values.resources.limits | nindent 12 }}
           volumeMounts:
             - name: data-home
               mountPath: "{{ .Values.agent.data_home }}"
@@ -186,6 +189,11 @@ spec:
                 mountPath: /opt/plugin-cache
                 subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
               {{- end }}
+            resources:
+              requests:
+                {{- toYaml .Values.resources.runner.requests | nindent 12 }}
+              limits:
+                {{- toYaml .Values.resources.runner.limits | nindent 12 }}
           volumes:
             - name: sa-token
               projected:

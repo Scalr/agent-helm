@@ -275,7 +275,6 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | agent.container_task_mem_limit | int | `16384` | Memory resource limit defined in megabytes. |
 | agent.container_task_mem_request | int | `1024` | Memory resource request defined in megabytes. |
 | agent.container_task_scheduling_timeout | int | `120` | The container task's (e.g., Kubernetes Pod) scheduling timeout in seconds. The task will be waiting for the scheduling in the queued status; if the cluster does not allocate resources for the container in that timeout, the task will be switched to the errored status. |
-| agent.dataDir | string | `"/var/lib/scalr-agent"` | The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache. This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries. It is mounted to the volume defined in the persistence section. Same as data_home but used for jobWorker mode. |
 | agent.data_home | string | `"/home/kubernetes/flexvolume/agent-k8s"` | The agent working directory on the cluster host node. |
 | agent.debug | bool | `false` | Enable debug logs |
 | agent.disconnect_on_stop | bool | `true` | Determines if the agent should automatically disconnect from the Scalr agent pool when the service is stopping. |
@@ -296,14 +295,14 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | efsMountOptions | list | `["acregmin=1","acregmax=3","acdirmin=1","acdirmax=3"]` | Amazon EFS mount options to define how the EFS storage volume should be mounted. |
 | efsVolumeHandle | string | `""` | Amazon EFS file system ID to use EFS storage as data home directory. |
 | extraEnv | object | `{}` |  |
-| fullnameOverride | string | `""` |  |
+| fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
 | image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent","tag":""}` | Main application image for the Scalr Agent. |
 | image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
 | image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| imagePullSecrets | list | `[]` |  |
+| imagePullSecrets | list | `[]` | Image pull secrets for private registries. |
 | jobWorker | bool | `false` | Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs. When this mode is enabled, the DaemonSet resource is terminated. This mode is in alpha. |
-| nameOverride | string | `""` |  |
+| nameOverride | string | `""` | Override the chart name portion of resource names. |
 | persistence | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
 | persistence.emptyDir | object | `{"sizeLimit":"20Gi"}` | Configuration for emptyDir volume (used when persistence.enabled is false). |
 | persistence.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
@@ -316,17 +315,11 @@ PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
 | persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
 | podAnnotations | object | `{}` | The Agent Pods annotations. |
 | podSecurityContext | object | `{"fsGroup":0,"runAsNonRoot":false}` | Security context for Scalr Agent pod. |
-| resources.controller | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resources for the controller container in jobWorker mode. |
 | resources.limits.cpu | string | `"2000m"` |  |
 | resources.limits.memory | string | `"1024Mi"` |  |
-| resources.requests | object | `{"cpu":"250m","memory":"256Mi"}` | Default resources. |
-| resources.runner | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Default resources for the runner container in jobWorker mode May be overridden by the controller using billing limits based on the billing plan. |
-| resources.worker | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resources for the worker container in jobWorker mode. |
+| resources.requests.cpu | string | `"250m"` |  |
+| resources.requests.memory | string | `"256Mi"` |  |
 | restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
-| runnerImage | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":"0.53.0"}` | The runner image for the execution environment. Used only for `jobWorker` mode. |
-| runnerImage.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
-| runnerImage.repository | string | `"scalr/agent-runner"` | Docker repository for the runner image. |
-| runnerImage.tag | string | `"0.53.0"` | The runner image tag. |
 | securityContext | object | `{"capabilities":{"drop":["ALL"]},"privileged":false,"procMount":"Default","runAsGroup":0,"runAsNonRoot":false,"runAsUser":0}` | Security context for Scalr Agent container. |
 | securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
 | securityContext.privileged | bool | `false` | Run container in privileged mode. Enable only if required. |

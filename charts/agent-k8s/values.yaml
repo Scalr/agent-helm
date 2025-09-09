@@ -9,16 +9,6 @@ image:
   # -- Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
-# -- The runner image for the execution environment.
-# Used only for `jobWorker` mode.
-runnerImage:
-  # -- Docker repository for the runner image.
-  repository: scalr/agent-runner
-  # -- The pullPolicy for a container and the tag of the image.
-  pullPolicy: IfNotPresent
-  # -- The runner image tag.
-  tag: "0.53.0"
-
 agent:
   # -- The Scalr url.
   url: ""
@@ -28,11 +18,6 @@ agent:
   tokenExistingSecret: ""
   # -- The key of the secret containing the agent pool token.
   tokenExistingSecretKey: "token"
-  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
-  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
-  # It is mounted to the volume defined in the persistence section.
-  # Same as data_home but used for jobWorker mode.
-  dataDir: "/var/lib/scalr-agent"
 
   #
   # The options below would be ignored for jobWorker mode.
@@ -99,9 +84,13 @@ agent:
   # -- Enable automatic mounting of the service account token into the agent task pods.
   automount_service_account_token: false
 
+# -- Image pull secrets for private registries.
 imagePullSecrets: []
+# -- Override the chart name portion of resource names.
 nameOverride: ""
+# -- Override the full name of resources (takes precedence over nameOverride).
 fullnameOverride: ""
+
 # -- Kubernetes Node Selector for assigning controller agent to specific node in the cluster.
 # Example: `--set controllerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"`
 controllerNodeSelector: {}
@@ -184,42 +173,12 @@ extraEnv: {}
 #   NO_PROXY: "localhost,127.0.0.1"
 
 resources:
-  # -- Default resources.
   requests:
     cpu: 250m
     memory: 256Mi
   limits:
     cpu: 2000m
     memory: 1024Mi
-
-  # -- Resources for the controller container in jobWorker mode.
-  controller:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 2000m
-      memory: 1024Mi
-
-  # -- Resources for the worker container in jobWorker mode.
-  worker:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 2000m
-      memory: 1024Mi
-
-  # -- Default resources for the runner container in jobWorker mode
-  # May be overridden by the controller using billing limits based
-  # on the billing plan.
-  runner:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 2000m
-      memory: 1024Mi
 
 # -- Enable stateless Job worker mode. Workers for run stages are spawned as short-lived Jobs.
 # When this mode is enabled, the DaemonSet resource is terminated.
