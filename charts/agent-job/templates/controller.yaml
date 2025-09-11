@@ -35,7 +35,7 @@ spec:
       containers:
         - name: controller
           image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           command: ["python", "-m", "tacoagent.cmd"]
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -52,16 +52,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: SCALR_AGENT_KUBERNETES_MODE
-              value: "controller"
-            {{- if .Values.efsVolumeHandle }}
-            - name: SCALR_AGENT_KUBERNETES_EFS_CLAIM_NAME
-              value: "agent-job-efs-claim"
-            {{- end }}
             - name: SCALR_AGENT_DATA_DIR
               value: "{{ .Values.agent.dataDir }}"
-            - name: SCALR_AGENT_KUBERNETES_JOB_WORKER_ENABLED
-              value: "1"
+            - name: SCALR_AGENT_DRIVER
+              value: "kubernetes-job"
             {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}
