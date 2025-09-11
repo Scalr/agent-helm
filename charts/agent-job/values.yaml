@@ -144,12 +144,12 @@ controller:
 
 worker:
   image:
-      # -- Docker repository for the Scalr Agent image.
-      repository: scalr/agent
-      # -- Overrides the image tag whose default is the chart appVersion.
-      tag: ""
-      # -- The pullPolicy for a container and the tag of the image.
-      pullPolicy: IfNotPresent
+    # -- Docker repository for the Scalr Agent image.
+    repository: scalr/agent
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+    # -- The pullPolicy for a container and the tag of the image.
+    pullPolicy: IfNotPresent
 
   runner:
     image:
