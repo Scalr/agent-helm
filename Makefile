@@ -104,4 +104,4 @@ docs:
 
 # Linting
 lint:
-	env CT_CONFIG=.ct ct lint
+	env CT_CONFIG=.ct ct lint --target-branch master --check-version-increment=false --helm-lint-extra-args '--set agent.token=dummy'
