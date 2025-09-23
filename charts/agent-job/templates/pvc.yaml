@@ -1,0 +1,39 @@
+{{- if .Values.efsVolumeHandle -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-job-efs-claim
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: agent-job-efs-sc
+  resources:
+    requests:
+      storage: 5Gi
+{{- end }}
+
+{{- if and .Values.persistence.enabled (not .Values.persistence.persistentVolumeClaim.claimName) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "agent-job.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-job.labels" . | nindent 4 }}
+  {{- with .Values.secret.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.persistentVolumeClaim.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.persistentVolumeClaim.storage }}
+  {{- if .Values.persistence.persistentVolumeClaim.storageClassName }}
+  storageClassName: {{ .Values.persistence.persistentVolumeClaim.storageClassName }}
+  {{- else if eq .Values.persistence.persistentVolumeClaim.storageClassName "-" }}
+  storageClassName: ""
+  {{- end }}
+{{- end }}

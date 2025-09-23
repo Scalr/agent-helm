@@ -1,0 +1,100 @@
+apiVersion: scalr.io/v1
+kind: AgentWorker
+metadata:
+  name: scalr-agent-worker
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-job.labels" . | nindent 4 }}
+    app.kubernetes.io/name: scalr-agent
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 60 # delete 1 minute after finish
+      template:
+        spec:
+          restartPolicy: Never
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "agent-job.serviceAccountName" . }}
+          automountServiceAccountToken: false
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+          - name: worker
+            image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+            command: ["python", "-m", "tacoagent.cmd"]
+            volumeMounts:
+              - name: sa-token
+                mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                readOnly: true
+              {{- if .Values.persistence.enabled }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/bin
+                subPath: {{ printf "%s/bin" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/providers
+                subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/providers-metadata
+                subPath: {{ printf "%s/providers-metadata" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: {{ .Values.agent.dataDir }}/providers-downloads
+                subPath: {{ printf "%s/providers-downloads" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              {{- end }}
+          initContainers:
+          - name: runner
+            image: "{{ .Values.worker.runner.image.repository }}:{{ .Values.worker.runner.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.worker.runner.image.pullPolicy }}
+            command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
+            workingDir: /opt/workdir
+            # When a container in initContainers has restartPolicy: Always,
+            # it is treated as a sidecar. Kubernetes v1.29 is required.
+            restartPolicy: Always
+            volumeMounts:
+              {{- if .Values.persistence.enabled }}
+              - name: cache
+                mountPath: /opt/bin
+                subPath: {{ printf "%s/bin" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: /opt/plugin-cache
+                subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              {{- end }}
+          volumes:
+            - name: sa-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      path: token
+                      expirationSeconds: {{ .Values.serviceAccount.tokenTTL | default 3600 }}
+                  - configMap:
+                      name: kube-root-ca.crt
+                      items:
+                        - key: ca.crt
+                          path: ca.crt
+                  - downwardAPI:
+                      items:
+                        - path: namespace
+                          fieldRef:
+                            fieldPath: metadata.namespace
+            {{- if .Values.persistence.enabled }}
+            - name: cache
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | default (include "agent-job.fullname" .) }}
+            {{- end }}
+      {{- with .Values.workerNodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 12 }}
+      {{- end }}
+      {{- with .Values.workerTolerations }}
+      tolerations:
+        {{- toYaml . | nindent 12 }}
+      {{- end }}
