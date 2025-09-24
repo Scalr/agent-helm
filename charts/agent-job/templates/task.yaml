@@ -1,12 +1,12 @@
 apiVersion: scalr.io/v1
-kind: AgentWorker
+kind: AgentTask
 metadata:
-  name: scalr-agent-worker
+  name: scalr-agent-task
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
     app.kubernetes.io/name: scalr-agent
-    app.kubernetes.io/component: worker
+    app.kubernetes.io/component: task
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
