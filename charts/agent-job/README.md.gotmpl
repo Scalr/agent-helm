@@ -6,20 +6,16 @@
 ## Overview
 
 > [!WARNING]
-> This charts is in Alpha, and implementation details are subject to change.
+> This chart is in Alpha, and implementation details are subject to change.
 
-The Agent deploys as two components: a controller and a worker. The controller
-consumes jobs from Scalr and schedules pods, while the worker supervises the jobs.
+The `agent-job` Helm chart deploys a Scalr Agent system that uses a job-based architecture for executing Terraform/OpenTofu infrastructure tasks in Kubernetes. The system consists of two main components: a controller that manages job lifecycle and task jobs that execute the actual infrastructure operations.
 
-When a run is assigned to an agent pool by Scalr, the agent controller will create a new Kubernetes Job to handle it. This Job will include the following containers:
+When a run is assigned to an agent pool by Scalr, the agent controller will create a new task - Kubernetes Job to handle it. This Job's pod will include the following containers:
 
-- runner: The environment where the run is executed, based on the golden `scalr/runner` image.
-- worker: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
+- **runner**: The environment where the run is executed, based on the golden `scalr/runner` image.
+- **worker**: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
+
 The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
-
-This chart aims to provide a more cloud-native deployment compared to [agent-k8s](/charts/agent-k8s/) by removing hostPath, simplifying maintenance through the elimination of DaemonSet-based persistent workers, and improving robustness with individual, fully isolated, stateless per-run workers.
-
-It also improves customizability of the run environment, since the job template is managed via the Helm chart rather than being built programmatically, giving users full access to customize it — for example, by injecting sidecar containers.
 
 ### Pros
 
@@ -43,47 +39,127 @@ It also improves customizability of the run environment, since the job template 
 To install the chart with the release name `scalr-agent`:
 
 ```console
-$ helm repo add scalr-charts https://scalr.github.io/agent-helm/
-$ helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} --set agent.token="<agent-pool-token>"
+$~ helm repo add scalr-charts https://scalr.github.io/agent-helm/
+$~ helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} --set agent.auth.token="<agent-pool-token>"
 ```
 
-## Restrict Access to VM Metadata Service
+## Architecture Components
 
-The chart includes an optional feature to restrict the pods from accessing the VM metadata service at 169.254.169.254, that is common for both AWS and GCP environments.
+### Controller Component (Kubernetes Deployment)
 
-To enable it, use the `restrictMetadataService` option:
+- **Purpose**: Orchestrates and manages the lifecycle of infrastructure tasks
+- **Responsibilities**:
+  - Creates and monitors Kubernetes Jobs for task execution
+  - Manages communication with the Scalr platform
+  - Handles job scheduling and cleanup
+- **Deployment**: Single replica Deployment that runs continuously
+- **Resource Profile**: Lightweight (100m CPU, 128Mi memory) - primarily orchestration workload
+
+### Task Component (Kubernetes Job)
+
+The task component is deployed as Kubernetes Jobs on-demand, containing two containers working together:
+
+#### Worker Container
+- **Purpose**: Task coordination and communication
+- **Responsibilities**:
+  - Receives task instructions from the controller
+  - Coordinates with the runner container
+  - Reports task status and results back to the Scalr platform
+- **Resource Profile**: Moderate (250m CPU, 256Mi memory) - coordination workload
+
+#### Runner Container
+- **Purpose**: Terraform/OpenTofu execution environment
+- **Responsibilities**:
+  - Executes terraform/tofu plan, apply, and destroy operations
+  - Manages provider downloads and caching
+  - Handles state file operations
+- **Resource Profile**: High (500m CPU, 512Mi memory) - intensive execution workload
+
+This chart uses a custom Kubernetes resource called AgentTask to manage task execution.
+You can interact with AgentTask resources using kubectl:
 
 ```console
-$ helm upgrade ... \
-    --set restrictMetadataService=true
+# List all agent tasks
+$~ kubectl get atasks
+
+# Describe a specific agent task
+$~ kubectl describe atask atask-xxx
+
+# View agent task with short name
+$~ kubectl get at
 ```
 
-With this option enabled, a Kubernetes NetworkPolicy is applied to the agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+### Configuration Inheritance Model
 
-### Troubleshooting
+#### Global Configuration (`global.*`)
 
-If you encounter internal system errors or unexpected behavior, please open a Scalr Support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+Settings that apply to every component across the entire chart:
+- **Image Registry**: Prepended to all container images
+- **Image Pull Secrets**: Used by all pods for private registry access
+- **Pod Annotations**: Applied to all pods (merged with component-specific annotations)
 
-Before doing so, enable debug logs using the `agent.debug` option. Then collect the debug-level application logs covering the time window when the incident occurred, and attach them to your support ticket.
+#### Agent Configuration (`agent.*`)
 
-This chart uses a controller-worker model with one controller pod and zero or more worker pods. Be sure to include logs from at least the controller pod and any affected worker pods.
+Container-level settings shared between agent controller and agent worker containers only:
 
-To archive all logs from the Scalr agent namespace in a single bundle, replace the `ns` variable with the name of your Helm release namespace and run:
+- **Authentication**: Scalr URL, tokens, credentials
+- **Image Defaults**: Base image configuration for agent containers
+- **Security Context**: Default security settings for agent containers
+- **Environment Variables**: Agent-specific environment (merged with global)
 
-```shell
-ns="scalr-agent"
-mkdir -p logs && for pod in $(kubectl get pods -n $ns -o name); do kubectl logs -n $ns $pod > "logs/${pod##*/}.log"; done && zip -r agent-k8s-logs.zip logs && rm -rf logs
+**Note**: The runner container does NOT inherit from `agent.*` as it's a different execution environment.
+
+#### Component-Specific Configuration
+
+##### Controller (`controller.*`)
+
+Pod-level settings for the controller Deployment:
+
+- **Scheduling**: nodeSelector, tolerations, affinity
+- **Pod Security**: podSecurityContext
+- **Container Overrides**: image, resources, securityContext (inherits from `agent.*` if empty)
+
+##### Task (`task.*`)
+
+Pod-level settings for task Job pods:
+
+- **Scheduling**: nodeSelector, tolerations, affinity for job placement
+- **Pod Security**: podSecurityContext
+- **Extensibility**: extraVolumes, sidecars
+- **Container Configurations**: worker and runner container settings
+
+## Configuration Examples
+
+### Basic Configuration
+
+```yaml
+global:
+  imageRegistry: "my-registry.com"
+
+agent:
+  url: "https://myorgaccount.scalr.op"
+  auth:
+    token: "my-agent-token"
+
+controller:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+task:
+  nodeSelector:
+    workload: "terraform"
+  runner:
+    resources:
+      limits:
+        cpu: 8000m
+        memory: 4096Mi
 ```
 
-It's best to pull the logs immediately after an incident, since this command will not retrieve logs from restarted or terminated pods.
+## Storage and Persistence
 
-### Limitations
-
-Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
-
-If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
-
-### Disk
+### Provider Cache Configuration
 
 To enable [provider cache](https://docs.scalr.io/docs/providers-cache), a `ReadWriteMany` volume can be attached via the `persistence` configuration:
 
@@ -95,6 +171,46 @@ helm upgrade --install scalr-agent scalr-agent-helm/{{ template "chart.name" . }
 ```
 
 PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
+
+## Security Features
+
+### Restrict Access to VM Metadata Service
+
+The chart includes an optional feature to restrict the pods from accessing the VM metadata service at 169.254.169.254, that is common for both AWS and GCP environments.
+
+To enable it, use the `restrictMetadataService` option:
+
+```console
+$~ helm upgrade ... \
+    --set restrictMetadataService=true
+```
+
+With this option enabled, a Kubernetes NetworkPolicy is applied to the agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+
+#### Limitations
+
+Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
+
+If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
+
+## Troubleshooting and Support
+
+### Debug Logging
+
+If you encounter internal system errors or unexpected behavior, please open a Scalr Support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+
+Before doing so, enable debug logs using the `agent.extraEnv.SCALR_AGENT_DEBUG=1` option. Then collect the debug-level application logs covering the time window when the incident occurred, and attach them to your support ticket.
+
+### Collecting Logs
+
+To archive all logs from the Scalr agent namespace in a single bundle, replace the `ns` variable with the name of your Helm release namespace and run:
+
+```shell
+ns="scalr-agent"
+mkdir -p logs && for pod in $(kubectl get pods -n $ns -o name); do kubectl logs -n $ns $pod > "logs/${pod##*/}.log"; done && zip -r agent-k8s-logs.zip logs && rm -rf logs
+```
+
+It's best to pull the logs immediately after an incident, since this command will not retrieve logs from restarted or terminated pods.
 
 {{ template "chart.maintainersSection" . }}
 
