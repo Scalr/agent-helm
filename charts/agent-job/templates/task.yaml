@@ -12,26 +12,71 @@ metadata:
 spec:
   jobTemplate:
     spec:
-      backoffLimit: 0
-      ttlSecondsAfterFinished: 60 # delete 1 minute after finish
+      backoffLimit: {{ .Values.task.job.backoffLimit }}
+      ttlSecondsAfterFinished: {{ .Values.task.job.ttlSecondsAfterFinished }}
       template:
+        metadata:
+          annotations:
+          {{- with (merge (deepCopy .Values.global.podAnnotations) .Values.task.podAnnotations) }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            app.kubernetes.io/name: scalr-agent
+            app.kubernetes.io/component: task
+            app.kubernetes.io/instance: {{ .Release.Name }}
         spec:
           restartPolicy: Never
-          {{- with .Values.imagePullSecrets }}
+          {{- with .Values.global.imagePullSecrets }}
           imagePullSecrets:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           serviceAccountName: {{ include "agent-job.serviceAccountName" . }}
           automountServiceAccountToken: false
-          {{- with .Values.podSecurityContext }}
+          {{- with .Values.task.podSecurityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           containers:
           - name: worker
-            image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}"
-            imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+            {{- $workerImage := .Values.task.worker.image }}
+            {{- if not $workerImage.repository }}
+              {{- $workerImage = .Values.agent.image }}
+            {{- end }}
+            {{- $registry := .Values.global.imageRegistry }}
+            {{- if $registry }}
+            image: "{{ $registry }}/{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
+            {{- else }}
+            image: "{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
+            {{- end }}
+            imagePullPolicy: {{ $workerImage.pullPolicy | default .Values.agent.image.pullPolicy }}
             command: ["python", "-m", "tacoagent.cmd"]
+            {{- with (default .Values.agent.securityContext .Values.task.worker.securityContext) }}
+            securityContext:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            env:
+              - name: SCALR_URL
+                value: {{ .Values.agent.url | quote }}
+              - name: SCALR_AGENT_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.agent.tokenExistingSecret.name | default (include "agent-job.name" .) }}
+                    key: {{ .Values.agent.tokenExistingSecret.key | default "token" }}
+                    optional: false
+              - name: SCALR_AGENT_DATA_DIR
+                value: "{{ .Values.agent.dataDir }}"
+              - name: SCALR_AGENT_DRIVER
+                value: "kubernetes-job"
+              {{- range $key, $value := .Values.agent.extraEnv }}
+              - name: {{ $key }}
+                value: {{ $value | quote }}
+              {{- end }}
+              {{- range $key, $value := .Values.task.worker.extraEnv }}
+              - name: {{ $key }}
+                value: {{ $value | quote }}
+              {{- end }}
+            resources:
+              {{- toYaml .Values.task.worker.resources | nindent 14 }}
             volumeMounts:
               - name: sa-token
                 mountPath: /var/run/secrets/kubernetes.io/serviceaccount
@@ -50,15 +95,37 @@ spec:
                 mountPath: {{ .Values.agent.dataDir }}/providers-downloads
                 subPath: {{ printf "%s/providers-downloads" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
               {{- end }}
+              {{- range .Values.task.worker.extraVolumeMounts }}
+              - {{- toYaml . | nindent 16 }}
+              {{- end }}
+          {{- range .Values.task.sidecars }}
+          - {{- toYaml . | nindent 12 }}
+          {{- end }}
           initContainers:
           - name: runner
-            image: "{{ .Values.worker.runner.image.repository }}:{{ .Values.worker.runner.image.tag | default .Chart.AppVersion }}"
-            imagePullPolicy: {{ .Values.worker.runner.image.pullPolicy }}
+            {{- $registry := .Values.global.imageRegistry }}
+            {{- if $registry }}
+            image: "{{ $registry }}/{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
+            {{- else }}
+            image: "{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
+            {{- end }}
+            imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
             command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
             workingDir: /opt/workdir
             # When a container in initContainers has restartPolicy: Always,
             # it is treated as a sidecar. Kubernetes v1.29 is required.
             restartPolicy: Always
+            {{- with .Values.task.runner.securityContext }}
+            securityContext:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            env:
+              {{- range $key, $value := .Values.task.runner.extraEnv }}
+              - name: {{ $key }}
+                value: {{ $value | quote }}
+              {{- end }}
+            resources:
+              {{- toYaml .Values.task.runner.resources | nindent 14 }}
             volumeMounts:
               {{- if .Values.persistence.enabled }}
               - name: cache
@@ -67,6 +134,9 @@ spec:
               - name: cache
                 mountPath: /opt/plugin-cache
                 subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              {{- end }}
+              {{- range .Values.task.runner.extraVolumeMounts }}
+              - {{- toYaml . | nindent 16 }}
               {{- end }}
           volumes:
             - name: sa-token
@@ -90,11 +160,19 @@ spec:
               persistentVolumeClaim:
                 claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | default (include "agent-job.fullname" .) }}
             {{- end }}
-      {{- with .Values.workerNodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 12 }}
-      {{- end }}
-      {{- with .Values.workerTolerations }}
-      tolerations:
-        {{- toYaml . | nindent 12 }}
-      {{- end }}
+            {{- range .Values.task.extraVolumes }}
+            - {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.task.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.task.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.task.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          terminationGracePeriodSeconds: {{ .Values.task.terminationGracePeriodSeconds }}

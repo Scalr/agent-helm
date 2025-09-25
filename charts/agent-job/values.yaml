@@ -1,114 +1,278 @@
-# Default values for agent-k8s.
+# Default values for agent-job.
 
-agent:
-  # -- The Scalr url.
-  url: ""
-  # -- The agent pool token.
-  token: ""
-  # -- The name of the secret containing the agent pool token. Secret is created if left empty.
-  tokenExistingSecret: ""
-  # -- The key of the secret containing the agent pool token.
-  tokenExistingSecretKey: "token"
-  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
-  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
-  # It is mounted to the volume defined in the persistence section.
-  dataDir: "/var/lib/scalr-agent"
+# Global configuration that applies to all components
+global:
+  # -- Global Docker registry to prepend to all image repositories.
+  imageRegistry: ""
+  # -- Global image pull secrets for private registries.
+  imagePullSecrets: []
+  # -- Global pod annotations applied to all pods.
+  podAnnotations: {}
 
-# -- Image pull secrets for private registries.
-imagePullSecrets: []
 # -- Override the chart name portion of resource names.
 nameOverride: ""
 # -- Override the full name of resources (takes precedence over nameOverride).
 fullnameOverride: ""
 
-# -- Kubernetes Node Selector for assigning controller agent to specific node in the cluster.
-# Example: `--set controllerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"`
-controllerNodeSelector: {}
-# -- Kubernetes Node Selector for assigning worker agents and scheduling agent tasks to specific nodes in the cluster.
-# The selector must match a node's labels for the pod to be scheduled on that node.
-# Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>.
-# Example: `--set controllerTolerations[0].operator=Equal,controllerTolerations[0].effect=NoSchedule,controllerTolerations[0].key=dedicated,controllerTolerations[0].value=scalr-agent-controller-pool`
-controllerTolerations: []
-# -- Kubernetes Node Selector for the agent worker and the agent task pods.
-# Example: `--set workerNodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-worker-pool"`
-workerNodeSelector: {}
-# -- Kubernetes Node Tolerations for the agent worker and the agent task pods.
-# Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>.
-# Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool`
-workerTolerations: []
-
 serviceAccount:
   # -- Create a Kubernetes service account for the Scalr Agent.
   create: true
+  # -- Name of the service account. Generated if not set and 'create' is true.
+  name: ""
   # -- Whether to automount the service account token in the Scalr Agent pod.
   automountToken: true
+  # -- The token expiration period.
+  tokenTTL: 3600
   # -- Annotations for the service account.
   annotations: {}
   # -- Additional labels for the service account.
   labels: {}
-  # -- Name of the service account. Generated if not set and 'create' is true.
-  name: ""
-  # -- The token expiration period.
-  tokenTTL: 3600
 
-# -- Amazon EFS file system ID to use EFS storage as data home directory.
-efsVolumeHandle: ""
+# Scalr Agent container configuration shared between controller and worker containers
+agent:
+  # -- The Scalr url.
+  url: ""
+  # -- The agent pool token.
+  token: ""
+  # -- Pre-existing Kubernetes secret for the Scalr Agent token.
+  tokenExistingSecret:
+    # -- Name of the secret containing the token.
+    name: ""
+    # -- Key within the secret that holds the token value.
+    key: "token"
+  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
+  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
+  # It is mounted to the volume defined in the persistence section.
+  dataDir: "/var/lib/scalr-agent"
+  # -- Default image configuration for agent containers (controller and worker).
+  image:
+    # -- Docker repository for the Scalr Agent image.
+    repository: scalr/agent
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+    # -- The pullPolicy for a container and the tag of the image.
+    pullPolicy: IfNotPresent
+  # -- Additional environment variables for agent containers (merged with global extraEnv).
+  extraEnv: {}
+  # -- Default security context for agent containers (controller and worker).
+  securityContext:
+    # -- SELinux options.
+    seLinuxOptions: {}
+    # -- User ID to run the container as.
+    runAsUser: 1001
+    # -- Group ID to run the container as.
+    runAsGroup: 1001
+    # -- Run container as non-root user for security.
+    runAsNonRoot: true
+    # -- Run container in privileged mode. Enable only if required.
+    privileged: false
+    # -- Allow privilege escalation.
+    allowPrivilegeEscalation: false
+    # -- Read-only root filesystem for security.
+    readOnlyRootFilesystem: true
+    # -- Restrict container capabilities for security.
+    capabilities:
+      drop: ["ALL"]
+    # -- Seccomp profile for enhanced security.
+    seccompProfile:
+      type: "RuntimeDefault"
 
-# -- Amazon EFS mount options to define how the EFS storage volume should be mounted.
-efsMountOptions:
-  - acregmin=1
-  - acregmax=3
-  - acdirmin=1
-  - acdirmax=3
+# Controller pod configuration (Kubernetes Deployment)
+controller:
+  # -- Kubernetes Node Selector for assigning controller agent to specific nodes in the cluster.
+  # Example: `--set controller.nodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"`
+  nodeSelector: {}
+  # -- Kubernetes Node Tolerations for the controller agent.
+  # Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>.
+  # Example: `--set controller.tolerations[0].operator=Equal,controller.tolerations[0].effect=NoSchedule,controller.tolerations[0].key=dedicated,controller.tolerations[0].value=scalr-agent-controller-pool`
+  tolerations: []
+  # -- Kubernetes Node Affinity for the controller agent.
+  affinity: {}
+  # -- Security context for controller pod.
+  podSecurityContext:
+    # -- Run pod as non-root for security.
+    runAsNonRoot: true
+    # -- User ID for all containers in the pod.
+    runAsUser: 1001
+    # -- Group ID for all containers in the pod.
+    runAsGroup: 1001
+    # -- File system group for volume ownership.
+    fsGroup: 1001
+    # -- Ensure non-root filesystem group.
+    fsGroupChangePolicy: "OnRootMismatch"
+    # -- Supplemental groups for the containers.
+    supplementalGroups: []
+    # -- Sysctls for the pod.
+    sysctls: []
+    # -- SELinux options.
+    seLinuxOptions: {}
+    # -- Seccomp profile for enhanced security.
+    seccompProfile:
+      type: "RuntimeDefault"
+  # -- Controller specific pod annotations (merged with global podAnnotations, overrides duplicate keys).
+  podAnnotations: {}
+  # -- Provides the amount of grace time prior to the controller container being forcibly terminated when marked for deletion or restarted.
+  terminationGracePeriodSeconds: 360
+  # -- Controller container image settings (inherits from agent.image if empty).
+  image:
+    # -- Docker repository for the Scalr Agent controller image.
+    repository: ""
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+    # -- The pullPolicy for a container and the tag of the image.
+    pullPolicy: ""
+  # -- Resource limits and requests for controller container.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  # -- Additional environment variables for controller container (merged with agent.extraEnv and global.extraEnv).
+  extraEnv: {}
+  # -- Security context for controller container (inherits from agent.securityContext if empty).
+  securityContext: {}
 
-# -- Security context for Scalr Agent pod.
-podSecurityContext:
-  runAsNonRoot: false
-  fsGroup: 0
-
-# -- Security context for Scalr Agent container.
-securityContext:
-  # -- Run container in privileged mode. Enable only if required.
-  privileged: false
-  # -- Proc mount type. Valid values: Default, Unmasked, Host.
-  procMount: Default
-  # -- Restrict container capabilities for security.
-  capabilities:
-    drop:
-      - ALL
-  runAsNonRoot: false
-  runAsUser: 0
-  runAsGroup: 0
-
-# -- The Agent Pods annotations.
-podAnnotations: {}
-
-# -- Controller specific pod annotations (merged with podAnnotations, overrides duplicate keys)
-controllerPodAnnotations: {}
-
-# -- Worker specific pod annotations (merged with podAnnotations, overrides duplicate keys)
-workerPodAnnotations: {}
-
-# -- Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254)
-restrictMetadataService: false
-
-# -- Provides the amount of grace time prior to the agent-k8s container being forcibly terminated when marked for deletion or restarted.
-terminationGracePeriodSeconds: 360
-
-# Additional environment variables for agent containers.
-# For instance to add a HTTP proxy.
-extraEnv: {}
-#   HTTPS_PROXY: "http://myproxy.com:3128"
-#   HTTP_PROXY: "http://myproxy.com:3128"
-#   NO_PROXY: "localhost,127.0.0.1"
-
-resources:
-  requests:
-    cpu: 250m
-    memory: 256Mi
-  limits:
-    cpu: 2000m
-    memory: 1024Mi
+# Task job pod configuration (Kubernetes Job) - contains worker and runner containers
+task:
+  # -- Job configuration for task execution.
+  job:
+    # -- Number of retries before marking the job as failed.
+    backoffLimit: 0
+    # -- Time in seconds after job completion before it's automatically deleted.
+    ttlSecondsAfterFinished: 60
+  # -- Kubernetes Node Selector for assigning task jobs to specific nodes in the cluster.
+  # The selector must match a node's labels for the pod to be scheduled on that node.
+  nodeSelector: {}
+  # -- Kubernetes Node Tolerations for the task job pods.
+  # Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>.
+  # Example: `--set task.tolerations[0].operator=Equal,task.tolerations[0].effect=NoSchedule,task.tolerations[0].key=dedicated,task.tolerations[0].value=scalr-agent-worker-pool`
+  tolerations: []
+  # -- Kubernetes Node Affinity for the task job pods.
+  affinity: {}
+  # -- Security context for task job pod.
+  podSecurityContext:
+    # -- Run pod as non-root for security.
+    runAsNonRoot: true
+    # -- User ID for all containers in the pod.
+    runAsUser: 1001
+    # -- Group ID for all containers in the pod.
+    runAsGroup: 1001
+    # -- File system group for volume ownership.
+    fsGroup: 1001
+    # -- Ensure non-root filesystem group.
+    fsGroupChangePolicy: "OnRootMismatch"
+    # -- Supplemental groups for the containers.
+    supplementalGroups: []
+    # -- Sysctls for the pod.
+    sysctls: []
+    # -- SELinux options.
+    seLinuxOptions: {}
+    # -- Seccomp profile for enhanced security.
+    seccompProfile:
+      type: "RuntimeDefault"
+  # -- Task specific pod annotations (merged with global podAnnotations, overrides duplicate keys).
+  podAnnotations: {}
+  # -- Provides the amount of grace time prior to the task job containers being forcibly terminated when marked for deletion or restarted.
+  terminationGracePeriodSeconds: 360
+  # -- Additional volumes for the task pod.
+  extraVolumes: []
+  # Example:
+  #  - name: custom-config
+  #    configMap:
+  #      name: my-config
+  #  - name: shared-storage
+  #    emptyDir:
+  #      sizeLimit: 1Gi
+  # -- Additional sidecar containers for the task pod.
+  sidecars: []
+  # Example:
+  #  - name: monitoring-agent
+  #    image: monitoring/agent:latest
+  #    ports:
+  #      - containerPort: 8080
+  #    volumeMounts:
+  #      - name: shared-storage
+  #        mountPath: /shared
+  # -- Worker agent container configuration.
+  worker:
+    # -- Worker container image settings (inherits from agent.image if empty).
+    image:
+      # -- Docker repository for the Scalr Agent worker image.
+      repository: ""
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+      # -- The pullPolicy for a container and the tag of the image.
+      pullPolicy: ""
+    # -- Resource limits and requests for worker container.
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 2000m
+        memory: 1024Mi
+    # -- Additional environment variables for worker container (merged with agent.extraEnv and global.extraEnv).
+    extraEnv: {}
+    # -- Additional volume mounts for the worker container.
+    extraVolumeMounts: []
+    # Example:
+    #  - name: custom-config
+    #    mountPath: /etc/config
+    #    readOnly: true
+    # -- Security context for worker container (inherits from agent.securityContext if empty).
+    securityContext: {}
+  # -- Runner environment container configuration where Terraform/OpenTofu commands are executed.
+  runner:
+    # -- Runner container image settings.
+    image:
+      # -- Docker repository for the Scalr Agent runner image.
+      repository: scalr/agent-runner
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+      # -- The pullPolicy for a container and the tag of the image.
+      pullPolicy: IfNotPresent
+    # -- Resource limits and requests for runner container (independent configuration, no inheritance).
+    # For the system agent controller, this will be overridden with presets from the billing resource tier.
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 4000m
+        memory: 2048Mi
+    # -- Additional environment variables for runner container (merged with global.extraEnv only, no agent inheritance).
+    extraEnv: {}
+    # -- Additional volume mounts for the runner container.
+    extraVolumeMounts: []
+    # Example:
+    #  - name: terraform-cache
+    #    mountPath: /home/terraform/.terraform.d
+    #  - name: shared-storage
+    #    mountPath: /shared
+    # -- Security context for runner container (independent configuration, no inheritance).
+    securityContext:
+      # -- SELinux options.
+      seLinuxOptions: {}
+      # -- User ID to run the container as.
+      runAsUser: 1001
+      # -- Group ID to run the container as.
+      runAsGroup: 1001
+      # -- Run container as non-root user for security.
+      runAsNonRoot: true
+      # -- Run container in privileged mode. Only enable if Terraform providers require it.
+      privileged: false
+      # -- Allow privilege escalation.
+      allowPrivilegeEscalation: false
+      # -- Read-only root filesystem. May need to be false for Terraform cache and temp files.
+      readOnlyRootFilesystem: false
+      # -- Restrict container capabilities for security.
+      capabilities:
+        drop: ["ALL"]
+      # -- Seccomp profile for enhanced security.
+      seccompProfile:
+        type: "RuntimeDefault"
 
 # -- Persistent storage configuration for the Scalr Agent data directory.
 persistence:
@@ -132,30 +296,5 @@ persistence:
     # -- Optional subPath for mounting a specific subdirectory of the volume.
     subPath: ""
 
-
-controller:
-  image:
-    # -- Docker repository for the Scalr Agent image.
-    repository: scalr/agent
-    # -- Overrides the image tag whose default is the chart appVersion.
-    tag: ""
-    # -- The pullPolicy for a container and the tag of the image.
-    pullPolicy: IfNotPresent
-
-worker:
-  image:
-    # -- Docker repository for the Scalr Agent image.
-    repository: scalr/agent
-    # -- Overrides the image tag whose default is the chart appVersion.
-    tag: ""
-    # -- The pullPolicy for a container and the tag of the image.
-    pullPolicy: IfNotPresent
-
-  runner:
-    image:
-      # -- Docker repository for the Scalr Agent runner image.
-      repository: scalr/agent-runner
-      # -- Overrides the image tag whose default is the chart appVersion.
-      tag: ""
-      # -- The pullPolicy for a container and the tag of the image.
-      pullPolicy: IfNotPresent
+# -- Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254)
+restrictMetadataService: false
