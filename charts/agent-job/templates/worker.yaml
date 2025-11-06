@@ -13,7 +13,7 @@ spec:
   jobTemplate:
     spec:
       backoffLimit: 0
-      ttlSecondsAfterFinished: 60 # delete 1 minute after finish
+      ttlSecondsAfterFinished: 360 # delete 5 minutes after finish
       template:
         spec:
           restartPolicy: Never
@@ -28,10 +28,35 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           containers:
+          - name: runner
+            image: "{{ .Values.worker.runner.image.repository }}:{{ .Values.worker.runner.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.worker.runner.image.pullPolicy }}
+            command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
+            workingDir: /opt/workdir
+            volumeMounts:
+              {{- if .Values.persistence.enabled }}
+              - name: cache
+                mountPath: /opt/bin
+                subPath: {{ printf "%s/bin" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              - name: cache
+                mountPath: /opt/plugin-cache
+                subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              {{- end }}
+            resources:
+              requests:
+                cpu: 250m
+                memory: 30Mi
+              limits:
+                cpu: 2000m
+                memory: 30Mi
+          initContainers:
           - name: worker
             image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}"
             imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
             command: ["python", "-m", "tacoagent.cmd"]
+            # When a container in initContainers has restartPolicy: Always,
+            # it is treated as a sidecar. Kubernetes v1.29 is required.
+            restartPolicy: Always
             volumeMounts:
               - name: sa-token
                 mountPath: /var/run/secrets/kubernetes.io/serviceaccount
@@ -49,24 +74,6 @@ spec:
               - name: cache
                 mountPath: {{ .Values.agent.dataDir }}/providers-downloads
                 subPath: {{ printf "%s/providers-downloads" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
-              {{- end }}
-          initContainers:
-          - name: runner
-            image: "{{ .Values.worker.runner.image.repository }}:{{ .Values.worker.runner.image.tag | default .Chart.AppVersion }}"
-            imagePullPolicy: {{ .Values.worker.runner.image.pullPolicy }}
-            command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
-            workingDir: /opt/workdir
-            # When a container in initContainers has restartPolicy: Always,
-            # it is treated as a sidecar. Kubernetes v1.29 is required.
-            restartPolicy: Always
-            volumeMounts:
-              {{- if .Values.persistence.enabled }}
-              - name: cache
-                mountPath: /opt/bin
-                subPath: {{ printf "%s/bin" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
-              - name: cache
-                mountPath: /opt/plugin-cache
-                subPath: {{ printf "%s/providers" (default "" .Values.persistence.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
               {{- end }}
           volumes:
             - name: sa-token
