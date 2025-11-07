@@ -36,7 +36,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          containers:
+          initContainers:
           - name: worker
             {{- $workerImage := .Values.task.worker.image }}
             {{- if not $workerImage.repository }}
@@ -50,6 +50,9 @@ spec:
             {{- end }}
             imagePullPolicy: {{ $workerImage.pullPolicy | default .Values.agent.image.pullPolicy }}
             command: ["python", "-m", "tacoagent.cmd"]
+            # When a container in initContainers has restartPolicy: Always,
+            # it is treated as a sidecar. Kubernetes v1.29 is required.
+            restartPolicy: Always
             {{- with (default .Values.agent.securityContext .Values.task.worker.securityContext) }}
             securityContext:
               {{- toYaml . | nindent 14 }}
@@ -101,7 +104,7 @@ spec:
           {{- range .Values.task.sidecars }}
           - {{- toYaml . | nindent 12 }}
           {{- end }}
-          initContainers:
+          containers:
           - name: runner
             {{- $registry := .Values.global.imageRegistry }}
             {{- if $registry }}
@@ -112,9 +115,6 @@ spec:
             imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
             command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
             workingDir: /opt/workdir
-            # When a container in initContainers has restartPolicy: Always,
-            # it is treated as a sidecar. Kubernetes v1.29 is required.
-            restartPolicy: Always
             {{- with .Values.task.runner.securityContext }}
             securityContext:
               {{- toYaml . | nindent 14 }}
