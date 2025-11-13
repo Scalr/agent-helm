@@ -3,19 +3,59 @@
 
 {{ template "chart.description" . }}
 
-## Overview
-
 > [!WARNING]
 > This chart is in Alpha, and implementation details are subject to change.
 
-The `agent-job` Helm chart deploys a Scalr Agent system that uses a job-based architecture for executing Terraform/OpenTofu infrastructure tasks in Kubernetes. The system consists of two main components: a controller that manages job lifecycle and task jobs that execute the actual infrastructure operations.
+## Prerequisites
 
-When a run is assigned to an agent pool by Scalr, the agent controller will create a new task - Kubernetes Job to handle it. This Job's pod will include the following containers:
+- Kubernetes 1.33+ (require [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/))
+- Helm 3.0+
+- ReadWriteMany volumes for [cache cersistance](#cache-directory-persistence) (optional)
 
-- **runner**: The environment where the run is executed, based on the golden `scalr/runner` image.
-- **worker**: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
+## Installation
 
-The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
+To install the chart with the release name `scalr-agent`:
+
+```bash
+# Add the Helm repo
+helm repo add scalr-agent https://scalr.github.io/agent-helm/
+helm repo update
+
+# Install or upgrade the chart
+helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
+  --set agent.token="<agent-pool-token>"
+```
+
+## Overview
+
+The `agent-job` Helm chart deploys a [Scalr Agent](https://docs.scalr.io/docs/agent-pools) that uses a job-based architecture for executing Terraform/OpenTofu infrastructure tasks in Kubernetes.
+
+The chart consists of two Kubernetes resources: **[agent](#agent)** and **[agent task](#agent-task)**.
+
+### Agent
+
+The agent is a [Kubernetes Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), deployed by default as a single replica consisting of one container:
+
+- **controller**: The controller that creates Kubernetes Jobs, based on the `scalr/agent` image.
+
+The agent controller is responsible for polling incoming tasks from Scalr and launching them as isolated Kubernetes Jobs.
+
+See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/agent.yaml).
+
+### Agent Task
+
+Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) created by the agent controller. It consists of two isolated containers:
+
+- **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
+- **worker** (sidecar): The Scalr Agent process that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
+
+The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
+
+The runner and worker containers share a single disk volume, allowing the worker to provision the configuration version, providers, and software binaries required by the runner container.
+
+The number of agent task Jobs depends on the active workload that the Scalr platform delegates to the agent pool to which the agent is connected.
+
+See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/task.yaml).
 
 ### Pros
 
@@ -28,164 +68,90 @@ The runner and worker containers will share a single disk volume, allowing the w
 - Requires access to the Kubernetes API to launch new Pods.
 - Requires a ReadWriteMany Persistent Volume configuration for provider/binary caching. This type of volume is generally vendor-specific and not widely available across all cloud providers.
 
-## Deployment Diagram
+## Architecture Diagram
 
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
 
-## Installing
+## Custom Runner Images
 
-To install the chart with the release name `scalr-agent`:
+You can override `task.runner.image.*` to use a custom runner image.
+If you are using a custom runner image, it must include a user with UID/GID `1000`. By default, Scalr images come with a user `scalr` under `1000:1000`.
 
-```console
-$~ helm repo add scalr-charts https://scalr.github.io/agent-helm/
-$~ helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} --set agent.auth.token="<agent-pool-token>"
-```
-
-## Architecture Components
-
-### Controller Component (Kubernetes Deployment)
-
-- **Purpose**: Orchestrates and manages the lifecycle of infrastructure tasks
-- **Responsibilities**:
-  - Creates and monitors Kubernetes Jobs for task execution
-  - Manages communication with the Scalr platform
-  - Handles job scheduling and cleanup
-- **Deployment**: Single replica Deployment that runs continuously
-- **Resource Profile**: Lightweight (100m CPU, 128Mi memory) - primarily orchestration workload
-
-### Task Component (Kubernetes Job)
-
-The task component is deployed as Kubernetes Jobs on-demand, containing two containers working together:
-
-#### Worker Container
-- **Purpose**: Task coordination and communication
-- **Responsibilities**:
-  - Receives task instructions from the controller
-  - Coordinates with the runner container
-  - Reports task status and results back to the Scalr platform
-- **Resource Profile**: Moderate (250m CPU, 256Mi memory) - coordination workload
-
-#### Runner Container
-- **Purpose**: Terraform/OpenTofu execution environment
-- **Responsibilities**:
-  - Executes terraform/tofu plan, apply, and destroy operations
-  - Manages provider downloads and caching
-  - Handles state file operations
-- **Resource Profile**: High (500m CPU, 512Mi memory) - intensive execution workload
-
-This chart uses a custom Kubernetes resource called AgentTask to manage task execution.
-You can interact with AgentTask resources using kubectl:
+Example override:
 
 ```console
-# List all agent tasks
-$~ kubectl get atasks
-
-# Describe a specific agent task
-$~ kubectl describe atask atask-xxx
-
-# View agent task with short name
-$~ kubectl get at
+helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} \
+  --set agent.token="<agent-token>" \
+  --set task.runner.image.repository="registry.example.com/custom-runner" \
+  --set task.runner.image.tag="v1.2.3"
 ```
 
-### Configuration Inheritance Model
+## Cache Directory Persistence
 
-#### Global Configuration (`global.*`)
+The *cache directory* stores provider binaries, plugin cache, and downloaded tools. This volume is mounted to both the worker (full access) and runner (some direcrotires, in readonly) containers.
 
-Settings that apply to every component across the entire chart:
-- **Image Registry**: Prepended to all container images
-- **Image Pull Secrets**: Used by all pods for private registry access
-- **Pod Annotations**: Applied to all pods (merged with component-specific annotations)
+Default configuration uses ephemeral `emptyDir` storage. Each task will download providers and binaries fresh.
 
-#### Agent Configuration (`agent.*`)
+It's recommended to enable persistent storage with `ReadWriteMany` access mode to share the cache across all task pods. This significantly improves performance by avoiding repeated downloads (saves 1-5 minutes per task).
 
-Container-level settings shared between agent controller and agent worker containers only:
+Benefits of persistent cache:
 
-- **Authentication**: Scalr URL, tokens, credentials
-- **Image Defaults**: Base image configuration for agent containers
-- **Security Context**: Default security settings for agent containers
-- **Environment Variables**: Agent-specific environment (merged with global)
+- Faster task execution (no provider/binaries re-downloads)
+- Reduced network bandwidth usage
 
-**Note**: The runner container does NOT inherit from `agent.*` as it's a different execution environment.
+When enabling a persistent cache directory, it is recommended to also enable provider cache (`providerCache.enabled=true`). Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache). Otherwise, only software binaries (Terraform/OpenTofu/OPA/Infracost/etc.) will be cached.
 
-#### Component-Specific Configuration
-
-##### Controller (`controller.*`)
-
-Pod-level settings for the controller Deployment:
-
-- **Scheduling**: nodeSelector, tolerations, affinity
-- **Pod Security**: podSecurityContext
-- **Container Overrides**: image, resources, securityContext (inherits from `agent.*` if empty)
-
-##### Task (`task.*`)
-
-Pod-level settings for task Job pods:
-
-- **Scheduling**: nodeSelector, tolerations, affinity for job placement
-- **Pod Security**: podSecurityContext
-- **Extensibility**: extraVolumes, sidecars
-- **Container Configurations**: worker and runner container settings
-
-## Configuration Examples
-
-### Basic Configuration
+**Configuration Example with PVC**:
 
 ```yaml
-global:
-  imageRegistry: "my-registry.com"
-
+persistence:
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      # Use existing PVC
+      claimName: "my-cache-pvc"
+      # Or create new PVC (omit claimName)
+      storageClassName: "nfs-client"
+      storage: 40Gi
+      accessMode: ReadWriteMany
 agent:
-  url: "https://myorgaccount.scalr.op"
-  auth:
-    token: "my-agent-token"
-
-controller:
-  resources:
-    requests:
-      cpu: 200m
-      memory: 256Mi
-
-task:
-  nodeSelector:
-    workload: "terraform"
-  runner:
-    resources:
-      limits:
-        cpu: 8000m
-        memory: 4096Mi
+  providerCache:
+    enabled: true
+    sizeLimit: 20Gi # soft-limit
 ```
 
-## Storage and Persistence
+## Data Directory Persistence
 
-### Provider Cache Configuration
+The *data directory* stores temporary workspace data needed for processing a run, including run metadata and source code.
 
-To enable [provider cache](https://docs.scalr.io/docs/providers-cache), a `ReadWriteMany` volume can be attached via the `persistence` configuration:
+The default configuration uses ephemeral `emptyDir` storage. Since the workspace volume does not need to be shared or persisted between runs, we recommend using an ephemeral volume so that it is bound to the lifetime of the run and automatically destroyed when the Job is deleted.
 
-```console
-helm upgrade --install scalr-agent scalr-agent-helm/{{ template "chart.name" . }} \
-  ...
-  --set persistence.enabled=true \
-  --set persistence.persistentVolumeClaim.claimName="nfs-disk-pvc"
-```
-
-PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
+Optionally, you can configure a PVC using `persistence.data.enabled` and `persistence.data.persistentVolumeClaim` options, similar to the [*cache directory* configuration](#cache-directory-persistence).
 
 ## Security Features
 
+### Runner Security Context
+
+Runner pods inherit their Linux user, group, seccomp, and capability settings from `task.runner.securityContext`. The defaults run the container as the non-root UID/GID `1000`, drop all Linux capabilities, and enforce a read-only root filesystem.
+
+The default is strict and compatible with Terraform/OpenTofu workloads, and it’s generally not recommended to change it. However, it can be useful to disable `readOnlyRootFilesystem` and switch the user to root if you need to install packages via package managers like `apt-get` or `dnf` from Workspace hooks.
+
 ### Restrict Access to VM Metadata Service
 
-The chart includes an optional feature to restrict the pods from accessing the VM metadata service at 169.254.169.254, that is common for both AWS and GCP environments.
+The chart includes a feature to restrict task pods from accessing the VM metadata service at 169.254.169.254, which is common for both AWS and GCP environments.
 
-To enable it, use the `restrictMetadataService` option:
+By default this option is enabled, and a Kubernetes NetworkPolicy is applied to task pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+
+To disable this restriction, set `task.allowMetadataService` to `true`:
 
 ```console
 $~ helm upgrade ... \
-    --set restrictMetadataService=true
+    --set task.allowMetadataService=true
 ```
 
-With this option enabled, a Kubernetes NetworkPolicy is applied to the agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+**Note**: The controller pod is not affected by this NetworkPolicy and retains full network access.
 
 #### Limitations
 
@@ -193,24 +159,81 @@ Ensure that your cluster is using a CNI plugin that supports egress NetworkPolic
 
 If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
 
+## Job History Management
+
+Kubernetes automatically removes Jobs after `task.job.ttlSecondsAfterFinished` seconds (default: 60). Increase this value for debugging or to preserve job history longer, or decrease it to optimize cluster resource usage.
+
+## Metrics and Observability
+
+The agent can be configured to send telemetry data, including both trace spans and metrics, using [OpenTelemetry](https://opentelemetry.io/).
+
+OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
+
+Enable telemetry for both the controller deployment and the worker sidecar by configuring an OpenTelemetry collector endpoint:
+
+```yaml
+otel:
+  enabled: true
+  endpoint: "otel-collector:4317"  # gRPC endpoint
+  metricsEnabled: true
+  tracesEnabled: false  # Optional: enable distributed tracing
+```
+
+See [all configuration options](#opentelemetry).
+
+Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
+
+## Custom Resource Definitions
+
+This chart bundles the **AgentTask CRD** (`atasks.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
+
+**Verify installation:**
+
+```console
+kubectl get crd atasks.scalr.io
+```
+
+## RBAC
+
+By default the chart provisions:
+
+- **ServiceAccount** used by the controller and task pods
+- **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
+- **ClusterRole/RoleBinding** granting read access to `AgentTask` resources (`atasks.scalr.io`)
+
+Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
+
 ## Troubleshooting and Support
 
 ### Debug Logging
 
-If you encounter internal system errors or unexpected behavior, please open a Scalr Support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+If you encounter internal system errors or unexpected behavior, enable debug logs:
 
-Before doing so, enable debug logs using the `agent.extraEnv.SCALR_AGENT_DEBUG=1` option. Then collect the debug-level application logs covering the time window when the incident occurred, and attach them to your support ticket.
+```console
+helm upgrade scalr-agent scalr-agent-helm/{{ template "chart.name" . }} \
+  --reuse-values \
+  --set agent.debug="1"
+```
+
+Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
 
 ### Collecting Logs
 
-To archive all logs from the Scalr agent namespace in a single bundle, replace the `ns` variable with the name of your Helm release namespace and run:
+When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `atask-*` job pod). Job pods are available for 60 seconds after completion. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
 
-```shell
-ns="scalr-agent"
-mkdir -p logs && for pod in $(kubectl get pods -n $ns -o name); do kubectl logs -n $ns $pod > "logs/${pod##*/}.log"; done && zip -r agent-k8s-logs.zip logs && rm -rf logs
+Use `kubectl logs` to retrieve logs from the `scalr-agent-*` and `atask-*` pods (if any):
+
+```console
+kubectl logs -n <namespace> <task-pod-name> --all-containers
 ```
 
-It's best to pull the logs immediately after an incident, since this command will not retrieve logs from restarted or terminated pods.
+### Getting Support
+
+For issues not covered above:
+
+1. Enable [debug logging](#debug-logging)
+2. [Collect logs](#collecting-logs) from the incident timeframe
+3. Open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31)
 
 {{ template "chart.maintainersSection" . }}
 

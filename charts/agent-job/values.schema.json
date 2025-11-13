@@ -1,0 +1,200 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "$defs": {
+        "envValue": {
+            "description": "Environment variables accept string, numeric, or boolean inputs.",
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "boolean"
+                }
+            ]
+        },
+        "envBool": {
+            "description": "Boolean env var flags can be expressed as strings, integers, or booleans.",
+            "anyOf": [
+                {
+                    "type": "string",
+                    "enum": [
+                        "true",
+                        "false",
+                        "1",
+                        "0"
+                    ]
+                },
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "integer",
+                    "enum": [
+                        0,
+                        1
+                    ]
+                }
+            ]
+        }
+    },
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+        "serviceAccount": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "rbac": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "agent": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "url": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "telemetry": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "endpoint": {
+                            "type": "string",
+                            "pattern": "^([a-zA-Z0-9._-]+:[0-9]+)?$"
+                        },
+                        "metricsEnabled": {
+                            "type": "boolean"
+                        },
+                        "tracesEnabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "extraEnv": {
+                    "oneOf": [
+                        {
+                            "type": "null"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "SCALR_AGENT_DEBUG": {
+                                    "$ref": "#/$defs/envBool",
+                                    "description": "Activates debug-level logging output"
+                                },
+                                "SCALR_AGENT_LOG_FORMAT": {
+                                    "type": "string",
+                                    "enum": [
+                                        "plain",
+                                        "dev",
+                                        "json"
+                                    ],
+                                    "description": "Output format for logs"
+                                }
+                            },
+                            "additionalProperties": {
+                                "$ref": "#/$defs/envValue"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "task": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "worker": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "extraEnv": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "SCALR_AGENT_DEBUG": {
+                                            "$ref": "#/$defs/envBool"
+                                        },
+                                        "SCALR_AGENT_PROVIDER_CACHE_ENABLED": {
+                                            "$ref": "#/$defs/envBool"
+                                        }
+                                    },
+                                    "additionalProperties": {
+                                        "$ref": "#/$defs/envValue"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "runner": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "extraEnv": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "$ref": "#/$defs/envValue"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "persistence": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "cache": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

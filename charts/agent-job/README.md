@@ -3,22 +3,62 @@
 ![Version: 0.5.62](https://img.shields.io/badge/Version-0.5.62-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.55.2](https://img.shields.io/badge/AppVersion-0.55.2-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
-Uses a controller/worker model. Each run stage is isolated
-in Kubernetes containers with specified resource limits.
-
-## Overview
+It uses a job-based model, where each Scalr Run is isolated
+in its own Kubernetes Job.
 
 > [!WARNING]
 > This chart is in Alpha, and implementation details are subject to change.
 
-The `agent-job` Helm chart deploys a Scalr Agent system that uses a job-based architecture for executing Terraform/OpenTofu infrastructure tasks in Kubernetes. The system consists of two main components: a controller that manages job lifecycle and task jobs that execute the actual infrastructure operations.
+## Prerequisites
 
-When a run is assigned to an agent pool by Scalr, the agent controller will create a new task - Kubernetes Job to handle it. This Job's pod will include the following containers:
+- Kubernetes 1.33+ (require [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/))
+- Helm 3.0+
+- ReadWriteMany volumes for [cache cersistance](#cache-directory-persistence) (optional)
 
-- **runner**: The environment where the run is executed, based on the golden `scalr/runner` image.
-- **worker**: The Scalr Agent process that supervises task execution, using the `scalr/agent` image.
+## Installation
 
-The runner and worker containers will share a single disk volume, allowing the worker to provision the configuration version, providers, and binaries required by the runner.
+To install the chart with the release name `scalr-agent`:
+
+```bash
+# Add the Helm repo
+helm repo add scalr-agent https://scalr.github.io/agent-helm/
+helm repo update
+
+# Install or upgrade the chart
+helm upgrade --install scalr-agent scalr-agent/agent-job \
+  --set agent.token="<agent-pool-token>"
+```
+
+## Overview
+
+The `agent-job` Helm chart deploys a [Scalr Agent](https://docs.scalr.io/docs/agent-pools) that uses a job-based architecture for executing Terraform/OpenTofu infrastructure tasks in Kubernetes.
+
+The chart consists of two Kubernetes resources: **[agent](#agent)** and **[agent task](#agent-task)**.
+
+### Agent
+
+The agent is a [Kubernetes Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), deployed by default as a single replica consisting of one container:
+
+- **controller**: The controller that creates Kubernetes Jobs, based on the `scalr/agent` image.
+
+The agent controller is responsible for polling incoming tasks from Scalr and launching them as isolated Kubernetes Jobs.
+
+See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/agent.yaml).
+
+### Agent Task
+
+Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) created by the agent controller. It consists of two isolated containers:
+
+- **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
+- **worker** (sidecar): The Scalr Agent process that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
+
+The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
+
+The runner and worker containers share a single disk volume, allowing the worker to provision the configuration version, providers, and software binaries required by the runner container.
+
+The number of agent task Jobs depends on the active workload that the Scalr platform delegates to the agent pool to which the agent is connected.
+
+See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/task.yaml).
 
 ### Pros
 
@@ -31,164 +71,90 @@ The runner and worker containers will share a single disk volume, allowing the w
 - Requires access to the Kubernetes API to launch new Pods.
 - Requires a ReadWriteMany Persistent Volume configuration for provider/binary caching. This type of volume is generally vendor-specific and not widely available across all cloud providers.
 
-## Deployment Diagram
+## Architecture Diagram
 
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
 
-## Installing
+## Custom Runner Images
 
-To install the chart with the release name `scalr-agent`:
+You can override `task.runner.image.*` to use a custom runner image.
+If you are using a custom runner image, it must include a user with UID/GID `1000`. By default, Scalr images come with a user `scalr` under `1000:1000`.
 
-```console
-$~ helm repo add scalr-charts https://scalr.github.io/agent-helm/
-$~ helm upgrade --install scalr-agent scalr-charts/agent-job --set agent.auth.token="<agent-pool-token>"
-```
-
-## Architecture Components
-
-### Controller Component (Kubernetes Deployment)
-
-- **Purpose**: Orchestrates and manages the lifecycle of infrastructure tasks
-- **Responsibilities**:
-  - Creates and monitors Kubernetes Jobs for task execution
-  - Manages communication with the Scalr platform
-  - Handles job scheduling and cleanup
-- **Deployment**: Single replica Deployment that runs continuously
-- **Resource Profile**: Lightweight (100m CPU, 128Mi memory) - primarily orchestration workload
-
-### Task Component (Kubernetes Job)
-
-The task component is deployed as Kubernetes Jobs on-demand, containing two containers working together:
-
-#### Worker Container
-- **Purpose**: Task coordination and communication
-- **Responsibilities**:
-  - Receives task instructions from the controller
-  - Coordinates with the runner container
-  - Reports task status and results back to the Scalr platform
-- **Resource Profile**: Moderate (250m CPU, 256Mi memory) - coordination workload
-
-#### Runner Container
-- **Purpose**: Terraform/OpenTofu execution environment
-- **Responsibilities**:
-  - Executes terraform/tofu plan, apply, and destroy operations
-  - Manages provider downloads and caching
-  - Handles state file operations
-- **Resource Profile**: High (500m CPU, 512Mi memory) - intensive execution workload
-
-This chart uses a custom Kubernetes resource called AgentTask to manage task execution.
-You can interact with AgentTask resources using kubectl:
+Example override:
 
 ```console
-# List all agent tasks
-$~ kubectl get atasks
-
-# Describe a specific agent task
-$~ kubectl describe atask atask-xxx
-
-# View agent task with short name
-$~ kubectl get at
+helm upgrade --install scalr-agent scalr-charts/agent-job \
+  --set agent.token="<agent-token>" \
+  --set task.runner.image.repository="registry.example.com/custom-runner" \
+  --set task.runner.image.tag="v1.2.3"
 ```
 
-### Configuration Inheritance Model
+## Cache Directory Persistence
 
-#### Global Configuration (`global.*`)
+The *cache directory* stores provider binaries, plugin cache, and downloaded tools. This volume is mounted to both the worker (full access) and runner (some direcrotires, in readonly) containers.
 
-Settings that apply to every component across the entire chart:
-- **Image Registry**: Prepended to all container images
-- **Image Pull Secrets**: Used by all pods for private registry access
-- **Pod Annotations**: Applied to all pods (merged with component-specific annotations)
+Default configuration uses ephemeral `emptyDir` storage. Each task will download providers and binaries fresh.
 
-#### Agent Configuration (`agent.*`)
+It's recommended to enable persistent storage with `ReadWriteMany` access mode to share the cache across all task pods. This significantly improves performance by avoiding repeated downloads (saves 1-5 minutes per task).
 
-Container-level settings shared between agent controller and agent worker containers only:
+Benefits of persistent cache:
 
-- **Authentication**: Scalr URL, tokens, credentials
-- **Image Defaults**: Base image configuration for agent containers
-- **Security Context**: Default security settings for agent containers
-- **Environment Variables**: Agent-specific environment (merged with global)
+- Faster task execution (no provider/binaries re-downloads)
+- Reduced network bandwidth usage
 
-**Note**: The runner container does NOT inherit from `agent.*` as it's a different execution environment.
+When enabling a persistent cache directory, it is recommended to also enable provider cache (`providerCache.enabled=true`). Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache). Otherwise, only software binaries (Terraform/OpenTofu/OPA/Infracost/etc.) will be cached.
 
-#### Component-Specific Configuration
-
-##### Controller (`controller.*`)
-
-Pod-level settings for the controller Deployment:
-
-- **Scheduling**: nodeSelector, tolerations, affinity
-- **Pod Security**: podSecurityContext
-- **Container Overrides**: image, resources, securityContext (inherits from `agent.*` if empty)
-
-##### Task (`task.*`)
-
-Pod-level settings for task Job pods:
-
-- **Scheduling**: nodeSelector, tolerations, affinity for job placement
-- **Pod Security**: podSecurityContext
-- **Extensibility**: extraVolumes, sidecars
-- **Container Configurations**: worker and runner container settings
-
-## Configuration Examples
-
-### Basic Configuration
+**Configuration Example with PVC**:
 
 ```yaml
-global:
-  imageRegistry: "my-registry.com"
-
+persistence:
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      # Use existing PVC
+      claimName: "my-cache-pvc"
+      # Or create new PVC (omit claimName)
+      storageClassName: "nfs-client"
+      storage: 40Gi
+      accessMode: ReadWriteMany
 agent:
-  url: "https://myorgaccount.scalr.op"
-  auth:
-    token: "my-agent-token"
-
-controller:
-  resources:
-    requests:
-      cpu: 200m
-      memory: 256Mi
-
-task:
-  nodeSelector:
-    workload: "terraform"
-  runner:
-    resources:
-      limits:
-        cpu: 8000m
-        memory: 4096Mi
+  providerCache:
+    enabled: true
+    sizeLimit: 20Gi # soft-limit
 ```
 
-## Storage and Persistence
+## Data Directory Persistence
 
-### Provider Cache Configuration
+The *data directory* stores temporary workspace data needed for processing a run, including run metadata and source code.
 
-To enable [provider cache](https://docs.scalr.io/docs/providers-cache), a `ReadWriteMany` volume can be attached via the `persistence` configuration:
+The default configuration uses ephemeral `emptyDir` storage. Since the workspace volume does not need to be shared or persisted between runs, we recommend using an ephemeral volume so that it is bound to the lifetime of the run and automatically destroyed when the Job is deleted.
 
-```console
-helm upgrade --install scalr-agent scalr-agent-helm/agent-job \
-  ...
-  --set persistence.enabled=true \
-  --set persistence.persistentVolumeClaim.claimName="nfs-disk-pvc"
-```
-
-PVCs can be provisioned using AWS EFS, Google Filestore, or similar solutions.
+Optionally, you can configure a PVC using `persistence.data.enabled` and `persistence.data.persistentVolumeClaim` options, similar to the [*cache directory* configuration](#cache-directory-persistence).
 
 ## Security Features
 
+### Runner Security Context
+
+Runner pods inherit their Linux user, group, seccomp, and capability settings from `task.runner.securityContext`. The defaults run the container as the non-root UID/GID `1000`, drop all Linux capabilities, and enforce a read-only root filesystem.
+
+The default is strict and compatible with Terraform/OpenTofu workloads, and it’s generally not recommended to change it. However, it can be useful to disable `readOnlyRootFilesystem` and switch the user to root if you need to install packages via package managers like `apt-get` or `dnf` from Workspace hooks.
+
 ### Restrict Access to VM Metadata Service
 
-The chart includes an optional feature to restrict the pods from accessing the VM metadata service at 169.254.169.254, that is common for both AWS and GCP environments.
+The chart includes a feature to restrict task pods from accessing the VM metadata service at 169.254.169.254, which is common for both AWS and GCP environments.
 
-To enable it, use the `restrictMetadataService` option:
+By default this option is enabled, and a Kubernetes NetworkPolicy is applied to task pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+
+To disable this restriction, set `task.allowMetadataService` to `true`:
 
 ```console
 $~ helm upgrade ... \
-    --set restrictMetadataService=true
+    --set task.allowMetadataService=true
 ```
 
-With this option enabled, a Kubernetes NetworkPolicy is applied to the agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+**Note**: The controller pod is not affected by this NetworkPolicy and retains full network access.
 
 #### Limitations
 
@@ -196,24 +162,81 @@ Ensure that your cluster is using a CNI plugin that supports egress NetworkPolic
 
 If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
 
+## Job History Management
+
+Kubernetes automatically removes Jobs after `task.job.ttlSecondsAfterFinished` seconds (default: 60). Increase this value for debugging or to preserve job history longer, or decrease it to optimize cluster resource usage.
+
+## Metrics and Observability
+
+The agent can be configured to send telemetry data, including both trace spans and metrics, using [OpenTelemetry](https://opentelemetry.io/).
+
+OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
+
+Enable telemetry for both the controller deployment and the worker sidecar by configuring an OpenTelemetry collector endpoint:
+
+```yaml
+otel:
+  enabled: true
+  endpoint: "otel-collector:4317"  # gRPC endpoint
+  metricsEnabled: true
+  tracesEnabled: false  # Optional: enable distributed tracing
+```
+
+See [all configuration options](#opentelemetry).
+
+Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
+
+## Custom Resource Definitions
+
+This chart bundles the **AgentTask CRD** (`atasks.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
+
+**Verify installation:**
+
+```console
+kubectl get crd atasks.scalr.io
+```
+
+## RBAC
+
+By default the chart provisions:
+
+- **ServiceAccount** used by the controller and task pods
+- **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
+- **ClusterRole/RoleBinding** granting read access to `AgentTask` resources (`atasks.scalr.io`)
+
+Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
+
 ## Troubleshooting and Support
 
 ### Debug Logging
 
-If you encounter internal system errors or unexpected behavior, please open a Scalr Support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+If you encounter internal system errors or unexpected behavior, enable debug logs:
 
-Before doing so, enable debug logs using the `agent.extraEnv.SCALR_AGENT_DEBUG=1` option. Then collect the debug-level application logs covering the time window when the incident occurred, and attach them to your support ticket.
+```console
+helm upgrade scalr-agent scalr-agent-helm/agent-job \
+  --reuse-values \
+  --set agent.debug="1"
+```
+
+Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
 
 ### Collecting Logs
 
-To archive all logs from the Scalr agent namespace in a single bundle, replace the `ns` variable with the name of your Helm release namespace and run:
+When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `atask-*` job pod). Job pods are available for 60 seconds after completion. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
 
-```shell
-ns="scalr-agent"
-mkdir -p logs && for pod in $(kubectl get pods -n $ns -o name); do kubectl logs -n $ns $pod > "logs/${pod##*/}.log"; done && zip -r agent-k8s-logs.zip logs && rm -rf logs
+Use `kubectl logs` to retrieve logs from the `scalr-agent-*` and `atask-*` pods (if any):
+
+```console
+kubectl logs -n <namespace> <task-pod-name> --all-containers
 ```
 
-It's best to pull the logs immediately after an incident, since this command will not retrieve logs from restarted or terminated pods.
+### Getting Support
+
+For issues not covered above:
+
+1. Enable [debug logging](#debug-logging)
+2. [Collect logs](#collecting-logs) from the incident timeframe
+3. Open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31)
 
 ## Maintainers
 
@@ -223,120 +246,164 @@ It's best to pull the logs immediately after an incident, since this command wil
 
 ## Values
 
+### Agent
+
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| agent.dataDir | string | `"/var/lib/scalr-agent"` | The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache. This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries. It is mounted to the volume defined in the persistence section. |
-| agent.extraEnv | object | `{}` | Additional environment variables for agent containers (merged with global extraEnv). |
-| agent.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent","tag":""}` | Default image configuration for agent containers (controller and worker). |
-| agent.image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
+| agent.affinity | object | `{}` | Node affinity for the controller pod. |
+| agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. |
+| agent.controller | object | `{"extraEnv":[],"extraEnvFrom":[],"securityContext":{}}` | Controller-specific configuration. |
+| agent.controller.extraEnv | list | `[]` | Additional environment variables for the controller container only. |
+| agent.controller.extraEnvFrom | list | `[]` | Additional environment variable sources for the controller container. |
+| agent.controller.securityContext | object | `{}` | Default security context for agent controller container. |
+| agent.dataDir | string | `"/var/lib/scalr-agent/data"` | Data directory where the agent stores workspace data (configuration versions, modules, and providers). This directory must be readable, writable, and executable. |
+| agent.debug | string | `"0"` | Enable debug logging. |
+| agent.extraEnv | object | `{}` | Additional environment variables for agent controller and worker containers. |
+| agent.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent","tag":""}` | Agent image configuration (used by both controller and worker containers). |
+| agent.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | agent.image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
-| agent.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| agent.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsGroup":1001,"runAsNonRoot":true,"runAsUser":1001,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"}}` | Default security context for agent containers (controller and worker). |
-| agent.securityContext.allowPrivilegeEscalation | bool | `false` | Allow privilege escalation. |
-| agent.securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
-| agent.securityContext.privileged | bool | `false` | Run container in privileged mode. Enable only if required. |
-| agent.securityContext.readOnlyRootFilesystem | bool | `true` | Read-only root filesystem for security. |
-| agent.securityContext.runAsGroup | int | `1001` | Group ID to run the container as. |
-| agent.securityContext.runAsNonRoot | bool | `true` | Run container as non-root user for security. |
-| agent.securityContext.runAsUser | int | `1001` | User ID to run the container as. |
-| agent.securityContext.seLinuxOptions | object | `{}` | SELinux options. |
-| agent.securityContext.seccompProfile | object | `{"type":"RuntimeDefault"}` | Seccomp profile for enhanced security. |
-| agent.token | string | `""` | The agent pool token. |
+| agent.image.tag | string | `""` | Image tag. Defaults to the chart appVersion if not specified. |
+| agent.logFormat | string | `"json"` | The log formatter. Options: plain, dev or json. Defaults to json. |
+| agent.nodeSelector | object | `{}` | Node selector for assigning the controller pod to specific nodes. Example: `--set agent.nodeSelector."node-type"="agent-controller"` |
+| agent.podAnnotations | object | `{}` | Controller-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
+| agent.podDisruptionBudget | object | `{"enabled":true,"maxUnavailable":null,"minAvailable":1}` | PodDisruptionBudget configuration for controller high availability. Only applied when replicaCount > 1. Ensures minimum availability during voluntary disruptions. |
+| agent.podDisruptionBudget.enabled | bool | `true` | Enable PodDisruptionBudget for the controller. |
+| agent.podDisruptionBudget.maxUnavailable | string | `nil` | Maximum number of controller pods that can be unavailable. Either minAvailable or maxUnavailable must be set, not both. |
+| agent.podDisruptionBudget.minAvailable | int | `1` | Minimum number of controller pods that must be available. Either minAvailable or maxUnavailable must be set, not both. |
+| agent.podLabels | object | `{}` | Controller-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
+| agent.podSecurityContext | object | `{}` | Controller-specific pod security context (merged with global.podAnnotations, overrides duplicate keys). |
+| agent.providerCache.enabled | bool | `false` | Enable provider caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. |
+| agent.providerCache.sizeLimit | string | `"40Gi"` | Provider cache soft limit. Must be tuned according to cache directory size. |
+| agent.replicaCount | int | `1` | Number of agent controller replicas. |
+| agent.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource limits and requests for the agent controller container. |
+| agent.terminationGracePeriodSeconds | int | `360` | Grace period in seconds before forcibly terminating the controller container. |
+| agent.token | string | `""` | The agent pool token for authentication. |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. |
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
 | agent.tokenExistingSecret.name | string | `""` | Name of the secret containing the token. |
-| agent.url | string | `""` | The Scalr url. |
-| controller.affinity | object | `{}` | Kubernetes Node Affinity for the controller agent. |
-| controller.extraEnv | object | `{}` | Additional environment variables for controller container (merged with agent.extraEnv and global.extraEnv). |
-| controller.image | object | `{"pullPolicy":"","repository":"","tag":""}` | Controller container image settings (inherits from agent.image if empty). |
-| controller.image.pullPolicy | string | `""` | The pullPolicy for a container and the tag of the image. |
-| controller.image.repository | string | `""` | Docker repository for the Scalr Agent controller image. |
-| controller.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| controller.nodeSelector | object | `{}` | Kubernetes Node Selector for assigning controller agent to specific nodes in the cluster. Example: `--set controller.nodeSelector."cloud\\.google\\.com\\/gke-nodepool"="scalr-agent-controller-pool"` |
-| controller.podAnnotations | object | `{}` | Controller specific pod annotations (merged with global podAnnotations, overrides duplicate keys). |
-| controller.podSecurityContext | object | `{"fsGroup":1001,"fsGroupChangePolicy":"OnRootMismatch","runAsGroup":1001,"runAsNonRoot":true,"runAsUser":1001,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"},"supplementalGroups":[],"sysctls":[]}` | Security context for controller pod. |
-| controller.podSecurityContext.fsGroup | int | `1001` | File system group for volume ownership. |
-| controller.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` | Ensure non-root filesystem group. |
-| controller.podSecurityContext.runAsGroup | int | `1001` | Group ID for all containers in the pod. |
-| controller.podSecurityContext.runAsNonRoot | bool | `true` | Run pod as non-root for security. |
-| controller.podSecurityContext.runAsUser | int | `1001` | User ID for all containers in the pod. |
-| controller.podSecurityContext.seLinuxOptions | object | `{}` | SELinux options. |
-| controller.podSecurityContext.seccompProfile | object | `{"type":"RuntimeDefault"}` | Seccomp profile for enhanced security. |
-| controller.podSecurityContext.supplementalGroups | list | `[]` | Supplemental groups for the containers. |
-| controller.podSecurityContext.sysctls | list | `[]` | Sysctls for the pod. |
-| controller.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource limits and requests for controller container. |
-| controller.securityContext | object | `{}` | Security context for controller container (inherits from agent.securityContext if empty). |
-| controller.terminationGracePeriodSeconds | int | `360` | Provides the amount of grace time prior to the controller container being forcibly terminated when marked for deletion or restarted. |
-| controller.tolerations | list | `[]` | Kubernetes Node Tolerations for the controller agent. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set controller.tolerations[0].operator=Equal,controller.tolerations[0].effect=NoSchedule,controller.tolerations[0].key=dedicated,controller.tolerations[0].value=scalr-agent-controller-pool` |
-| fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
+| agent.tolerations | list | `[]` | Node tolerations for the controller pod. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set agent.tolerations[0].key=dedicated,agent.tolerations[0].operator=Equal,agent.tolerations[0].value=agent-controller,agent.tolerations[0].effect=NoSchedule` |
+| agent.url | string | `""` | The Scalr URL to connect the agent to. |
+
+### Global
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | global.imagePullSecrets | list | `[]` | Global image pull secrets for private registries. |
 | global.imageRegistry | string | `""` | Global Docker registry to prepend to all image repositories. |
 | global.podAnnotations | object | `{}` | Global pod annotations applied to all pods. |
-| nameOverride | string | `""` | Override the chart name portion of resource names. |
-| persistence | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
-| persistence.emptyDir | object | `{"sizeLimit":"20Gi"}` | Configuration for emptyDir volume (used when persistence.enabled is false). |
-| persistence.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
-| persistence.enabled | bool | `false` | Enable persistent storage. If false, uses emptyDir (ephemeral storage). |
-| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim (used when persistence.enabled is true). |
-| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. The NFS disk is expected here, so ReadWriteMany is a default. |
-| persistence.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC is created dynamically. |
-| persistence.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. |
-| persistence.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
-| persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
-| restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
+| global.podLabels | object | `{}` | Global pod labels applied to all pods. |
+| global.podSecurityContext | object | `{"fsGroup":1000,"fsGroupChangePolicy":"OnRootMismatch","runAsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"},"supplementalGroups":[],"sysctls":[]}` | Security context applied to all pods. |
+| global.podSecurityContext.fsGroup | int | `1000` | File system group for volume ownership. |
+| global.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` | File system group change policy. |
+| global.podSecurityContext.runAsGroup | int | `1000` | Group ID for all containers in the pod. |
+| global.podSecurityContext.runAsNonRoot | bool | `true` | Run pod as non-root for security. |
+| global.podSecurityContext.runAsUser | int | `1000` | User ID for all containers in the pod. |
+| global.podSecurityContext.seLinuxOptions | object | `{}` | SELinux options for the pod. |
+| global.podSecurityContext.seccompProfile | object | `{"type":"RuntimeDefault"}` | Seccomp profile for enhanced security. |
+| global.podSecurityContext.supplementalGroups | list | `[]` | Supplemental groups for the containers. |
+| global.podSecurityContext.sysctls | list | `[]` | Sysctls for the pod. |
+
+### OpenTelemetry
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| otel.enabled | bool | `false` | Enable OpenTelemetry integration. |
+| otel.endpoint | string | `"http://otel-collector:4317"` | OpenTelemetry collector endpoint. |
+| otel.metricsEnabled | bool | `true` | Collect and export metrics. |
+| otel.tracesEnabled | bool | `false` | Collect and export traces. |
+
+### Persistence
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| persistence.cache | object | `{"emptyDir":{"sizeLimit":"5Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"50Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores provider binaries, plugin cache, and downloaded tools to speed up runs. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. |
+| persistence.cache.emptyDir | object | `{"sizeLimit":"5Gi"}` | EmptyDir volume configuration (used when enabled is false). |
+| persistence.cache.emptyDir.sizeLimit | string | `"5Gi"` | Size limit for the emptyDir volume. |
+| persistence.cache.enabled | bool | `false` | Enable persistent storage for cache directory. Highly recommended: Avoids re-downloading providers and binaries (saves 1-5 minutes per run). When false, providers and binaries are downloaded fresh for each task. When true, cache is shared across all task pods for significant performance improvement (may vary depending on NFS performace). |
+| persistence.cache.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"50Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). |
+| persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. Use ReadWriteMany to share cache across multiple task pods. Note: ReadWriteMany requires compatible storage class (e.g., NFS, EFS, Filestore). |
+| persistence.cache.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-cache` is created. |
+| persistence.cache.persistentVolumeClaim.storage | string | `"50Gi"` | Storage size for the PVC. |
+| persistence.cache.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. |
+| persistence.cache.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. Useful when sharing a single PVC across multiple installations. |
+| persistence.data | object | `{"emptyDir":{"sizeLimit":"5Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"5Gi","storageClassName":"","subPath":""}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. This directory is mounted to the worker sidecar container. |
+| persistence.data.emptyDir | object | `{"sizeLimit":"5Gi"}` | EmptyDir volume configuration (used when enabled is false). |
+| persistence.data.emptyDir.sizeLimit | string | `"5Gi"` | Size limit for the emptyDir volume. |
+| persistence.data.enabled | bool | `false` | Enable persistent storage for data directory. When false, uses emptyDir (ephemeral, recommended for most use cases as each run gets fresh workspace). When true, uses PVC (persistent across pod restarts, useful for debugging or sharing data between runs). |
+| persistence.data.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"5Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). |
+| persistence.data.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. |
+| persistence.data.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-data` is created. |
+| persistence.data.persistentVolumeClaim.storage | string | `"5Gi"` | Storage size for the PVC. |
+| persistence.data.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. |
+| persistence.data.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
+
+### RBAC
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| rbac.clusterRules | list | `[{"apiGroups":["scalr.io"],"resources":["atasks"],"verbs":["get","list","watch"]}]` | Cluster-wide RBAC rules (applied via ClusterRole bound in the release namespace). |
+| rbac.create | bool | `true` | Create the namespaced Role/RoleBinding and cluster-scope RoleBinding. |
+| rbac.rules | list | `[{"apiGroups":[""],"resources":["pods"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]},{"apiGroups":[""],"resources":["pods/exec"],"verbs":["get","create"]},{"apiGroups":[""],"resources":["pods/status"],"verbs":["get","patch","update"]},{"apiGroups":["apps"],"resources":["deployments"],"verbs":["get","list","watch"]},{"apiGroups":["batch"],"resources":["jobs"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":["batch"],"resources":["jobs/status"],"verbs":["get","patch","update"]}]` | Namespaced RBAC rules granted to the controller ServiceAccount. |
+
+### Service account
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | serviceAccount.annotations | object | `{}` | Annotations for the service account. |
-| serviceAccount.automountToken | bool | `true` | Whether to automount the service account token in the Scalr Agent pod. |
+| serviceAccount.automountToken | bool | `true` | Whether to automount the service account token in pods. |
 | serviceAccount.create | bool | `true` | Create a Kubernetes service account for the Scalr Agent. |
 | serviceAccount.labels | object | `{}` | Additional labels for the service account. |
-| serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
-| serviceAccount.tokenTTL | int | `3600` | The token expiration period. |
-| task.affinity | object | `{}` | Kubernetes Node Affinity for the task job pods. |
-| task.extraVolumes | list | `[]` | Additional volumes for the task pod. |
+| serviceAccount.name | string | `""` | Name of the service account. Generated if not set and create is true. |
+| serviceAccount.tokenTTL | int | `3600` | Token expiration period in seconds. |
+
+### Task
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| task.affinity | object | `{}` | Node affinity for task job pods. |
+| task.allowMetadataService | bool | `false` | Disables a NetworkPolicy to the task containers that denies access to VM metadata service (169.254.169.254). |
+| task.extraVolumes | list | `[]` | Additional volumes for task job pods. |
 | task.job | object | `{"backoffLimit":0,"ttlSecondsAfterFinished":60}` | Job configuration for task execution. |
-| task.job.backoffLimit | int | `0` | Number of retries before marking the job as failed. |
-| task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it's automatically deleted. |
-| task.nodeSelector | object | `{}` | Kubernetes Node Selector for assigning task jobs to specific nodes in the cluster. The selector must match a node's labels for the pod to be scheduled on that node. |
-| task.podAnnotations | object | `{}` | Task specific pod annotations (merged with global podAnnotations, overrides duplicate keys). |
-| task.podSecurityContext | object | `{"fsGroup":1001,"fsGroupChangePolicy":"OnRootMismatch","runAsGroup":1001,"runAsNonRoot":true,"runAsUser":1001,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"},"supplementalGroups":[],"sysctls":[]}` | Security context for task job pod. |
-| task.podSecurityContext.fsGroup | int | `1001` | File system group for volume ownership. |
-| task.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` | Ensure non-root filesystem group. |
-| task.podSecurityContext.runAsGroup | int | `1001` | Group ID for all containers in the pod. |
-| task.podSecurityContext.runAsNonRoot | bool | `true` | Run pod as non-root for security. |
-| task.podSecurityContext.runAsUser | int | `1001` | User ID for all containers in the pod. |
-| task.podSecurityContext.seLinuxOptions | object | `{}` | SELinux options. |
-| task.podSecurityContext.seccompProfile | object | `{"type":"RuntimeDefault"}` | Seccomp profile for enhanced security. |
-| task.podSecurityContext.supplementalGroups | list | `[]` | Supplemental groups for the containers. |
-| task.podSecurityContext.sysctls | list | `[]` | Sysctls for the pod. |
-| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":""},"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":false,"runAsGroup":1001,"runAsNonRoot":true,"runAsUser":1001,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"}}}` | Runner environment container configuration where Terraform/OpenTofu commands are executed. |
-| task.runner.extraEnv | object | `{}` | Additional environment variables for runner container (merged with global.extraEnv only, no agent inheritance). |
+| task.job.backoffLimit | int | `0` | Number of retries before marking the job as failed. Disabled by default as the agent doesn't support Scalr Run retries on infrastracture layer at the moment. |
+| task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it is automatically deleted. |
+| task.nodeSelector | object | `{}` | Node selector for assigning task job pods to specific nodes. Example: `--set task.nodeSelector."node-type"="agent-worker"` |
+| task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
+| task.podLabels | object | `{}` | Task-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
+| task.podSecurityContext | object | `{}` | Task-specific pod security context (merged with global.podAnnotations, overrides duplicate keys). |
+| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":""},"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
+| task.runner.extraEnv | object | `{}` | Additional environment variables for the runner container. |
 | task.runner.extraVolumeMounts | list | `[]` | Additional volume mounts for the runner container. |
 | task.runner.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":""}` | Runner container image settings. |
-| task.runner.image.pullPolicy | string | `"IfNotPresent"` | The pullPolicy for a container and the tag of the image. |
-| task.runner.image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent runner image. |
-| task.runner.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource limits and requests for runner container (independent configuration, no inheritance). For the system agent controller, this will be overridden with presets from the billing resource tier. |
-| task.runner.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":false,"runAsGroup":1001,"runAsNonRoot":true,"runAsUser":1001,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"}}` | Security context for runner container (independent configuration, no inheritance). |
+| task.runner.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
+| task.runner.image.repository | string | `"scalr/agent-runner"` | Docker repository for the runner image. |
+| task.runner.image.tag | string | `""` | Image tag. Defaults to the chart appVersion if not specified. |
+| task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource limits and requests for the runner container. Note: For system agent controllers, this may be overridden by Scalr platform billing resource tier presets. |
+| task.runner.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}` | Security context for the runner container. The default declaration duplicates some critical options from podSecurityContext to keep them independent. |
 | task.runner.securityContext.allowPrivilegeEscalation | bool | `false` | Allow privilege escalation. |
-| task.runner.securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
-| task.runner.securityContext.privileged | bool | `false` | Run container in privileged mode. Only enable if Terraform providers require it. |
-| task.runner.securityContext.readOnlyRootFilesystem | bool | `false` | Read-only root filesystem. May need to be false for Terraform cache and temp files. |
-| task.runner.securityContext.runAsGroup | int | `1001` | Group ID to run the container as. |
+| task.runner.securityContext.capabilities | object | `{"drop":["ALL"]}` | Container capabilities restrictions for security. |
+| task.runner.securityContext.privileged | bool | `false` | Run container in privileged mode. |
+| task.runner.securityContext.readOnlyRootFilesystem | bool | `true` | Read-only root filesystem. |
 | task.runner.securityContext.runAsNonRoot | bool | `true` | Run container as non-root user for security. |
-| task.runner.securityContext.runAsUser | int | `1001` | User ID to run the container as. |
-| task.runner.securityContext.seLinuxOptions | object | `{}` | SELinux options. |
-| task.runner.securityContext.seccompProfile | object | `{"type":"RuntimeDefault"}` | Seccomp profile for enhanced security. |
-| task.sidecars | list | `[]` | Additional sidecar containers for the task pod. |
-| task.terminationGracePeriodSeconds | int | `360` | Provides the amount of grace time prior to the task job containers being forcibly terminated when marked for deletion or restarted. |
-| task.tolerations | list | `[]` | Kubernetes Node Tolerations for the task job pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set task.tolerations[0].operator=Equal,task.tolerations[0].effect=NoSchedule,task.tolerations[0].key=dedicated,task.tolerations[0].value=scalr-agent-worker-pool` |
-| task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"","repository":"","tag":""},"resources":{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker agent container configuration. |
-| task.worker.extraEnv | object | `{}` | Additional environment variables for worker container (merged with agent.extraEnv and global.extraEnv). |
+| task.runner.securityContext.seLinuxOptions | object | `{}` | SELinux options for the container. |
+| task.sidecars | list | `[]` | Additional sidecar containers for task job pods. |
+| task.terminationGracePeriodSeconds | int | `360` | Grace period in seconds before forcibly terminating task job containers. |
+| task.tolerations | list | `[]` | Node tolerations for task job pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set task.tolerations[0].key=dedicated,task.tolerations[0].operator=Equal,task.tolerations[0].value=agent-worker,task.tolerations[0].effect=NoSchedule` |
+| task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"","repository":"","tag":""},"resources":{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). |
+| task.worker.extraEnv | object | `{}` | Additional environment variables for the worker container (merged with agent.extraEnv). |
 | task.worker.extraVolumeMounts | list | `[]` | Additional volume mounts for the worker container. |
-| task.worker.image | object | `{"pullPolicy":"","repository":"","tag":""}` | Worker container image settings (inherits from agent.image if empty). |
-| task.worker.image.pullPolicy | string | `""` | The pullPolicy for a container and the tag of the image. |
-| task.worker.image.repository | string | `""` | Docker repository for the Scalr Agent worker image. |
-| task.worker.image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| task.worker.resources | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resource limits and requests for worker container. |
-| task.worker.securityContext | object | `{}` | Security context for worker container (inherits from agent.securityContext if empty). |
+| task.worker.image | object | `{"pullPolicy":"","repository":"","tag":""}` | Worker container image settings (inherits from agent.image if not specified). |
+| task.worker.image.pullPolicy | string | `""` | Image pull policy. Inherits from agent.image.pullPolicy if empty. |
+| task.worker.image.repository | string | `""` | Docker repository for the worker image. Inherits from agent.image.repository if empty. |
+| task.worker.image.tag | string | `""` | Image tag. Inherits from agent.image.tag if empty. |
+| task.worker.resources | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resource limits and requests for the worker container. |
+| task.worker.securityContext | object | `{}` | Security context for the worker container (inherits from agent.securityContext if not specified). |
+
+### Other Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
+| nameOverride | string | `""` | Override the chart name portion of resource names. |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

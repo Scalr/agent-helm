@@ -1,0 +1,21 @@
+{{- if and (gt (int .Values.agent.replicaCount) 1) .Values.agent.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "agent-job.fullname" . }}-agent
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-job.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  {{- if .Values.agent.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.agent.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.agent.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.agent.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "agent-job.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agent
+{{- end }}

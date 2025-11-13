@@ -60,3 +60,53 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Generate a stable, release-scoped name for chart sub-components.
+*/}}
+{{- define "agent-job.componentName" -}}
+{{- printf "%s-%s" (include "agent-job.fullname" .context) .component | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Resolve the data PVC name, falling back to the chart-managed default.
+*/}}
+{{- define "agent-job.dataPVCName" -}}
+{{- if .Values.persistence.data.persistentVolumeClaim.claimName }}
+{{- .Values.persistence.data.persistentVolumeClaim.claimName -}}
+{{- else }}
+{{- printf "%s-data" (include "agent-job.fullname" .) -}}
+{{- end }}
+{{- end }}
+
+{{/*
+Resolve the cache PVC name, falling back to the chart-managed default.
+*/}}
+{{- define "agent-job.cachePVCName" -}}
+{{- if .Values.persistence.cache.persistentVolumeClaim.claimName }}
+{{- .Values.persistence.cache.persistentVolumeClaim.claimName -}}
+{{- else }}
+{{- printf "%s-cache" (include "agent-job.fullname" .) -}}
+{{- end }}
+{{- end }}
+
+{{/*
+Convert Kubernetes quantity to megabytes
+Supports: Gi, Mi, G, M
+*/}}
+{{- define "agent-job.sizeToMB" -}}
+{{- $size := . -}}
+{{- if hasSuffix "Gi" $size -}}
+  {{- $val := trimSuffix "Gi" $size | float64 -}}
+  {{- $val | mul 1024 | int -}}
+{{- else if hasSuffix "Mi" $size -}}
+  {{- trimSuffix "Mi" $size | int -}}
+{{- else if hasSuffix "G" $size -}}
+  {{- $val := trimSuffix "G" $size | float64 -}}
+  {{- $val | mul 1000 | int -}}
+{{- else if hasSuffix "M" $size -}}
+  {{- trimSuffix "M" $size | int -}}
+{{- else -}}
+  {{- fail (printf "Unsupported size format: %s. Use Gi, Mi, G, or M" $size) -}}
+{{- end -}}
+{{- end -}}

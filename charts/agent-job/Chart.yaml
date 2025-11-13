@@ -2,12 +2,14 @@ apiVersion: v2
 name: agent-job
 description: |
   A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
-  Uses a controller/worker model. Each run stage is isolated
-  in Kubernetes containers with specified resource limits.
+  It uses a job-based model, where each Scalr Run is isolated
+  in its own Kubernetes Job.
 type: application
+icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
 version: 0.5.62
 appVersion: 0.55.2
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
 maintainers:
   - name: scalr
     email: packages@scalr.com
+sources: ["https://github.com/Scalr/agent-helm/tree/master/charts/agent-job"]
