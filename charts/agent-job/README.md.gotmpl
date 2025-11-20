@@ -36,7 +36,7 @@ The chart consists of two Kubernetes resources: **[agent](#agent)** and **[agent
 
 The agent is a [Kubernetes Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), deployed by default as a single replica consisting of one container:
 
-- **controller**: The controller that creates Kubernetes Jobs, based on the `scalr/agent` image.
+- **controller**: The Scalr Agent process in controller mode, based on the `scalr/agent` image.
 
 The agent controller is responsible for polling incoming tasks from Scalr and launching them as isolated Kubernetes Jobs.
 
@@ -47,7 +47,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) created by the agent controller. It consists of two isolated containers:
 
 - **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
-- **worker** (sidecar): The Scalr Agent process that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
+- **worker** (sidecar): The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
 
 The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
 
@@ -76,6 +76,11 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 ## Custom Runner Images
 
+The chart uses `scalr/runner` by default to provision run environments.
+
+> [!NOTE]
+> Currently, `scalr/agent-runner` is temporarily used instead. This image bundles agent code with the runner to provision the entrypoint script. This will be replaced with `scalr/runner` in a future releases.
+
 You can override `task.runner.image.*` to use a custom runner image.
 If you are using a custom runner image, it must include a user with UID/GID `1000`. By default, Scalr images come with a user `scalr` under `1000:1000`.
 
@@ -87,6 +92,28 @@ helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} \
   --set task.runner.image.repository="registry.example.com/custom-runner" \
   --set task.runner.image.tag="v1.2.3"
 ```
+
+## Performance and Stability Tuning
+
+A few settings are recommended to optimize Scalr Run launch time and overall chart performance.
+
+First, this chart uses Kubernetes Jobs to launch runs, so fast Job launch is critical for fast run startup. Common bottlenecks may include slow image pull times on cold nodes. To optimize this, we recommend:
+
+- Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) when possible
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`)
+
+Second, a major performance bottleneck is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-directory-persistence).
+
+Third, avoid Pod eviction for active task Jobs. The default configuration applies the following annotations to reduce the risk of evictions for task Jobs by common autoscalers like Cluster Autoscaler, GKE Autopilot, and Karpenter:
+
+```yaml
+cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+karpenter.sh/do-not-evict: "true"
+karpenter.sh/do-not-disrupt: "true"
+autopilot.gke.io/priority: "high"
+```
+
+Terminating active Jobs may lead to undefined behavior.
 
 ## Cache Directory Persistence
 

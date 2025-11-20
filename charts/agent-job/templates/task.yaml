@@ -14,6 +14,10 @@ spec:
       template:
         metadata:
           annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+            karpenter.sh/do-not-evict: "true"
+            karpenter.sh/do-not-disrupt: "true"
+            autopilot.gke.io/priority: "high"
           {{- with (merge (deepCopy .Values.global.podAnnotations) .Values.task.podAnnotations) }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
