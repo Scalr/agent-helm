@@ -184,7 +184,7 @@ agent:
     sizeLimit: 20Gi # soft-limit
 ```
 
-If configured correctly, you should see confirmation in the Run Dashboard console that plugins are being used from cache:
+If configured correctly, you should see confirmation in the Scalr Run console that plugins are being used from cache:
 
 ```bash
 Initializing plugins and modules...
