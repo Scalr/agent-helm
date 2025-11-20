@@ -157,6 +157,7 @@ Benefits of persistent cache:
 
 - Faster task execution (no provider/binaries re-downloads)
 - Reduced network bandwidth usage
+- Better fault tolerance during module/provider registry outages
 
 When enabling a persistent cache directory, it is recommended to also enable provider cache (`providerCache.enabled=true`). Otherwise, only software binaries (Terraform/OpenTofu/OPA/Infracost/etc.) will be cached.
 
