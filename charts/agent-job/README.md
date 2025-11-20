@@ -6,6 +6,8 @@ A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 It uses a job-based model, where each Scalr Run is isolated
 in its own Kubernetes Job.
 
+See the [official documentation](https://docs.scalr.io/docs/agent-pools) for more information about Scalr Agents.
+
 > [!WARNING]
 > This chart is in Alpha, and implementation details are subject to change.
 
@@ -28,7 +30,7 @@ in its own Kubernetes Job.
 
 - Kubernetes 1.33+ (require [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/))
 - Helm 3.0+
-- ReadWriteMany volumes for [cache cersistance](#cache-volume-persistence) (optional)
+- ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
 
 ## Installation
 
@@ -146,9 +148,9 @@ Two volumes are always attached to run Pods:
 
 - **Cache Volume**
 
-  The cache volume stores provider binaries, plugin cache, and downloaded tools. This volume is mounted to both the worker (full access) and runner (read-only access to some directories) containers.
+  The cache volume stores software binaries, OpenTofu/Terraform providers and modules (TBD). This volume is mounted to both the worker (full access) and runner (read-only access to some directories) containers.
 
-  **Default configuration:** Ephemeral `emptyDir` storage with a 1GB limit. Each task downloads providers and binaries fresh.
+  **Default configuration:** Ephemeral `emptyDir` storage with a 1GB limit. Each job downloads software binaries from scratch. OpenTofu/Terraform provider is disabled.
 
 ### Cache Volume Persistence
 
@@ -209,11 +211,10 @@ $~ helm upgrade ... \
 
 **Note**: The controller pod is not affected by this NetworkPolicy and retains full network access.
 
-#### Limitations
-
-Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
-
-If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
+> [!WARNING]
+> Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
+>
+> If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
 
 ## Job History Management
 
