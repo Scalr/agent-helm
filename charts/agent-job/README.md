@@ -16,9 +16,8 @@ in its own Kubernetes Job.
 - [Architecture Diagram](#architecture-diagram)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance and Stability Tuning](#performance-and-stability-tuning)
-- [Cache Directory Persistence](#cache-directory-persistence)
-- [Data Directory Persistence](#data-directory-persistence)
-- [Security Features](#security-features)
+- [Volumes](#volumes)
+- [Security](#security)
 - [Job History Management](#job-history-management)
 - [Metrics and Observability](#metrics-and-observability)
 - [Custom Resource Definitions](#custom-resource-definitions)
@@ -29,7 +28,7 @@ in its own Kubernetes Job.
 
 - Kubernetes 1.33+ (require [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/))
 - Helm 3.0+
-- ReadWriteMany volumes for [cache cersistance](#cache-directory-persistence) (optional)
+- ReadWriteMany volumes for [cache cersistance](#cache-volume-persistence) (optional)
 
 ## Installation
 
@@ -118,10 +117,11 @@ A few settings are recommended to optimize Scalr Run launch time and overall cha
 
 First, this chart uses Kubernetes Jobs to launch runs, so fast Job launch is critical for fast run startup. Common bottlenecks may include slow image pull times on cold nodes. To optimize this, we recommend:
 
-- Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) when possible
-- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`)
+- Use image copies in an OCI-compatible registry mirror located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits. Examples: Google Container Registry (GCR), Amazon Elastic Container Registry (ECR), Azure Container Registry (ACR) and similar.
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
+- Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
 
-Second, a major performance bottleneck is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-directory-persistence).
+Second, a major performance bottleneck is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-volume-persistence).
 
 Third, avoid Pod eviction for active task Jobs. The default configuration applies the following annotations to reduce the risk of evictions for task Jobs by common autoscalers like Cluster Autoscaler, GKE Autopilot, and Karpenter:
 
@@ -134,11 +134,23 @@ autopilot.gke.io/priority: "high"
 
 Terminating active Jobs may lead to undefined behavior.
 
-## Cache Directory Persistence
+## Volumes
 
-The *cache directory* stores provider binaries, plugin cache, and downloaded tools. This volume is mounted to both the worker (full access) and runner (some direcrotires, in readonly) containers.
+Two volumes are always attached to run Pods:
 
-Default configuration uses ephemeral `emptyDir` storage. Each task will download providers and binaries fresh.
+- **Data Volume**
+
+  The data volume stores temporary workspace data needed for processing a run, including run metadata and source code.
+
+  **Default configuration:** Ephemeral `emptyDir` storage with a 4GB limit.
+
+- **Cache Volume**
+
+  The cache volume stores provider binaries, plugin cache, and downloaded tools. This volume is mounted to both the worker (full access) and runner (read-only access to some directories) containers.
+
+  **Default configuration:** Ephemeral `emptyDir` storage with a 1GB limit. Each task downloads providers and binaries fresh.
+
+### Cache Volume Persistence
 
 It's recommended to enable persistent storage with `ReadWriteMany` access mode to share the cache across all task pods. This significantly improves performance by avoiding repeated downloads (saves 1-5 minutes per task).
 
@@ -168,15 +180,13 @@ agent:
     sizeLimit: 20Gi # soft-limit
 ```
 
-## Data Directory Persistence
-
-The *data directory* stores temporary workspace data needed for processing a run, including run metadata and source code.
+### Data Volume Persistence
 
 The default configuration uses ephemeral `emptyDir` storage. Since the workspace volume does not need to be shared or persisted between runs, we recommend using an ephemeral volume so that it is bound to the lifetime of the run and automatically destroyed when the Job is deleted.
 
-Optionally, you can configure a PVC using `persistence.data.enabled` and `persistence.data.persistentVolumeClaim` options, similar to the [*cache directory* configuration](#cache-directory-persistence).
+Optionally, you can configure a PVC using `persistence.data.enabled` and `persistence.data.persistentVolumeClaim` options, similar to the [cache volume configuration](#cache-volume-persistence).
 
-## Security Features
+## Security
 
 ### Runner Security Context
 
@@ -359,9 +369,9 @@ For issues not covered above:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| persistence.cache | object | `{"emptyDir":{"sizeLimit":"5Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"50Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores provider binaries, plugin cache, and downloaded tools to speed up runs. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. |
-| persistence.cache.emptyDir | object | `{"sizeLimit":"5Gi"}` | EmptyDir volume configuration (used when enabled is false). |
-| persistence.cache.emptyDir.sizeLimit | string | `"5Gi"` | Size limit for the emptyDir volume. |
+| persistence.cache | object | `{"emptyDir":{"sizeLimit":"1Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"50Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores provider binaries, plugin cache, and downloaded tools to speed up runs. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. |
+| persistence.cache.emptyDir | object | `{"sizeLimit":"1Gi"}` | EmptyDir volume configuration (used when enabled is false). |
+| persistence.cache.emptyDir.sizeLimit | string | `"1Gi"` | Size limit for the emptyDir volume. |
 | persistence.cache.enabled | bool | `false` | Enable persistent storage for cache directory. Highly recommended: Avoids re-downloading providers and binaries (saves 1-5 minutes per run). When false, providers and binaries are downloaded fresh for each task. When true, cache is shared across all task pods for significant performance improvement (may vary depending on NFS performace). |
 | persistence.cache.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"50Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). |
 | persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. Use ReadWriteMany to share cache across multiple task pods. Note: ReadWriteMany requires compatible storage class (e.g., NFS, EFS, Filestore). |
@@ -369,14 +379,14 @@ For issues not covered above:
 | persistence.cache.persistentVolumeClaim.storage | string | `"50Gi"` | Storage size for the PVC. |
 | persistence.cache.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. |
 | persistence.cache.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. Useful when sharing a single PVC across multiple installations. |
-| persistence.data | object | `{"emptyDir":{"sizeLimit":"5Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"5Gi","storageClassName":"","subPath":""}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. This directory is mounted to the worker sidecar container. |
-| persistence.data.emptyDir | object | `{"sizeLimit":"5Gi"}` | EmptyDir volume configuration (used when enabled is false). |
-| persistence.data.emptyDir.sizeLimit | string | `"5Gi"` | Size limit for the emptyDir volume. |
+| persistence.data | object | `{"emptyDir":{"sizeLimit":"4Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"4Gi","storageClassName":"","subPath":""}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. This directory is mounted to the worker sidecar container. |
+| persistence.data.emptyDir | object | `{"sizeLimit":"4Gi"}` | EmptyDir volume configuration (used when enabled is false). |
+| persistence.data.emptyDir.sizeLimit | string | `"4Gi"` | Size limit for the emptyDir volume. |
 | persistence.data.enabled | bool | `false` | Enable persistent storage for data directory. When false, uses emptyDir (ephemeral, recommended for most use cases as each run gets fresh workspace). When true, uses PVC (persistent across pod restarts, useful for debugging or sharing data between runs). |
-| persistence.data.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"5Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). |
+| persistence.data.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"4Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). |
 | persistence.data.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. |
 | persistence.data.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-data` is created. |
-| persistence.data.persistentVolumeClaim.storage | string | `"5Gi"` | Storage size for the PVC. |
+| persistence.data.persistentVolumeClaim.storage | string | `"4Gi"` | Storage size for the PVC. |
 | persistence.data.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. |
 | persistence.data.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
 

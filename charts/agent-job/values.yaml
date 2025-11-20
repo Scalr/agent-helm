@@ -415,7 +415,7 @@ persistence:
     emptyDir:
       # -- Size limit for the emptyDir volume.
       # @section -- Persistence
-      sizeLimit: 5Gi
+      sizeLimit: 4Gi
 
     # -- PersistentVolumeClaim configuration (used when enabled is true).
     # @section -- Persistence
@@ -428,7 +428,7 @@ persistence:
       storageClassName: ""
       # -- Storage size for the PVC.
       # @section -- Persistence
-      storage: 5Gi
+      storage: 4Gi
       # -- Access mode for the PVC.
       # @section -- Persistence
       accessMode: ReadWriteOnce
@@ -453,7 +453,7 @@ persistence:
     emptyDir:
       # -- Size limit for the emptyDir volume.
       # @section -- Persistence
-      sizeLimit: 5Gi
+      sizeLimit: 1Gi
 
     # -- PersistentVolumeClaim configuration (used when enabled is true).
     # @section -- Persistence
