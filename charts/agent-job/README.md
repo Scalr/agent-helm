@@ -9,6 +9,22 @@ in its own Kubernetes Job.
 > [!WARNING]
 > This chart is in Alpha, and implementation details are subject to change.
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Architecture Diagram](#architecture-diagram)
+- [Custom Runner Images](#custom-runner-images)
+- [Performance and Stability Tuning](#performance-and-stability-tuning)
+- [Cache Directory Persistence](#cache-directory-persistence)
+- [Data Directory Persistence](#data-directory-persistence)
+- [Security Features](#security-features)
+- [Job History Management](#job-history-management)
+- [Metrics and Observability](#metrics-and-observability)
+- [Custom Resource Definitions](#custom-resource-definitions)
+- [RBAC](#rbac)
+- [Troubleshooting and Support](#troubleshooting-and-support)
+
 ## Prerequisites
 
 - Kubernetes 1.33+ (require [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/))
