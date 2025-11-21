@@ -110,3 +110,70 @@ Supports: Gi, Mi, G, M
   {{- fail (printf "Unsupported size format: %s. Use Gi, Mi, G, or M" $size) -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Generate HTTP proxy environment variables
+*/}}
+{{- define "agent-job.proxyEnv" -}}
+{{- if .Values.global.proxy.enabled }}
+- name: HTTP_PROXY
+  value: {{ .Values.global.proxy.httpProxy | quote }}
+- name: HTTPS_PROXY
+  value: {{ .Values.global.proxy.httpsProxy | quote }}
+- name: NO_PROXY
+  value: {{ .Values.global.proxy.noProxy | quote }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Determine the CA bundle secret name
+Returns the user-provided secret name or the chart-managed secret name
+*/}}
+{{- define "agent-job.caBundleSecretName" -}}
+{{- if .Values.global.tls.caBundleSecret.name -}}
+{{- .Values.global.tls.caBundleSecret.name -}}
+{{- else if .Values.global.tls.caBundle -}}
+{{- printf "%s-ca-bundle" (include "agent-job.fullname" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Generate CA certificate environment variable and path
+*/}}
+{{- define "agent-job.caCertEnv" -}}
+{{- $secretName := include "agent-job.caBundleSecretName" . -}}
+{{- if $secretName }}
+- name: SCALR_AGENT_CA_CERT
+  value: "/etc/ssl/certs/scalr-ca-bundle.crt"
+- name: SSL_CERT_FILE
+  value: "/etc/ssl/certs/scalr-ca-bundle.crt"
+{{- end }}
+{{- end -}}
+
+{{/*
+Generate CA certificate volume mount
+*/}}
+{{- define "agent-job.caCertVolumeMount" -}}
+{{- $secretName := include "agent-job.caBundleSecretName" . -}}
+{{- if $secretName }}
+- name: ca-bundle
+  mountPath: /etc/ssl/certs/scalr-ca-bundle.crt
+  subPath: {{ .Values.global.tls.caBundleSecret.key }}
+  readOnly: true
+{{- end }}
+{{- end -}}
+
+{{/*
+Generate CA certificate volume
+*/}}
+{{- define "agent-job.caCertVolume" -}}
+{{- $secretName := include "agent-job.caBundleSecretName" . -}}
+{{- if $secretName }}
+- name: ca-bundle
+  secret:
+    secretName: {{ $secretName }}
+    items:
+      - key: {{ .Values.global.tls.caBundleSecret.key }}
+        path: {{ .Values.global.tls.caBundleSecret.key }}
+{{- end }}
+{{- end -}}

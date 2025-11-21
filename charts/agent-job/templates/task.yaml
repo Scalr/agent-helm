@@ -83,6 +83,14 @@ spec:
                 value: {{ .Values.agent.cacheDir | quote }}
               - name: SCALR_AGENT_DRIVER
                 value: "kubernetes-job"
+              - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+                value: "grace-shutdown"
+              - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+                value: "360"
+              - name: SCALR_AGENT_DISCONNECT_ON_STOP
+                value: "1"
+              {{- include "agent-job.proxyEnv" . | nindent 14 }}
+              {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if .Values.agent.providerCache.enabled  }}
               - name: SCALR_AGENT_PROVIDER_CACHE_ENABLED
                 value: "true"
@@ -128,6 +136,7 @@ spec:
                 {{- end }}
               - name: tmp-dir
                 mountPath: /tmp
+              {{- include "agent-job.caCertVolumeMount" . | nindent 14 }}
               {{- with .Values.task.worker.extraVolumeMounts }}
               {{- toYaml . | nindent 14 }}
               {{- end }}
@@ -154,6 +163,8 @@ spec:
               {{- toYaml . | nindent 14 }}
             {{- end }}
             env:
+              {{- include "agent-job.proxyEnv" . | nindent 14 }}
+              {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- range $key, $value := .Values.task.runner.extraEnv }}
               - name: {{ $key }}
                 value: {{ $value | quote }}
@@ -189,6 +200,7 @@ spec:
                 {{- else }}
                 subPath: "providers"
                 {{- end }}
+              {{- include "agent-job.caCertVolumeMount" . | nindent 14 }}
               {{- with .Values.task.runner.extraVolumeMounts }}
               {{- toYaml . | nindent 14 }}
               {{- end }}
@@ -233,6 +245,7 @@ spec:
             # Mount a dedicated emptyDir volume to provide a writable temporary directory.
             - name: tmp-dir
               emptyDir: {}
+            {{- include "agent-job.caCertVolume" . | nindent 12 }}
             {{- with .Values.task.extraVolumes }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

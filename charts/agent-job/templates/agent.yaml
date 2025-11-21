@@ -95,6 +95,8 @@ spec:
               value: "true"
             {{- end }}
             {{- end }}
+            {{- include "agent-job.proxyEnv" . | nindent 12 }}
+            {{- include "agent-job.caCertEnv" . | nindent 12 }}
             {{- range $key, $value := .Values.agent.extraEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}
@@ -115,6 +117,7 @@ spec:
               mountPath: {{ .Values.agent.cacheDir | quote }}
             - name: tmp-dir
               mountPath: /tmp
+            {{- include "agent-job.caCertVolumeMount" . | nindent 12 }}
       {{- with .Values.agent.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -138,4 +141,5 @@ spec:
         # It is more robust to mount a dedicated volume.
         - name: tmp-dir
           emptyDir: {}
+        {{- include "agent-job.caCertVolume" . | nindent 8 }}
       terminationGracePeriodSeconds: {{ .Values.agent.terminationGracePeriodSeconds }}

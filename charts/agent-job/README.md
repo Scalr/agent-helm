@@ -17,7 +17,10 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Installation](#installation)
 - [Architecture Diagram](#architecture-diagram)
 - [Custom Runner Images](#custom-runner-images)
-- [Performance and Stability Tuning](#performance-and-stability-tuning)
+- [Performance Optimization](#performance-optimization)
+- [Graceful Termination](#graceful-termination)
+- [HTTP Proxy](#http-proxy)
+- [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Volumes](#volumes)
 - [Security](#security)
 - [Job History Management](#job-history-management)
@@ -113,19 +116,27 @@ helm upgrade --install scalr-agent scalr-charts/agent-job \
   --set task.runner.image.tag="v1.2.3"
 ```
 
-## Performance and Stability Tuning
+## Performance Optimization
 
-A few settings are recommended to optimize Scalr Run launch time and overall chart performance.
+The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
 
-First, this chart uses Kubernetes Jobs to launch runs, so fast Job launch is critical for fast run startup. Common bottlenecks may include slow image pull times on cold nodes. To optimize this, we recommend:
+### Optimize Job Startup Time
 
-- Use image copies in an OCI-compatible registry mirror located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits. Examples: Google Container Registry (GCR), Amazon Elastic Container Registry (ECR), Azure Container Registry (ACR) and similar.
+This chart uses Kubernetes Jobs to launch runs, so fast Job launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
+
+- Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
 
-Second, a major performance bottleneck is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-volume-persistence).
+### Use Persistent Cache
 
-Third, avoid Pod eviction for active task Jobs. The default configuration applies the following annotations to reduce the risk of evictions for task Jobs by common autoscalers like Cluster Autoscaler, GKE Autopilot, and Karpenter:
+A major performance bottleneck in any IaC pipeline is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-volume-persistence).
+
+## Graceful Termination
+
+Both the controller (long-lived service) and worker (one-off function per run) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself automatically from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
+
+Force-terminating active Jobs (e.g., with SIGKILL) or terminating with an insufficient grace period may interrupt underlying IaC workflows and lead to undefined behavior. To prevent Pod eviction for active task Jobs, the default configuration applies the following annotations to reduce the risk of evictions by common autoscalers like Cluster Autoscaler, GKE Autopilot, and Karpenter:
 
 ```yaml
 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
@@ -134,7 +145,58 @@ karpenter.sh/do-not-disrupt: "true"
 autopilot.gke.io/priority: "high"
 ```
 
-Terminating active Jobs may lead to undefined behavior.
+## HTTP Proxy
+
+Configure HTTP proxy settings for external connectivity:
+
+```yaml
+global:
+  proxy:
+    enabled: true
+    httpProxy: "http://proxy.example.com:8080"
+    httpsProxy: "http://proxy.example.com:8080"
+    noProxy: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+```
+
+The `noProxy` setting should include Kubernetes internal domains to avoid routing cluster traffic through the proxy.
+
+## Custom Certificate Authorities
+
+If your environment uses custom or self-signed certificates, you can provide them in two ways:
+
+**Option 1: Inline CA bundle**
+
+```yaml
+global:
+  tls:
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+      -----BEGIN CERTIFICATE-----
+      MIIEFzCCAv+gAwIBAgIUDiCT...
+      -----END CERTIFICATE-----
+```
+
+**Option 2: Reference existing secret**
+
+```yaml
+global:
+  tls:
+    caBundleSecret:
+      name: "my-ca-bundle"
+      key: "ca-bundle.crt"
+```
+
+To create the secret:
+
+```bash
+kubectl create secret generic my-ca-bundle \
+  --from-file=ca-bundle.crt=/path/to/your/ca-bundle.crt \
+  -n scalr-agent
+```
+
+If both `caBundleSecret.name` and `caBundle` are set, `caBundleSecret` takes precedence.
 
 ## Volumes
 
@@ -366,6 +428,26 @@ For issues not covered above:
 | global.podSecurityContext.seccompProfile | object | `{"type":"RuntimeDefault"}` | Seccomp profile for enhanced security. |
 | global.podSecurityContext.supplementalGroups | list | `[]` | Supplemental groups for the containers. |
 | global.podSecurityContext.sysctls | list | `[]` | Sysctls for the pod. |
+
+### Global.Proxy
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| global.proxy | object | `{"enabled":false,"httpProxy":"","httpsProxy":"","noProxy":""}` | HTTP proxy configuration for external connectivity. |
+| global.proxy.enabled | bool | `false` | Enable injection of HTTP(S) proxy settings into all agent pods. |
+| global.proxy.httpProxy | string | `""` | HTTP proxy URL applied to all agent containers (HTTP_PROXY). Example: "http://proxy.example.com:8080" |
+| global.proxy.httpsProxy | string | `""` | HTTPS proxy URL applied to all agent containers (HTTPS_PROXY). Example: "http://proxy.example.com:8080" |
+| global.proxy.noProxy | string | `""` | Comma-separated domains/IPs that bypass the proxy (NO_PROXY). Recommended to include Kubernetes internal domains to avoid routing cluster traffic through the proxy. Example: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" |
+
+### Global.TLS
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| global.tls | object | `{"caBundle":"","caBundleSecret":{"key":"ca-bundle.crt","name":""}}` | TLS/SSL configuration for custom certificate authorities. |
+| global.tls.caBundle | string | `""` | Inline CA bundle content as an alternative to caBundleSecret. Provide the complete CA certificate chain in PEM format. If both caBundleSecret.name and caBundle are set, caBundleSecret takes precedence. Example: caBundle: |   -----BEGIN CERTIFICATE-----   MIIDXTCCAkWgAwIBAgIJAKZ...   -----END CERTIFICATE-----   -----BEGIN CERTIFICATE-----   MIIEFzCCAv+gAwIBAgIUDiCT...   -----END CERTIFICATE----- |
+| global.tls.caBundleSecret | object | `{"key":"ca-bundle.crt","name":""}` | Reference to an existing Kubernetes secret containing a CA bundle. This CA bundle is mounted to all agent pods and used for outbound TLS validation (e.g., Scalr API, VCS, registries). The secret must exist in the same namespace as the chart installation. If both caBundleSecret.name and caBundle are set, caBundleSecret takes precedence. |
+| global.tls.caBundleSecret.key | string | `"ca-bundle.crt"` | Key within the secret that contains the CA bundle file. |
+| global.tls.caBundleSecret.name | string | `""` | Name of the Kubernetes secret containing the CA bundle. Leave empty to use the inline caBundle or system certificates. |
 
 ### OpenTelemetry
 

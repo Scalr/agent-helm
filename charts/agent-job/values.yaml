@@ -107,6 +107,54 @@ global:
     # @section -- Global
     seccompProfile:
       type: "RuntimeDefault"
+  # -- HTTP proxy configuration for external connectivity.
+  # @section -- Global.Proxy
+  proxy:
+    # -- Enable injection of HTTP(S) proxy settings into all agent pods.
+    # @section -- Global.Proxy
+    enabled: false
+    # -- HTTP proxy URL applied to all agent containers (HTTP_PROXY).
+    # Example: "http://proxy.example.com:8080"
+    # @section -- Global.Proxy
+    httpProxy: ""
+    # -- HTTPS proxy URL applied to all agent containers (HTTPS_PROXY).
+    # Example: "http://proxy.example.com:8080"
+    # @section -- Global.Proxy
+    httpsProxy: ""
+    # -- Comma-separated domains/IPs that bypass the proxy (NO_PROXY).
+    # Recommended to include Kubernetes internal domains to avoid routing cluster traffic through the proxy.
+    # Example: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    # @section -- Global.Proxy
+    noProxy: ""
+  # -- TLS/SSL configuration for custom certificate authorities.
+  # @section -- Global.TLS
+  tls:
+    # -- Reference to an existing Kubernetes secret containing a CA bundle.
+    # This CA bundle is mounted to all agent pods and used for outbound TLS validation (e.g., Scalr API, VCS, registries).
+    # The secret must exist in the same namespace as the chart installation. If both caBundleSecret.name and caBundle
+    # are set, caBundleSecret takes precedence.
+    # @section -- Global.TLS
+    caBundleSecret:
+      # -- Name of the Kubernetes secret containing the CA bundle.
+      # Leave empty to use the inline caBundle or system certificates.
+      # @section -- Global.TLS
+      name: ""
+      # -- Key within the secret that contains the CA bundle file.
+      # @section -- Global.TLS
+      key: "ca-bundle.crt"
+    # -- Inline CA bundle content as an alternative to caBundleSecret.
+    # Provide the complete CA certificate chain in PEM format. If both caBundleSecret.name and caBundle are set,
+    # caBundleSecret takes precedence.
+    # Example:
+    # caBundle: |
+    #   -----BEGIN CERTIFICATE-----
+    #   MIIDXTCCAkWgAwIBAgIJAKZ...
+    #   -----END CERTIFICATE-----
+    #   -----BEGIN CERTIFICATE-----
+    #   MIIEFzCCAv+gAwIBAgIUDiCT...
+    #   -----END CERTIFICATE-----
+    # @section -- Global.TLS
+    caBundle: ""
 
 # Agent deployment configuration (Kubernetes Deployment) containing the controller container (runs as UID/GID 1000).
 agent:
