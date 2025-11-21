@@ -39,7 +39,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 
 To install the chart with the release name `scalr-agent`:
 
-```bash
+```shell
 # Add the Helm repo
 helm repo add scalr-agent https://scalr.github.io/agent-helm/
 helm repo update
@@ -109,7 +109,7 @@ If you are using a custom runner image, it must include a user with UID/GID `100
 
 Example override:
 
-```console
+```shell
 helm upgrade --install scalr-agent scalr-charts/agent-job \
   --set agent.token="<agent-token>" \
   --set task.runner.image.repository="registry.example.com/custom-runner" \
@@ -190,7 +190,7 @@ global:
 
 To create the secret:
 
-```bash
+```shell
 kubectl create secret generic my-ca-bundle \
   --from-file=ca-bundle.crt=/path/to/your/ca-bundle.crt \
   -n scalr-agent
@@ -249,7 +249,7 @@ agent:
 
 If configured correctly, you should see confirmation in the Scalr Run console that plugins are being used from cache:
 
-```bash
+```shell
 Initializing plugins and modules...
 Initialized 20 plugins and 0 modules in 6.09s (20 plugins used from cache)
 ```
@@ -276,7 +276,7 @@ By default this option is enabled, and a Kubernetes NetworkPolicy is applied to 
 
 To disable this restriction, set `task.allowMetadataService` to `true`:
 
-```console
+```shell
 $~ helm upgrade ... \
     --set task.allowMetadataService=true
 ```
@@ -318,7 +318,7 @@ This chart bundles the **AgentTask CRD** (`atasks.scalr.io`) and installs or upg
 
 **Verify installation:**
 
-```console
+```shell
 kubectl get crd atasks.scalr.io
 ```
 
@@ -338,7 +338,7 @@ Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permis
 
 If you encounter internal system errors or unexpected behavior, enable debug logs:
 
-```console
+```shell
 helm upgrade scalr-agent scalr-agent-helm/agent-job \
   --reuse-values \
   --set agent.debug="1"
@@ -352,7 +352,7 @@ When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` d
 
 Use `kubectl logs` to retrieve logs from the `scalr-agent-*` and `atask-*` pods (if any):
 
-```console
+```shell
 kubectl logs -n <namespace> <task-pod-name> --all-containers
 ```
 
