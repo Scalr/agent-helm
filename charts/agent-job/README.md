@@ -162,7 +162,12 @@ The `noProxy` setting should include Kubernetes internal domains to avoid routin
 
 ## Custom Certificate Authorities
 
-If your environment uses custom or self-signed certificates, you can provide them in two ways:
+If your environment uses custom or self-signed certificates, you can configure the CA bundle used by the agent for TLS validation. This configuration sets the **primary CA bundle** for all agent HTTPS connections (to Scalr API, VCS providers, provider registries, etc.).
+
+> [!IMPORTANT]
+> This replaces the system default CA certificates. If you need to trust both custom CAs and public CAs, include the complete certificate chain with both your custom certificates and standard root CAs in the bundle.
+
+You can provide the CA bundle in two ways:
 
 **Option 1: Inline CA bundle**
 
