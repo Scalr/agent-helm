@@ -51,7 +51,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
 
 ## Overview
 
-The `agent-job` Helm chart deploys a [Scalr Agent](https://docs.scalr.io/docs/agent-pools) that uses a job-based architecture for executing Terraform/OpenTofu infrastructure tasks in Kubernetes.
+The `agent-job` Helm chart deploys a [Scalr Agent](https://docs.scalr.io/docs/agent-pools) that uses a job-based architecture to execute IaC tasks in Kubernetes.
 
 The chart consists of two Kubernetes resources: **[agent](#agent)** and **[agent task](#agent-task)**.
 
@@ -333,7 +333,7 @@ By default the chart provisions:
 
 - **ServiceAccount** used by the controller and task pods
 - **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
-- **ClusterRole/RoleBinding** granting read access to `AgentTask` resources (`atasks.scalr.io`)
+- **ClusterRole/ClusterRoleBinding** granting read access to `AgentTask` resources (`atasks.scalr.io`)
 
 Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
 
