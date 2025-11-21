@@ -290,7 +290,7 @@ agent:
 
   # -- Grace period in seconds before forcibly terminating the controller container.
   # @section -- Agent
-  terminationGracePeriodSeconds: 360
+  terminationGracePeriodSeconds: 180
 
 # Task job configuration (Kubernetes Job) containing worker and runner containers.
 task:

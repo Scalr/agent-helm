@@ -80,6 +80,16 @@ spec:
               value: {{ .Values.agent.cacheDir | quote }}
             - name: SCALR_AGENT_DRIVER
               value: "kubernetes-job"
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+              value: "drain"
+            - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+              value: "180"
+            - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              value: "180"
+            - name: SCALR_AGENT_CONTAINER_TASK_SCHEDULING_TIMEOUT
+              value: "120"
+            - name: SCALR_AGENT_DISCONNECT_ON_STOP
+              value: "1"
             - name: SCALR_AGENT_KUBERNETES_JOB_TEMPLATE
               value: "scalr-agent-task"
             {{- $telemetry := .Values.otel -}}

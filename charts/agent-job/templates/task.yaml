@@ -89,6 +89,8 @@ spec:
                 value: "360"
               - name: SCALR_AGENT_DISCONNECT_ON_STOP
                 value: "1"
+              - name: SCALR_AGENT_SINGLE
+                value: "true"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if .Values.agent.providerCache.enabled  }}
@@ -140,6 +142,19 @@ spec:
               {{- with .Values.task.worker.extraVolumeMounts }}
               {{- toYaml . | nindent 14 }}
               {{- end }}
+            startupProbe:
+              exec:
+                command: ["test", "-f", "{{ .Values.agent.dataDir }}/started"]
+              initialDelaySeconds: 30
+              periodSeconds: 5
+              timeoutSeconds: 5
+            livenessProbe:
+              exec:
+                command: ["test", "-f", "{{ .Values.agent.dataDir }}/healthy"]
+              initialDelaySeconds: 5
+              periodSeconds: 5
+              timeoutSeconds: 5
+              failureThreshold: 3
           {{- with .Values.task.sidecars }}
           {{- toYaml . | nindent 10 }}
           {{- end }}
@@ -204,6 +219,19 @@ spec:
               {{- with .Values.task.runner.extraVolumeMounts }}
               {{- toYaml . | nindent 14 }}
               {{- end }}
+            startupProbe:
+              exec:
+                command: ["test", "-f", "/tmp/exec-loop/started"]
+              initialDelaySeconds: 30
+              periodSeconds: 5
+              timeoutSeconds: 5
+            livenessProbe:
+              exec:
+                 command: ["test", "-f", "/tmp/exec-loop/healthy"]
+              initialDelaySeconds: 5
+              periodSeconds: 5
+              timeoutSeconds: 5
+              failureThreshold: 3
           volumes:
             - name: sa-token
               projected:
