@@ -130,19 +130,6 @@ spec:
             - name: tmp-dir
               mountPath: /tmp
             {{- include "agent-job.caCertVolumeMount" . | nindent 12 }}
-          startupProbe:
-            exec:
-              command: ["test", "-f", "{{ .Values.agent.dataDir }}/started"]
-            initialDelaySeconds: 60
-            periodSeconds: 5
-            timeoutSeconds: 1
-          livenessProbe:
-            exec:
-              command: ["test", "-f", "{{ .Values.agent.dataDir }}/healthy"]
-            initialDelaySeconds: 60
-            periodSeconds: 5
-            timeoutSeconds: 1
-            failureThreshold: 1
       {{- with .Values.agent.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
