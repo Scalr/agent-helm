@@ -31,7 +31,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 
 ## Prerequisites
 
-- Kubernetes 1.33+ (require [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/))
+- Kubernetes 1.33+
 - Helm 3.0+
 - ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
 
@@ -70,7 +70,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) created by the agent controller. It consists of two isolated containers:
 
 - **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
-- **worker** (sidecar): The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
+- **worker**: The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
 
 The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
 
@@ -303,7 +303,7 @@ The agent can be configured to send telemetry data, including both trace spans a
 
 OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
 
-Enable telemetry for both the controller deployment and the worker sidecar by configuring an OpenTelemetry collector endpoint:
+Enable telemetry for both the agent controller deployment and the agent worker by configuring an OpenTelemetry collector endpoint:
 
 ```yaml
 otel:
@@ -407,7 +407,7 @@ For issues not covered above:
 | agent.providerCache.sizeLimit | string | `"40Gi"` | Provider cache soft limit. Must be tuned according to cache directory size. |
 | agent.replicaCount | int | `1` | Number of agent controller replicas. |
 | agent.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource limits and requests for the agent controller container. |
-| agent.terminationGracePeriodSeconds | int | `360` | Grace period in seconds before forcibly terminating the controller container. |
+| agent.terminationGracePeriodSeconds | int | `180` | Grace period in seconds before forcibly terminating the controller container. |
 | agent.token | string | `""` | The agent pool token for authentication. |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. |
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
@@ -514,8 +514,7 @@ For issues not covered above:
 | task.affinity | object | `{}` | Node affinity for task job pods. |
 | task.allowMetadataService | bool | `false` | Disables a NetworkPolicy to the task containers that denies access to VM metadata service (169.254.169.254). |
 | task.extraVolumes | list | `[]` | Additional volumes for task job pods. |
-| task.job | object | `{"backoffLimit":0,"ttlSecondsAfterFinished":60}` | Job configuration for task execution. |
-| task.job.backoffLimit | int | `0` | Number of retries before marking the job as failed. Disabled by default as the agent doesn't support Scalr Run retries on infrastracture layer at the moment. |
+| task.job | object | `{"ttlSecondsAfterFinished":60}` | Job configuration for task execution. |
 | task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it is automatically deleted. |
 | task.nodeSelector | object | `{}` | Node selector for assigning task job pods to specific nodes. Example: `--set task.nodeSelector."node-type"="agent-worker"` |
 | task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |

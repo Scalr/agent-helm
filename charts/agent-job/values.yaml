@@ -297,10 +297,6 @@ task:
   # -- Job configuration for task execution.
   # @section -- Task
   job:
-    # -- Number of retries before marking the job as failed. Disabled by default as the
-    # agent doesn't support Scalr Run retries on infrastracture layer at the moment.
-    # @section -- Task
-    backoffLimit: 0
     # -- Time in seconds after job completion before it is automatically deleted.
     # @section -- Task
     ttlSecondsAfterFinished: 60

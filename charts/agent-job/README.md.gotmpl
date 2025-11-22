@@ -28,7 +28,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 
 ## Prerequisites
 
-- Kubernetes 1.33+ (require [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/))
+- Kubernetes 1.33+
 - Helm 3.0+
 - ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
 
@@ -67,7 +67,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) created by the agent controller. It consists of two isolated containers:
 
 - **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
-- **worker** (sidecar): The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
+- **worker**: The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
 
 The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
 
@@ -300,7 +300,7 @@ The agent can be configured to send telemetry data, including both trace spans a
 
 OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
 
-Enable telemetry for both the controller deployment and the worker sidecar by configuring an OpenTelemetry collector endpoint:
+Enable telemetry for both the agent controller deployment and the agent worker by configuring an OpenTelemetry collector endpoint:
 
 ```yaml
 otel:
