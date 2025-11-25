@@ -259,6 +259,10 @@ Initializing plugins and modules...
 Initialized 20 plugins and 0 modules in 6.09s (20 plugins used from cache)
 ```
 
+See detailed guides:
+
+- [GKE Filestore](docs/cache-persistence-filestore.md)
+
 ### Data Volume Persistence
 
 The default configuration uses ephemeral `emptyDir` storage. Since the workspace volume does not need to be shared or persisted between runs, we recommend using an ephemeral volume so that it is bound to the lifetime of the run and automatically destroyed when the Job is deleted.
