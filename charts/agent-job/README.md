@@ -69,7 +69,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) created by the agent controller. It consists of two isolated containers:
 
-- **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
+- **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image (temporary [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner)).
 - **worker**: The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
 
 The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
