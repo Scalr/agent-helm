@@ -1,0 +1,293 @@
+apiVersion: scalr.io/v1
+kind: AgentTask
+metadata:
+  name: scalr-agent-task
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-job.labels" . | nindent 4 }}
+    app.kubernetes.io/component: task
+spec:
+  jobTemplate:
+    spec:
+      # The agent doesn't support Scalr Run retries on infrastracture layer at the moment.
+      backoffLimit: 0
+      restartPolicy: Never
+      ttlSecondsAfterFinished: {{ .Values.task.job.ttlSecondsAfterFinished }}
+      template:
+        metadata:
+          annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+            karpenter.sh/do-not-evict: "true"
+            karpenter.sh/do-not-disrupt: "true"
+            autopilot.gke.io/priority: "high"
+          {{- with (merge (deepCopy .Values.global.podAnnotations) .Values.task.podAnnotations) }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            {{- with .Values.global.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with .Values.task.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- include "agent-job.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: task
+        spec:
+          restartPolicy: Never
+          {{- with .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "agent-job.serviceAccountName" . }}
+          automountServiceAccountToken: false
+          {{- $taskPodSecurityContext := merge (deepCopy (default (dict) .Values.global.podSecurityContext)) (default (dict) .Values.task.podSecurityContext) }}
+          {{- if not (empty $taskPodSecurityContext) }}
+          securityContext:
+            {{- toYaml $taskPodSecurityContext | nindent 12 }}
+          {{- end }}
+          containers:
+          - name: runner
+            {{- $registry := .Values.global.imageRegistry }}
+            {{- if $registry }}
+            image: "{{ $registry }}/{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
+            {{- else }}
+            image: "{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
+            {{- end }}
+            imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
+            # TODO: Enable the Image Volume feature once it is out of beta.
+            # Then we can mount the single file from the agent image instead of relying
+            # on the agent-runner image to provide exec-loop.sh.
+            # See: https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/
+            command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
+            workingDir: /opt/workdir
+            {{- with .Values.task.runner.securityContext }}
+            securityContext:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            env:
+              {{- include "agent-job.proxyEnv" . | nindent 14 }}
+              {{- include "agent-job.caCertEnv" . | nindent 14 }}
+              {{- range $key, $value := .Values.task.runner.extraEnv }}
+              - name: {{ $key }}
+                value: {{ $value | quote }}
+              {{- end }}
+            resources:
+              {{- toYaml .Values.task.runner.resources | nindent 14 }}
+            volumeMounts:
+              - name: data-dir
+                mountPath: /opt/workdir
+                subPath: run/config
+              - name: data-dir
+                mountPath: /opt/data
+                subPath: run/data
+              - name: data-dir
+                mountPath: /opt/providers
+                subPath: run/providers
+              - name: data-dir
+                mountPath: /tmp
+                subPath: run/tmp
+              - name: cache-dir
+                readOnly: true
+                mountPath: /opt/bin
+                {{- if .Values.persistence.cache.enabled }}
+                subPath: {{ printf "%s/bin" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+                {{- else }}
+                subPath: "bin"
+                {{- end }}
+              - name: cache-dir
+                readOnly: true
+                mountPath: /opt/plugin-cache
+                {{- if .Values.persistence.cache.enabled }}
+                subPath: {{ printf "%s/providers" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+                {{- else }}
+                subPath: "providers"
+                {{- end }}
+              {{- include "agent-job.caCertVolumeMount" . | nindent 14 }}
+              {{- with .Values.task.runner.extraVolumeMounts }}
+              {{- toYaml . | nindent 14 }}
+              {{- end }}
+            startupProbe:
+              exec:
+                command: ["test", "-f", "/tmp/exec-loop/started"]
+              initialDelaySeconds: 60
+              periodSeconds: 5
+              timeoutSeconds: 1
+            livenessProbe:
+              exec:
+                 command: ["test", "-f", "/tmp/exec-loop/healthy"]
+              initialDelaySeconds: 60
+              periodSeconds: 5
+              timeoutSeconds: 1
+              failureThreshold: 1
+          - name: worker
+            {{- $workerImage := .Values.task.worker.image }}
+            {{- if not $workerImage.repository }}
+              {{- $workerImage = .Values.agent.image }}
+            {{- end }}
+            {{- $registry := .Values.global.imageRegistry }}
+            {{- if $registry }}
+            image: "{{ $registry }}/{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
+            {{- else }}
+            image: "{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
+            {{- end }}
+            imagePullPolicy: {{ $workerImage.pullPolicy | default .Values.agent.image.pullPolicy }}
+            command: ["python", "-m", "tacoagent.cmd"]
+            # When a container in initContainers has restartPolicy: Always,
+            # it is treated as a sidecar. Kubernetes v1.29 is required.
+            # restartPolicy: Always
+            {{- with .Values.task.worker.securityContext }}
+            securityContext:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            env:
+              - name: SCALR_URL
+                value: {{ .Values.agent.url | quote }}
+              - name: SCALR_AGENT_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.agent.tokenExistingSecret.name | default (include "agent-job.fullname" .) }}
+                    key: {{ .Values.agent.tokenExistingSecret.key }}
+                    optional: false
+              - name: SCALR_AGENT_DEBUG
+                value: {{ .Values.agent.debug | quote }}
+              - name: SCALR_AGENT_LOG_FORMAT
+                value: {{ .Values.agent.logFormat | quote }}
+              - name: SCALR_AGENT_DATA_DIR
+                value: {{ .Values.agent.dataDir | quote }}
+              - name: SCALR_AGENT_CACHE_DIR
+                value: {{ .Values.agent.cacheDir | quote }}
+              - name: SCALR_AGENT_DRIVER
+                value: "kubernetes-job"
+              - name: SCALR_AGENT_KUBERNETES_MODE
+                value: "worker"
+              - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+                value: "grace-shutdown"
+              - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+                value: "360"
+              - name: SCALR_AGENT_DISCONNECT_ON_STOP
+                value: "1"
+              {{- include "agent-job.proxyEnv" . | nindent 14 }}
+              {{- include "agent-job.caCertEnv" . | nindent 14 }}
+              {{- if .Values.agent.providerCache.enabled  }}
+              - name: SCALR_AGENT_PROVIDER_CACHE_ENABLED
+                value: "true"
+              - name: SCALR_AGENT_PROVIDER_CACHE_SIZE_LIMIT_MB
+                value: {{ include "agent-job.sizeToMB" .Values.agent.providerCache.sizeLimit | quote }}
+              {{- else }}
+              - name: SCALR_AGENT_PROVIDER_CACHE_ENABLED
+                value: "false"
+              {{- end }}
+              {{- $telemetry := .Values.otel -}}
+              {{- if and $telemetry.enabled $telemetry.endpoint }}
+              - name: SCALR_AGENT_OTLP_ENDPOINT
+                value: {{ $telemetry.endpoint | quote }}
+              {{- if $telemetry.metricsEnabled }}
+              - name: SCALR_AGENT_OTLP_METRICS_ENABLED
+                value: "true"
+              {{- end }}
+              {{- if $telemetry.tracesEnabled }}
+              - name: SCALR_AGENT_OTLP_TRACES_ENABLED
+                value: "true"
+              {{- end }}
+              {{- end }}
+              {{- range $key, $value := .Values.agent.extraEnv }}
+              - name: {{ $key }}
+                value: {{ $value | quote }}
+              {{- end }}
+              {{- range $key, $value := .Values.task.worker.extraEnv }}
+              - name: {{ $key }}
+                value: {{ $value | quote }}
+              {{- end }}
+            resources:
+              {{- toYaml .Values.task.worker.resources | nindent 14 }}
+            volumeMounts:
+              - name: sa-token
+                mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                readOnly: true
+              - name: data-dir
+                mountPath: {{ .Values.agent.dataDir }}
+              - name: cache-dir
+                mountPath: {{ .Values.agent.cacheDir }}
+                {{- if .Values.persistence.cache.enabled }}
+                subPath: {{ printf "%s/cache" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+                {{- end }}
+              - name: tmp-dir
+                mountPath: /tmp
+              {{- include "agent-job.caCertVolumeMount" . | nindent 14 }}
+              {{- with .Values.task.worker.extraVolumeMounts }}
+              {{- toYaml . | nindent 14 }}
+              {{- end }}
+            startupProbe:
+              exec:
+                command: ["test", "-f", "{{ .Values.agent.dataDir }}/started"]
+              initialDelaySeconds: 60
+              periodSeconds: 5
+              timeoutSeconds: 1
+            livenessProbe:
+              exec:
+                command: ["test", "-f", "{{ .Values.agent.dataDir }}/healthy"]
+              initialDelaySeconds: 60
+              periodSeconds: 5
+              timeoutSeconds: 1
+              failureThreshold: 1
+          {{- with .Values.task.sidecars }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          volumes:
+            - name: sa-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      path: token
+                      expirationSeconds: {{ .Values.serviceAccount.tokenTTL }}
+                  - configMap:
+                      name: kube-root-ca.crt
+                      items:
+                        - key: ca.crt
+                          path: ca.crt
+                  - downwardAPI:
+                      items:
+                        - path: namespace
+                          fieldRef:
+                            fieldPath: metadata.namespace
+            - name: data-dir
+            {{- if .Values.persistence.data.enabled }}
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.data.persistentVolumeClaim.claimName | default (printf "%s-data" (include "agent-job.fullname" .)) }}
+            {{- else }}
+              emptyDir:
+              {{- with .Values.persistence.data.emptyDir }}
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+            {{- end }}
+            - name: cache-dir
+            {{- if .Values.persistence.cache.enabled }}
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.cache.persistentVolumeClaim.claimName | default (printf "%s-cache" (include "agent-job.fullname" .)) }}
+            {{- else }}
+              emptyDir:
+              {{- with .Values.persistence.cache.emptyDir }}
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+            {{- end }}
+            # Note: /tmp is not writable when readOnlyRootFilesystem is enabled.
+            # Mount a dedicated emptyDir volume to provide a writable temporary directory.
+            - name: tmp-dir
+              emptyDir: {}
+            {{- include "agent-job.caCertVolume" . | nindent 12 }}
+            {{- with .Values.task.extraVolumes }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.task.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.task.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.task.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          terminationGracePeriodSeconds: {{ .Values.task.terminationGracePeriodSeconds }}
