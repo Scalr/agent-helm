@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SCALR_AGENT_DATA_DIR`
   - `SCALR_AGENT_TOKEN`
 
-Users must remove any of these keys from their `extraEnv` configuration before upgrading. If you have any concerns regarding the configuration of these variables, please address them in a GitHub issue.
+  Users must remove any of these keys from their `extraEnv` configuration before upgrading. If you have any concerns regarding the configuration of these variables, please address them in a GitHub issue.
 
 ## [v0.5.60]
 
