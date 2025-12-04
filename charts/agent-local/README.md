@@ -122,7 +122,7 @@ In this mode, the agent redirects the `SIGTERM` signal immediately to the underl
 
 Learn more about Scalr Agent termination behavior: https://docs.scalr.io/docs/configuration#scalr_agent_worker_on_stop_action
 
-The application layer graceful termination timeout (`SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`) is set to Kubernetes' `terminationGracePeriodSeconds` minus 10 seconds to give the agent some additional time to terminate and push task results to the Scalr platform. As a result, `terminationGracePeriodSeconds` must be at least 10 seconds.
+The application layer graceful termination timeout ([SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT](https://docs.scalr.io/docs/configuration#scalr_agent_worker_grace_shutdown_timeout)) is calculated dynamically from Kubernetes' `terminationGracePeriodSeconds` minus 10 seconds to give the agent additional time to terminate and push task results to the Scalr platform. As a result, `terminationGracePeriodSeconds` must be at least 10 seconds.
 
 ## Troubleshooting
 
