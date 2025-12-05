@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scalr-agent
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-job.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  replicas: {{ .Values.agent.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "agent-job.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agent
+  template:
+    metadata:
+      annotations:
+      {{- with (merge (deepCopy .Values.global.podAnnotations) .Values.agent.podAnnotations) }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if not .Values.agent.tokenExistingSecret.name }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      {{- end }}
+      labels:
+        {{- with .Values.global.podLabels }}
+        {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.agent.podLabels }}
+        {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- include "agent-job.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: agent
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "agent-job.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
+      {{- $controllerPodSecurityContext := merge (deepCopy (default (dict) .Values.global.podSecurityContext)) (default (dict) .Values.agent.podSecurityContext) }}
+      {{- if not (empty $controllerPodSecurityContext) }}
+      securityContext:
+        {{- toYaml $controllerPodSecurityContext | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: controller
+          {{- $registry := .Values.global.imageRegistry }}
+          {{- $image := .Values.agent.image }}
+          {{- if $registry }}
+          image: "{{ $registry }}/{{ $image.repository }}:{{ $image.tag | default .Chart.AppVersion }}"
+          {{- else }}
+          image: "{{ $image.repository }}:{{ $image.tag | default .Chart.AppVersion }}"
+          {{- end }}
+          imagePullPolicy: {{ $image.pullPolicy }}
+          command: ["python", "-m", "tacoagent.cmd"]
+          {{- with .Values.agent.controller.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: SCALR_URL
+              value: {{ .Values.agent.url | quote }}
+            - name: SCALR_AGENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.agent.tokenExistingSecret.name | default (include "agent-job.fullname" .) }}
+                  key: {{ .Values.agent.tokenExistingSecret.key }}
+                  optional: false
+            - name: SCALR_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SCALR_AGENT_DEBUG
+              value: {{ .Values.agent.debug | quote }}
+            - name: SCALR_AGENT_LOG_FORMAT
+              value: {{ .Values.agent.logFormat | quote }}
+            - name: SCALR_AGENT_DATA_DIR
+              value: {{ .Values.agent.dataDir | quote }}
+            - name: SCALR_AGENT_CACHE_DIR
+              value: {{ .Values.agent.cacheDir | quote }}
+            - name: SCALR_AGENT_DRIVER
+              value: "kubernetes-job"
+            - name: SCALR_AGENT_KUBERNETES_MODE
+              value: "controller"
+            - name: SCALR_AGENT_KUBERNETES_JOB_TEMPLATE
+              value: "scalr-agent-task"
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+              value: "drain"
+            - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+              value: "180"
+            - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              value: "180"
+            - name: SCALR_AGENT_CONTAINER_TASK_SCHEDULING_TIMEOUT
+              value: "120"
+            - name: SCALR_AGENT_DISCONNECT_ON_STOP
+              value: "1"
+            {{- $telemetry := .Values.otel -}}
+            {{- if and $telemetry.enabled $telemetry.endpoint }}
+            - name: SCALR_AGENT_OTLP_ENDPOINT
+              value: {{ $telemetry.endpoint | quote }}
+            {{- if $telemetry.metricsEnabled }}
+            - name: SCALR_AGENT_OTLP_METRICS_ENABLED
+              value: "true"
+            {{- end }}
+            {{- if $telemetry.tracesEnabled }}
+            - name: SCALR_AGENT_OTLP_TRACES_ENABLED
+              value: "true"
+            {{- end }}
+            {{- end }}
+            {{- include "agent-job.proxyEnv" . | nindent 12 }}
+            {{- include "agent-job.caCertEnv" . | nindent 12 }}
+            {{- range $key, $value := .Values.agent.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- with .Values.agent.controller.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.agent.controller.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: data-dir
+              mountPath: {{ .Values.agent.dataDir | quote }}
+            - name: cache-dir
+              mountPath: {{ .Values.agent.cacheDir | quote }}
+            - name: tmp-dir
+              mountPath: /tmp
+            {{- include "agent-job.caCertVolumeMount" . | nindent 12 }}
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        # Note: Controllers have ephemeral data/cache volumes. They are not intended for real use, as agents
+        # in controller mode do not perform actual workloads.
+        - name: data-dir
+          emptyDir: {}
+        - name: cache-dir
+          emptyDir: {}
+        # Note: Default pod's /tmp may not be writable depending on securityContext settings.
+        # It is more robust to mount a dedicated volume.
+        - name: tmp-dir
+          emptyDir: {}
+        {{- include "agent-job.caCertVolume" . | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.agent.terminationGracePeriodSeconds }}
