@@ -1,3 +1,16 @@
+{{- /* Build list of all helm controller env var names */ -}}
+{{- $reservedEnvVars := list
+  "SCALR_AGENT_NAME"
+  "SCALR_URL"
+  "SCALR_AGENT_DRIVER"
+  "SCALR_AGENT_CONCURRENCY"
+  "SCALR_AGENT_DISCONNECT_ON_STOP"
+  "SCALR_AGENT_WORKER_ON_STOP_ACTION"
+  "SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT"
+  "SCALR_AGENT_DATA_DIR"
+  "SCALR_AGENT_TOKEN"
+-}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -49,6 +62,9 @@ spec:
           env:
             {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
+            {{- if has $key $reservedEnvVars }}
+            {{- fail (printf "extraEnv contains a key '%s' that is controlled by the Helm chart.\n\nReserved keys are:\n  - %s" $key (join "\n  - " $reservedEnvVars)) }}
+            {{- end }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
@@ -66,7 +82,13 @@ spec:
             - name: SCALR_AGENT_DISCONNECT_ON_STOP
               value: "1"
             - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
-              value: drain
+              value: grace-shutdown
+            - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              {{- $timeout := sub .Values.terminationGracePeriodSeconds 10 -}}
+              {{- if lt $timeout 0 -}}
+              {{- fail "terminationGracePeriodSeconds must be at least 10 seconds" -}}
+              {{- end }}
+              value: {{ $timeout | quote }}
             - name: SCALR_AGENT_DATA_DIR
               value: {{ .Values.agent.dataDir | quote }}
             - name: SCALR_AGENT_TOKEN

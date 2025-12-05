@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- The agent's default termination mode is changed from `drain` to `grace-shutdown` via the `SCALR_AGENT_WORKER_ON_STOP_ACTION` configuration. The application layer graceful termination timeout (`SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`) is set to Kubernetes' `terminationGracePeriodSeconds` minus 10 seconds to give the agent some additional time to terminate and push task results to the Scalr platform. As a result, `terminationGracePeriodSeconds` must be at least 10 seconds.
+- **BREAKING:** The `extraEnv` configuration now has addional validations. The following variables are controlled by the chart and cannot be overridden via `extraEnv` to maintain configuration consistency and avoid undefined behavior:
+  - `SCALR_AGENT_NAME`
+  - `SCALR_URL`
+  - `SCALR_AGENT_DRIVER`
+  - `SCALR_AGENT_CONCURRENCY`
+  - `SCALR_AGENT_DISCONNECT_ON_STOP`
+  - `SCALR_AGENT_WORKER_ON_STOP_ACTION`
+  - `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`
+  - `SCALR_AGENT_DATA_DIR`
+  - `SCALR_AGENT_TOKEN`
+
+  Users must remove any of these keys from their `extraEnv` configuration before upgrading. If you have any concerns regarding the configuration of these variables, please address them in a GitHub issue.
+
 ## [v0.5.60]
 
 ### Updated
