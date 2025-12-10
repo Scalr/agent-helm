@@ -94,7 +94,7 @@ persistence:
 
 #### Multi-Replica with Shared Storage
 
-For multiple replicas (`replicaCount: >1`) in clusters with `ReadWriteMany` support (e.g., NFS, AWS EFS), use a single shared PVC.
+For multiple replicas (`replicaCount: >1`) in clusters with `ReadWriteMany` support (e.g., NFS, AWS EFS), you can optionally use a single shared PVC.
 
 ```yaml
 persistence:

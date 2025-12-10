@@ -1,13 +1,17 @@
-{{- if .Values.restrictMetadataService }}
+{{- if not .Values.task.allowMetadataService }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: agent-job-network-policy
+  name: {{ include "agent-job.fullname" . }}-task-network-policy
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-job.labels" . | nindent 4 }}
+    app.kubernetes.io/component: task
 spec:
   podSelector:
     matchLabels:
       {{- include "agent-job.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: task
   policyTypes:
     - Egress
   egress:
@@ -16,6 +20,6 @@ spec:
           # Allow all egress traffic by default
           cidr: 0.0.0.0/0
           except:
-            # Deny access to IMDS
+            # Deny access to VM metadata service (IMDS)
             - 169.254.169.254/32
 {{- end }}
