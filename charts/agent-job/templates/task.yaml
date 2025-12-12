@@ -166,6 +166,8 @@ spec:
                 value: "360"
               - name: SCALR_AGENT_DISCONNECT_ON_STOP
                 value: "1"
+              - name: SCALR_AGENT_STATEFILE_DISABLED
+                value: "1"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if .Values.agent.providerCache.enabled  }}
