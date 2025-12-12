@@ -94,7 +94,7 @@ spec:
               value: "120"
             - name: SCALR_AGENT_DISCONNECT_ON_STOP
               value: "1"
-            - name: SCALR_AGENT_STATEFILE_DISABLED
+            - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
               value: "1"
             {{- $telemetry := .Values.otel -}}
             {{- if and $telemetry.enabled $telemetry.endpoint }}
