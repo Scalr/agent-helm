@@ -92,10 +92,8 @@ spec:
               value: "180"
             - name: SCALR_AGENT_CONTAINER_TASK_SCHEDULING_TIMEOUT
               value: "120"
-            - name: SCALR_AGENT_DISCONNECT_ON_STOP
-              value: "1"
             - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
-              value: "1"
+              value: "false"
             {{- $telemetry := .Values.otel -}}
             {{- if and $telemetry.enabled $telemetry.endpoint }}
             - name: SCALR_AGENT_OTLP_ENDPOINT

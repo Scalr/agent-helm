@@ -164,10 +164,8 @@ spec:
                 value: "grace-shutdown"
               - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
                 value: "360"
-              - name: SCALR_AGENT_DISCONNECT_ON_STOP
-                value: "1"
               - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
-                value: "1"
+                value: "false"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if .Values.agent.providerCache.enabled  }}
