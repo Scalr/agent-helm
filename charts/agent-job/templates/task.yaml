@@ -102,14 +102,6 @@ spec:
                 {{- else }}
                 subPath: "providers"
                 {{- end }}
-              - name: cache-dir
-                readOnly: true
-                mountPath: /opt/module-cache
-                {{- if .Values.persistence.cache.enabled }}
-                subPath: {{ printf "%s/modules" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
-                {{- else }}
-                subPath: "modules"
-                {{- end }}
               {{- include "agent-job.caCertVolumeMount" . | nindent 14 }}
               {{- with .Values.task.runner.extraVolumeMounts }}
               {{- toYaml . | nindent 14 }}
