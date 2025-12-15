@@ -177,7 +177,7 @@ spec:
               - name: SCALR_AGENT_PROVIDER_CACHE_ENABLED
                 value: "false"
               {{- end }}
-              {{- if .Values.agent.moduleCache.enabled  }}
+              {{- if .Values.agent.moduleCache.enabled }}
               - name: SCALR_AGENT_MODULE_CACHE_ENABLED
                 value: "true"
               - name: SCALR_AGENT_MODULE_CACHE_SIZE_LIMIT_MB
