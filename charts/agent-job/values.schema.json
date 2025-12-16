@@ -112,8 +112,8 @@
                                     "description": "Output format for logs"
                                 },
                                 "SCALR_AGENT_PROVIDER_CACHE_ENABLED": {
-                                            "$ref": "#/$defs/envBool"
-                                        },
+                                    "$ref": "#/$defs/envBool"
+                                },
                                 "SCALR_AGENT_MODULE_CACHE_ENABLED": {
                                     "$ref": "#/$defs/envBool"
                                 }
