@@ -288,6 +288,15 @@ agent:
     # @section -- Agent
     sizeLimit: 40Gi
 
+  # @section -- Agent
+  moduleCache:
+    # -- Enable module caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory.
+    # @section -- Agent
+    enabled: false
+    # -- Module cache soft limit. Must be tuned according to cache directory size.
+    # @section -- Agent
+    sizeLimit: 40Gi
+
   # -- Grace period in seconds before forcibly terminating the controller container.
   # @section -- Agent
   terminationGracePeriodSeconds: 180
@@ -510,7 +519,7 @@ persistence:
       storageClassName: ""
       # -- Storage size for the PVC.
       # @section -- Persistence
-      storage: 50Gi
+      storage: 90Gi
       # -- Access mode for the PVC. Use ReadWriteMany to share cache across multiple task pods.
       # Note: ReadWriteMany requires compatible storage class (e.g., NFS, EFS, Filestore).
       # @section -- Persistence
