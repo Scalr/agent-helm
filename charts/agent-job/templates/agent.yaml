@@ -163,6 +163,10 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.agent.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         # Note: Controllers have ephemeral data volumes. This is not intended for real use, as agents
         - name: data-dir
