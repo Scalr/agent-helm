@@ -90,7 +90,7 @@ spec:
                 readOnly: true
                 mountPath: /opt/bin
                 {{- if .Values.persistence.cache.enabled }}
-                subPath: {{ printf "%s/bin" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+                subPath: {{ printf "%s/cache/bin" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "bin"
                 {{- end }}
@@ -98,7 +98,7 @@ spec:
                 readOnly: true
                 mountPath: /opt/plugin-cache
                 {{- if .Values.persistence.cache.enabled }}
-                subPath: {{ printf "%s/providers" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+                subPath: {{ printf "%s/cache/providers" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "providers"
                 {{- end }}

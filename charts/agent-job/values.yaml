@@ -36,7 +36,17 @@ rbac:
   rules:
     - apiGroups: [""]
       resources: ["pods"]
-      verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
+      verbs:
+        [
+          "get",
+          "list",
+          "watch",
+          "create",
+          "delete",
+          "deletecollection",
+          "patch",
+          "update",
+        ]
     - apiGroups: [""]
       resources: ["pods/log"]
       verbs: ["get"]
@@ -51,7 +61,17 @@ rbac:
       verbs: ["get", "list", "watch"]
     - apiGroups: ["batch"]
       resources: ["jobs"]
-      verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
+      verbs:
+        [
+          "get",
+          "list",
+          "watch",
+          "create",
+          "delete",
+          "deletecollection",
+          "patch",
+          "update",
+        ]
     - apiGroups: ["batch"]
       resources: ["jobs/status"]
       verbs: ["get", "patch", "update"]
@@ -233,6 +253,10 @@ agent:
   # -- Node affinity for the controller pod.
   # @section -- Agent
   affinity: {}
+
+  # -- Topology spread constraints for the controller pod.
+  # @section -- Agent
+  topologySpreadConstraints: {}
 
   # -- Resource limits and requests for the agent controller container.
   # @section -- Agent
