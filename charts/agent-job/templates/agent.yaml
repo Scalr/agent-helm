@@ -78,6 +78,24 @@ spec:
               value: {{ .Values.agent.dataDir | quote }}
             - name: SCALR_AGENT_CACHE_DIR
               value: {{ .Values.agent.cacheDir | quote }}
+            {{- if .Values.agent.providerCache.enabled }}
+            - name: SCALR_AGENT_PROVIDER_CACHE_ENABLED
+              value: "true"
+            - name: SCALR_AGENT_PROVIDER_CACHE_SIZE_LIMIT_MB
+              value: {{ include "agent-job.sizeToMB" .Values.agent.providerCache.sizeLimit | quote }}
+            {{- else }}
+            - name: SCALR_AGENT_PROVIDER_CACHE_ENABLED
+              value: "false"
+            {{- end }}
+            {{- if .Values.agent.moduleCache.enabled }}
+            - name: SCALR_AGENT_MODULE_CACHE_ENABLED
+              value: "true"
+            - name: SCALR_AGENT_MODULE_CACHE_SIZE_LIMIT_MB
+              value: {{ include "agent-job.sizeToMB" .Values.agent.moduleCache.sizeLimit | quote }}
+            {{- else }}
+            - name: SCALR_AGENT_MODULE_CACHE_ENABLED
+              value: "false"
+            {{- end }}
             - name: SCALR_AGENT_DRIVER
               value: "kubernetes-job"
             - name: SCALR_AGENT_KUBERNETES_MODE
@@ -127,6 +145,9 @@ spec:
               mountPath: {{ .Values.agent.dataDir | quote }}
             - name: cache-dir
               mountPath: {{ .Values.agent.cacheDir | quote }}
+              {{- if .Values.persistence.cache.enabled }}
+              subPath: {{ printf "%s/cache" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+              {{- end }}
             - name: tmp-dir
               mountPath: /tmp
             {{- include "agent-job.caCertVolumeMount" . | nindent 12 }}
@@ -143,12 +164,20 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        # Note: Controllers have ephemeral data/cache volumes. They are not intended for real use, as agents
-        # in controller mode do not perform actual workloads.
+        # Note: Controllers have ephemeral data volumes. This is not intended for real use, as agents
         - name: data-dir
           emptyDir: {}
+        # Note: In agent-job mode controller with persistence cache designed to run GC tasks
         - name: cache-dir
-          emptyDir: {}
+        {{- if .Values.persistence.cache.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.cache.persistentVolumeClaim.claimName | default (printf "%s-cache" (include "agent-job.fullname" .)) }}
+        {{- else }}
+          emptyDir:
+          {{- with .Values.persistence.cache.emptyDir }}
+            {{- toYaml . | nindent 16 }}
+          {{- end }}
+        {{- end }}
         # Note: Default pod's /tmp may not be writable depending on securityContext settings.
         # It is more robust to mount a dedicated volume.
         - name: tmp-dir
