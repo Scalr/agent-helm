@@ -419,6 +419,7 @@ For issues not covered above:
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
 | agent.tokenExistingSecret.name | string | `""` | Name of the secret containing the token. |
 | agent.tolerations | list | `[]` | Node tolerations for the controller pod. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set agent.tolerations[0].key=dedicated,agent.tolerations[0].operator=Equal,agent.tolerations[0].value=agent-controller,agent.tolerations[0].effect=NoSchedule` |
+| agent.topologySpreadConstraints | object | `{}` | Topology spread constraints for the controller pod. |
 | agent.url | string | `""` | The Scalr URL to connect the agent to. |
 
 ### Global
