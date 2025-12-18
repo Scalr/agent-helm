@@ -34,7 +34,7 @@ jobs:
         with:
           app_version: ${{inputs.app_version}}
 
-      - name: Destroy Inactive Deployment
+      - name: Release Charts
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: release-charts.yaml
