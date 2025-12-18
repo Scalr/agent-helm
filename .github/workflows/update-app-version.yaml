@@ -20,13 +20,21 @@ jobs:
           app_id: ${{vars.SUDO_GHA_APP_ID}}
           installation_id: ${{vars.SUDO_GHA_APP_INSTALLATION_ID}}
           private_key: ${{secrets.SUDO_GHA_APP_PRIVATE_KEY}}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ steps.generate_token.outputs.token }}
+
       - name: Setup helm-docs
         uses: ./.github/actions/setup-helm-docs
+
       - name: Main
         uses: ./.github/actions/update-app-version
         with:
-            app_version: ${{inputs.app_version}}
+          app_version: ${{inputs.app_version}}
+
+      - name: Release Charts
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: release-charts.yaml
