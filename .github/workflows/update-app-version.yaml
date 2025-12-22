@@ -34,6 +34,10 @@ jobs:
         with:
           app_version: ${{inputs.app_version}}
 
+      - name: Wait for pushed commit to be visible
+        shell: bash
+        run: sleep 60
+
       - name: Release Charts
         uses: benc-uk/workflow-dispatch@v1
         with:
