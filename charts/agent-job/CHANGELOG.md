@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `SCALR_AGENT_STATE_PERSISTENCE_ENABLED=1` to disable persistent state files.
 
+## [v0.5.65]
+
+### Updated
+
+- Bumping chart version to v0.5.65 for scalr-agent v0.58.0
+
 ## [v0.5.64]
 
 ### Updated

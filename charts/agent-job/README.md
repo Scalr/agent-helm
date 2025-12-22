@@ -1,6 +1,6 @@
 # agent-job
 
-![Version: 0.5.64](https://img.shields.io/badge/Version-0.5.64-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.57.0](https://img.shields.io/badge/AppVersion-0.57.0-informational?style=flat-square)
+![Version: 0.5.65](https://img.shields.io/badge/Version-0.5.65-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.58.0](https://img.shields.io/badge/AppVersion-0.58.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 It uses a job-based model, where each Scalr Run is isolated
@@ -397,6 +397,8 @@ For issues not covered above:
 | agent.image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. @section -- Agent |
 | agent.image.tag | string | `""` | Image tag. Defaults to the chart appVersion if not specified. @section -- Agent |
 | agent.logFormat | string | `"json"` | The log formatter. Options: plain, dev or json. Defaults to json. @section -- Agent |
+| agent.moduleCache.enabled | bool | `false` | Enable module caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. @section -- Agent |
+| agent.moduleCache.sizeLimit | string | `"40Gi"` | Module cache soft limit. Must be tuned according to cache directory size. @section -- Agent |
 | agent.nodeSelector | object | `{}` | Node selector for assigning the controller pod to specific nodes. Example: `--set agent.nodeSelector."node-type"="agent-controller"` @section -- Agent |
 | agent.podAnnotations | object | `{}` | Controller-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). @section -- Agent |
 | agent.podDisruptionBudget | object | `{"enabled":true,"maxUnavailable":null,"minAvailable":1}` | PodDisruptionBudget configuration for controller high availability. Only applied when replicaCount > 1. Ensures minimum availability during voluntary disruptions. @section -- Agent |
@@ -415,6 +417,7 @@ For issues not covered above:
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. @section -- Agent |
 | agent.tokenExistingSecret.name | string | `""` | Name of the secret containing the token. @section -- Agent |
 | agent.tolerations | list | `[]` | Node tolerations for the controller pod. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set agent.tolerations[0].key=dedicated,agent.tolerations[0].operator=Equal,agent.tolerations[0].value=agent-controller,agent.tolerations[0].effect=NoSchedule` @section -- Agent |
+| agent.topologySpreadConstraints | object | `{}` | Topology spread constraints for the controller pod. @section -- Agent |
 | agent.url | string | `""` | The Scalr URL to connect the agent to. @section -- Agent |
 | fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
 | global.imagePullSecrets | list | `[]` | Global image pull secrets for private registries. @section -- Global |
@@ -446,14 +449,14 @@ For issues not covered above:
 | otel.endpoint | string | `"http://otel-collector:4317"` | OpenTelemetry collector endpoint. @section -- OpenTelemetry |
 | otel.metricsEnabled | bool | `true` | Collect and export metrics. @section -- OpenTelemetry |
 | otel.tracesEnabled | bool | `false` | Collect and export traces. @section -- OpenTelemetry |
-| persistence.cache | object | `{"emptyDir":{"sizeLimit":"1Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"50Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores provider binaries, plugin cache, and downloaded tools to speed up runs. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. @section -- Persistence |
+| persistence.cache | object | `{"emptyDir":{"sizeLimit":"1Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"90Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores provider binaries, plugin cache, and downloaded tools to speed up runs. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. @section -- Persistence |
 | persistence.cache.emptyDir | object | `{"sizeLimit":"1Gi"}` | EmptyDir volume configuration (used when enabled is false). @section -- Persistence |
 | persistence.cache.emptyDir.sizeLimit | string | `"1Gi"` | Size limit for the emptyDir volume. @section -- Persistence |
 | persistence.cache.enabled | bool | `false` | Enable persistent storage for cache directory. Highly recommended: Avoids re-downloading providers and binaries (saves 1-5 minutes per run). When false, providers and binaries are downloaded fresh for each task. When true, cache is shared across all task pods for significant performance improvement (may vary depending on NFS performace). @section -- Persistence |
-| persistence.cache.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"50Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). @section -- Persistence |
+| persistence.cache.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"90Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). @section -- Persistence |
 | persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. Use ReadWriteMany to share cache across multiple task pods. Note: ReadWriteMany requires compatible storage class (e.g., NFS, EFS, Filestore). @section -- Persistence |
 | persistence.cache.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-cache` is created. @section -- Persistence |
-| persistence.cache.persistentVolumeClaim.storage | string | `"50Gi"` | Storage size for the PVC. @section -- Persistence |
+| persistence.cache.persistentVolumeClaim.storage | string | `"90Gi"` | Storage size for the PVC. @section -- Persistence |
 | persistence.cache.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. @section -- Persistence |
 | persistence.cache.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. Useful when sharing a single PVC across multiple installations. @section -- Persistence |
 | persistence.data | object | `{"emptyDir":{"sizeLimit":"4Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"4Gi","storageClassName":"","subPath":""}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. This directory is mounted to the worker sidecar container. @section -- Persistence |
