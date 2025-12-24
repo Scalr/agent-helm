@@ -81,14 +81,28 @@ spec:
               value: "1"
             - name: SCALR_AGENT_DISCONNECT_ON_STOP
               value: "1"
+            {{- if eq .Values.agent.shutdownMode "graceful" }}
+              {{- if lt .Values.terminationGracePeriodSeconds 30 }}
+              {{- fail "terminationGracePeriodSeconds must be at least 30 seconds when agent.shutdownMode=graceful" }}
+              {{- end }}
             - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
               value: grace-shutdown
             - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
-              {{- $timeout := sub .Values.terminationGracePeriodSeconds 10 -}}
-              {{- if lt $timeout 0 -}}
-              {{- fail "terminationGracePeriodSeconds must be at least 10 seconds" -}}
+              value: {{ sub .Values.terminationGracePeriodSeconds 10 | quote }}
+            {{- else if eq .Values.agent.shutdownMode "drain" }}
+              {{- if lt .Values.terminationGracePeriodSeconds 120 }}
+              {{- fail "terminationGracePeriodSeconds must be at least 120 seconds when agent.shutdownMode=drain" }}
               {{- end }}
-              value: {{ $timeout | quote }}
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+              value: drain
+            - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+              value: {{ sub .Values.terminationGracePeriodSeconds 70 | quote }}
+            - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              value: "60"
+            {{- else }}
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+              value: force
+            {{- end }}
             - name: SCALR_AGENT_DATA_DIR
               value: {{ .Values.agent.dataDir | quote }}
             - name: SCALR_AGENT_TOKEN
