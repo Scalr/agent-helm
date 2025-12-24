@@ -36,7 +36,17 @@ rbac:
   rules:
     - apiGroups: [""]
       resources: ["pods"]
-      verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
+      verbs:
+        [
+          "get",
+          "list",
+          "watch",
+          "create",
+          "delete",
+          "deletecollection",
+          "patch",
+          "update",
+        ]
     - apiGroups: [""]
       resources: ["pods/log"]
       verbs: ["get"]
@@ -51,7 +61,17 @@ rbac:
       verbs: ["get", "list", "watch"]
     - apiGroups: ["batch"]
       resources: ["jobs"]
-      verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
+      verbs:
+        [
+          "get",
+          "list",
+          "watch",
+          "create",
+          "delete",
+          "deletecollection",
+          "patch",
+          "update",
+        ]
     - apiGroups: ["batch"]
       resources: ["jobs/status"]
       verbs: ["get", "patch", "update"]
@@ -234,6 +254,10 @@ agent:
   # @section -- Agent
   affinity: {}
 
+  # -- Topology spread constraints for the controller pod.
+  # @section -- Agent
+  topologySpreadConstraints: {}
+
   # -- Resource limits and requests for the agent controller container.
   # @section -- Agent
   resources:
@@ -285,6 +309,15 @@ agent:
     # @section -- Agent
     enabled: false
     # -- Provider cache soft limit. Must be tuned according to cache directory size.
+    # @section -- Agent
+    sizeLimit: 40Gi
+
+  # @section -- Agent
+  moduleCache:
+    # -- Enable module caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory.
+    # @section -- Agent
+    enabled: false
+    # -- Module cache soft limit. Must be tuned according to cache directory size.
     # @section -- Agent
     sizeLimit: 40Gi
 
@@ -510,7 +543,7 @@ persistence:
       storageClassName: ""
       # -- Storage size for the PVC.
       # @section -- Persistence
-      storage: 50Gi
+      storage: 90Gi
       # -- Access mode for the PVC. Use ReadWriteMany to share cache across multiple task pods.
       # Note: ReadWriteMany requires compatible storage class (e.g., NFS, EFS, Filestore).
       # @section -- Persistence
