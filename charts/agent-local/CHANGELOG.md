@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `agent.shutdownMode` configuration option to control agent termination behavior. Options are `graceful` (default), `force`, or `drain`.
+
+### Changed
+
+- **BREAKING**: Updated validation for minimum `terminationGracePeriodSeconds` value from 10 to 30 seconds for the default `graceful` shutdown mode to prevent undefined behavior and stuck runs. Set `agent.shutdownMode=force` if you need `terminationGracePeriodSeconds` below 30 seconds (minimum is 10 seconds).
+
 ## [v0.5.62]
 
 ### Updated
