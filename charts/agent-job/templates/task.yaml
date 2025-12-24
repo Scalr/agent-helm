@@ -132,9 +132,6 @@ spec:
             {{- end }}
             imagePullPolicy: {{ $workerImage.pullPolicy | default .Values.agent.image.pullPolicy }}
             command: ["python", "-m", "tacoagent.cmd"]
-            # When a container in initContainers has restartPolicy: Always,
-            # it is treated as a sidecar. Kubernetes v1.29 is required.
-            # restartPolicy: Always
             {{- with .Values.task.worker.securityContext }}
             securityContext:
               {{- toYaml . | nindent 14 }}

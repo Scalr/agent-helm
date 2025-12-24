@@ -378,7 +378,7 @@ task:
     # @section -- Task
     extraVolumeMounts: []
 
-    # -- Security context for the worker container (inherits from agent.securityContext if not specified).
+    # -- Security context for the worker container.
     # @section -- Task
     securityContext: {}
 
