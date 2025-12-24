@@ -132,9 +132,6 @@ spec:
             {{- end }}
             imagePullPolicy: {{ $workerImage.pullPolicy | default .Values.agent.image.pullPolicy }}
             command: ["python", "-m", "tacoagent.cmd"]
-            # When a container in initContainers has restartPolicy: Always,
-            # it is treated as a sidecar. Kubernetes v1.29 is required.
-            # restartPolicy: Always
             {{- with .Values.task.worker.securityContext }}
             securityContext:
               {{- toYaml . | nindent 14 }}
@@ -164,8 +161,8 @@ spec:
                 value: "grace-shutdown"
               - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
                 value: "360"
-              - name: SCALR_AGENT_DISCONNECT_ON_STOP
-                value: "1"
+              - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
+                value: "false"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if .Values.agent.providerCache.enabled  }}
