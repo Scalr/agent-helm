@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+- Added `SCALR_AGENT_STATE_PERSISTENCE_ENABLED=1` to disable persistent state files.
+
 ## [v0.5.65]
 
 ### Updated
