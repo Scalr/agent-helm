@@ -447,8 +447,8 @@ For issues not covered above:
 |-----|------|---------|-------------|
 | global.proxy | object | `{"enabled":false,"httpProxy":"","httpsProxy":"","noProxy":""}` | HTTP proxy configuration for external connectivity. |
 | global.proxy.enabled | bool | `false` | Enable injection of HTTP(S) proxy settings into all agent pods. |
-| global.proxy.httpProxy | string | `""` | HTTP proxy URL applied to all agent containers (HTTP_PROXY). Example: "http://proxy.example.com:8080" |
-| global.proxy.httpsProxy | string | `""` | HTTPS proxy URL applied to all agent containers (HTTPS_PROXY). Example: "http://proxy.example.com:8080" |
+| global.proxy.httpProxy | string | `""` | HTTP proxy URL applied to all agent containers (HTTP_PROXY). Example: "<http://proxy.example.com:8080>" |
+| global.proxy.httpsProxy | string | `""` | HTTPS proxy URL applied to all agent containers (HTTPS_PROXY). Example: "<http://proxy.example.com:8080>" |
 | global.proxy.noProxy | string | `""` | Comma-separated domains/IPs that bypass the proxy (NO_PROXY). Recommended to include Kubernetes internal domains to avoid routing cluster traffic through the proxy. Example: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" |
 
 ### Global.TLS
@@ -553,7 +553,7 @@ For issues not covered above:
 | task.worker.image.repository | string | `""` | Docker repository for the worker image. Inherits from agent.image.repository if empty. |
 | task.worker.image.tag | string | `""` | Image tag. Inherits from agent.image.tag if empty. |
 | task.worker.resources | object | `{"limits":{"cpu":"2000m","memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resource limits and requests for the worker container. |
-| task.worker.securityContext | object | `{}` | Security context for the worker container (inherits from agent.securityContext if not specified). |
+| task.worker.securityContext | object | `{}` | Security context for the worker container. |
 
 ### Other Values
 
