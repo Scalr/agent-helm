@@ -113,14 +113,35 @@ If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empt
 
 For more details, see the [Kubernetes storage documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
-## Graceful Termination
+## Termination
 
-The agent's default termination mode is set to `grace-shutdown` via the `SCALR_AGENT_WORKER_ON_STOP_ACTION` configuration.
-In this mode, the agent redirects the `SIGTERM` signal immediately to the underlying process (like OpenTofu/Terraform) and waits for it to complete for `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT` seconds before shutting down.
+The agent termination behavior is controlled by `agent.shutdownMode` Helm option.
+The value can be `graceful` (default), `drain`, or `force`.
 
-Learn more about Scalr Agent termination behavior: https://docs.scalr.io/docs/configuration#scalr_agent_worker_on_stop_action
+The agent termination behavior is configured via [SCALR_AGENT_WORKER_ON_STOP_ACTION](https://docs.scalr.io/docs/configuration#scalr_agent_worker_on_stop_action) with Kubernetes `terminationGracePeriodSeconds` in mind.
+Timeouts are calculated dynamically based on `terminationGracePeriodSeconds`.
 
-The application layer graceful termination timeout ([SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT](https://docs.scalr.io/docs/configuration#scalr_agent_worker_grace_shutdown_timeout)) is calculated dynamically from Kubernetes' `terminationGracePeriodSeconds` minus 10 seconds to give the agent additional time to terminate and push task results to the Scalr platform. As a result, `terminationGracePeriodSeconds` must be at least 10 seconds.
+### `graceful` Termination
+
+The agent's default termination mode is `graceful`.
+
+In this mode, after receiving a `SIGTERM` signal from Kubernetes, the agent immediately forwards the `SIGTERM` signal to the underlying process (such as OpenTofu or Terraform) and waits for it to complete before shutting down.
+
+The underlying process has `terminationGracePeriodSeconds` minus 10 seconds to complete, otherwise, it will be forcefully stopped via a `SIGKILL` signal.
+
+The `terminationGracePeriodSeconds` must be at least 30 seconds for `graceful` mode.
+
+### `drain` Termination
+
+In `drain` mode, the agent shuts down its consumer and stops accepting new tasks, but continues running active tasks (and their underlying OpenTofu/Terraform processes) without interruption for `terminationGracePeriodSeconds` minus 70 seconds. During the final 70 seconds, it switches to graceful termination: it sends `SIGTERM` to any active Terraform/OpenTofu processes and waits up to 60 seconds for them to complete gracefully. If processes are still running after 60 seconds, the agent uses the remaining 10 seconds to forcefully terminate them via `SIGKILL` and push task results to the Scalr platform.
+
+The `terminationGracePeriodSeconds` must be at least 120 seconds for `drain` mode.
+
+### `force` Termination
+
+In `force` mode, the agent stops the consumer, sends a `SIGKILL` signal to all active Terraform/OpenTofu processes, and allows 10 seconds for all tasks to terminate before exiting.
+
+The `terminationGracePeriodSeconds` must be at least 10 seconds for `force` mode.
 
 ## Troubleshooting
 
