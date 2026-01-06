@@ -221,7 +221,7 @@ It's best to pull the logs immediately after an incident, since this command wil
 | strategy.rollingUpdate.maxSurge | string | `"25%"` | Maximum number of pods that can be created above the desired number during an update. |
 | strategy.rollingUpdate.maxUnavailable | string | `"50%"` | Maximum number of pods that can be unavailable during an update. |
 | strategy.type | string | `"RollingUpdate"` | Type of deployment strategy. Options: RollingUpdate, Recreate. |
-| terminationGracePeriodSeconds | int | `360` | Termination grace period (in seconds) for pod shutdown. |
+| terminationGracePeriodSeconds | int | `120` | Termination grace period (in seconds) for pod shutdown. |
 | tolerations | list | `[]` | Tolerations for scheduling pods on tainted nodes. |
 
 ----------------------------------------------

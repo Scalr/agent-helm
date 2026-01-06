@@ -169,4 +169,4 @@ persistence:
     subPath: ""
 
 # -- Termination grace period (in seconds) for pod shutdown.
-terminationGracePeriodSeconds: 360
+terminationGracePeriodSeconds: 120

@@ -9,7 +9,7 @@
                     "type": "string",
                     "enum": [
                         "graceful",
-                        "immediate",
+                        "force",
                         "drain"
                     ],
                     "default": "graceful",
