@@ -101,7 +101,7 @@ spec:
               value: "60"
             {{- else }}
             - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
-              value: force
+              value: force-shutdown
             {{- end }}
             - name: SCALR_AGENT_DATA_DIR
               value: {{ .Values.agent.dataDir | quote }}
