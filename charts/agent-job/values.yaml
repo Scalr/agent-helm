@@ -265,6 +265,7 @@ agent:
       cpu: 100m
       memory: 256Mi
     limits:
+      cpu: 4000m
       memory: 512Mi
 
   # -- Controller-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys).
