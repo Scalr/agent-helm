@@ -258,7 +258,7 @@ agent:
   # @section -- Agent
   topologySpreadConstraints: {}
 
-  # -- Resource limits and requests for the agent controller container.
+  # -- Resource requests and limits for the agent controller container.
   # @section -- Agent
   resources:
     requests:
@@ -392,7 +392,7 @@ task:
       # @section -- Task
       pullPolicy: ""
 
-    # -- Resource limits and requests for the worker container.
+    # -- Resource requests and limits for the worker container.
     # @section -- Task
     resources:
       requests:
@@ -429,7 +429,7 @@ task:
       # @section -- Task
       pullPolicy: IfNotPresent
 
-    # -- Resource limits and requests for the runner container.
+    # -- Resource requests and limits for the runner container.
     # Note: For system agent controllers, this may be overridden by Scalr platform billing resource tier presets.
     # @section -- Task
     resources:
