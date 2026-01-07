@@ -258,15 +258,14 @@ agent:
   # @section -- Agent
   topologySpreadConstraints: {}
 
-  # -- Resource limits and requests for the agent controller container.
+  # -- Resource requests and limits for the agent controller container.
   # @section -- Agent
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 500m
       memory: 256Mi
+    limits:
+      memory: 512Mi
 
   # -- Controller-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys).
   # @section -- Agent
@@ -393,14 +392,13 @@ task:
       # @section -- Task
       pullPolicy: ""
 
-    # -- Resource limits and requests for the worker container.
+    # -- Resource requests and limits for the worker container.
     # @section -- Task
     resources:
       requests:
         cpu: 250m
         memory: 256Mi
       limits:
-        cpu: 2000m
         memory: 1024Mi
 
     # -- Additional environment variables for the worker container (merged with agent.extraEnv).
@@ -431,7 +429,7 @@ task:
       # @section -- Task
       pullPolicy: IfNotPresent
 
-    # -- Resource limits and requests for the runner container.
+    # -- Resource requests and limits for the runner container.
     # Note: For system agent controllers, this may be overridden by Scalr platform billing resource tier presets.
     # @section -- Task
     resources:
