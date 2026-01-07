@@ -412,7 +412,7 @@ For issues not covered above:
 | agent.providerCache.enabled | bool | `false` | Enable provider caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. |
 | agent.providerCache.sizeLimit | string | `"40Gi"` | Provider cache soft limit. Must be tuned according to cache directory size. |
 | agent.replicaCount | int | `1` | Number of agent controller replicas. |
-| agent.resources | object | `{"limits":{"cpu":null,"memory":"512Mi"},"requests":{"cpu":"100m","memory":"256Mi"}}` | Resource limits and requests for the agent controller container. |
+| agent.resources | object | `{"limits":{"memory":"512Mi"},"requests":{"cpu":"100m","memory":"256Mi"}}` | Resource limits and requests for the agent controller container. |
 | agent.terminationGracePeriodSeconds | int | `180` | Grace period in seconds before forcibly terminating the controller container. |
 | agent.token | string | `""` | The agent pool token for authentication. |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. |
@@ -545,14 +545,14 @@ For issues not covered above:
 | task.sidecars | list | `[]` | Additional sidecar containers for task job pods. |
 | task.terminationGracePeriodSeconds | int | `360` | Grace period in seconds before forcibly terminating task job containers. |
 | task.tolerations | list | `[]` | Node tolerations for task job pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set task.tolerations[0].key=dedicated,task.tolerations[0].operator=Equal,task.tolerations[0].value=agent-worker,task.tolerations[0].effect=NoSchedule` |
-| task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"","repository":"","tag":""},"resources":{"limits":{"cpu":null,"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). |
+| task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"","repository":"","tag":""},"resources":{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). |
 | task.worker.extraEnv | object | `{}` | Additional environment variables for the worker container (merged with agent.extraEnv). |
 | task.worker.extraVolumeMounts | list | `[]` | Additional volume mounts for the worker container. |
 | task.worker.image | object | `{"pullPolicy":"","repository":"","tag":""}` | Worker container image settings (inherits from agent.image if not specified). |
 | task.worker.image.pullPolicy | string | `""` | Image pull policy. Inherits from agent.image.pullPolicy if empty. |
 | task.worker.image.repository | string | `""` | Docker repository for the worker image. Inherits from agent.image.repository if empty. |
 | task.worker.image.tag | string | `""` | Image tag. Inherits from agent.image.tag if empty. |
-| task.worker.resources | object | `{"limits":{"cpu":null,"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resource limits and requests for the worker container. |
+| task.worker.resources | object | `{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resource limits and requests for the worker container. |
 | task.worker.securityContext | object | `{}` | Security context for the worker container. |
 
 ### Other Values

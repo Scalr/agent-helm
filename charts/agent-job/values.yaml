@@ -265,7 +265,6 @@ agent:
       cpu: 100m
       memory: 256Mi
     limits:
-      cpu: null
       memory: 512Mi
 
   # -- Controller-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys).
@@ -400,7 +399,6 @@ task:
         cpu: 250m
         memory: 256Mi
       limits:
-        cpu: null
         memory: 1024Mi
 
     # -- Additional environment variables for the worker container (merged with agent.extraEnv).
