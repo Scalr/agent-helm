@@ -5,8 +5,8 @@ description: |
   It uses a job-based model, where each Scalr Run is isolated
   in its own Kubernetes Job.
 type: application
-version: 0.5.65
-appVersion: 0.58.0
+version: 0.5.66
+appVersion: 0.59.0
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
 icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
 maintainers:

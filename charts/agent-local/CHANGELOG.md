@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.63]
+
+### Updated
+
+- Bumping chart version to v0.5.63 for scalr-agent v0.59.0
+
 ### Added
 
 - Added `agent.shutdownMode` configuration option to control agent termination behavior. Options are `graceful` (default), `force`, or `drain`.
