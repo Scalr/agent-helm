@@ -3,7 +3,7 @@
 ![Version: 0.5.63](https://img.shields.io/badge/Version-0.5.63-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.59.0](https://img.shields.io/badge/AppVersion-0.59.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
-Best suited for simple deployments and VCS agents.
+Deploys a static number of agents and executes runs in shared agent pods.
 
 ## Table of Contents
 
