@@ -3,6 +3,25 @@
 
 {{ template "chart.description" . }}
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Deployment Diagram](#deployment-diagram)
+- [Installation](#installation)
+- [Performance Optimization](#performance-optimization)
+- [Disk Requirements](#disk-requirements)
+- [Choosing the Data Home Directory](#choosing-the-data-home-directory)
+- [Amazon EFS](#amazon-efs)
+- [Restrict Access to VM Metadata Service](#restrict-access-to-vm-metadata-service)
+- [HTTP Proxy](#http-proxy)
+- [SSL Certificate Bundles](#ssl-certificate-bundles)
+- [Troubleshooting](#troubleshooting)
+- [Limitations](#limitations)
+- [Issues](#issues)
+- [DaemonSet](#daemonset)
+- [hostPath volume](#hostpath-volume)
+- [Solution](#solution)
+
 ## Overview
 
 The Agent deploys as two components: a controller and a worker. The controller
@@ -34,7 +53,7 @@ linearly based on the load.
   <img src="assets/agent-k8s-deploy-diagram.jpg" />
 </p>
 
-## Installing
+## Installation
 
 To install the chart with the release name `scalr-agent`:
 
@@ -62,6 +81,18 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 ```console
 --set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool
 ```
+
+## Performance Optimization
+
+The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
+
+### Optimize Pod Startup Time
+
+This chart uses Kubernetes Pods to launch runs, so fast Pod launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
+
+- Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
+- Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Pod launch time.
 
 ## Disk Requirements
 

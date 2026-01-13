@@ -69,6 +69,9 @@ agent:
   # with this option. The registry path may include a repository to be replaced.
   # Example: 'mirror.io' or 'mirror.io/myproject'.
   container_task_image_registry: ""
+  # -- Enforce the use of a custom runner image instead of the default scalr/runner:x.y.z.
+  # -- This option will override container_task_image_registry.
+  container_task_image: ""
   # -- Size limit (in megabytes) of the global plugin cache with providers from the public registries.
   gc_plugins_global_size_limit: 2560
   # -- Extra labels to apply to the agent task pods.

@@ -100,7 +100,7 @@ $ helm upgrade ... \
 ## Amazon EFS
 
 Amazon EFS can be used as a shared ReadWriteMany volume instead of a node disk. To configure it,
-install the `Amazon EFS CSI Driver` via an add-on. See the documentation: https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver.
+install the `Amazon EFS CSI Driver` via an add-on. See the documentation: <https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver>.
 Ensure the add-on is active before proceeding.
 
 Next, configure the Amazon EFS file system ID using the `efsVolumeHandle` option:
