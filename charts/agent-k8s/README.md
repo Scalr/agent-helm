@@ -5,6 +5,25 @@
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Deploys an agent controller with a set of agent workers and executes runs in isolated pods.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Deployment Diagram](#deployment-diagram)
+- [Installation](#installation)
+- [Performance Optimization](#performance-optimization)
+- [Disk Requirements](#disk-requirements)
+- [Choosing the Data Home Directory](#choosing-the-data-home-directory)
+- [Amazon EFS](#amazon-efs)
+- [Restrict Access to VM Metadata Service](#restrict-access-to-vm-metadata-service)
+- [HTTP Proxy](#http-proxy)
+- [SSL Certificate Bundles](#ssl-certificate-bundles)
+- [Troubleshooting](#troubleshooting)
+- [Limitations](#limitations)
+- [Issues](#issues)
+- [DaemonSet](#daemonset)
+- [hostPath volume](#hostpath-volume)
+- [Solution](#solution)
+
 ## Overview
 
 The Agent deploys as two components: a controller and a worker. The controller
@@ -36,7 +55,7 @@ linearly based on the load.
   <img src="assets/agent-k8s-deploy-diagram.jpg" />
 </p>
 
-## Installing
+## Installation
 
 To install the chart with the release name `scalr-agent`:
 
@@ -64,6 +83,18 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 ```console
 --set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool
 ```
+
+## Performance Optimization
+
+The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
+
+### Optimize Pod Startup Time
+
+This chart uses Kubernetes Pods to launch runs, so fast Pod launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
+
+- Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
+- Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Pod launch time.
 
 ## Disk Requirements
 
@@ -100,7 +131,7 @@ $ helm upgrade ... \
 ## Amazon EFS
 
 Amazon EFS can be used as a shared ReadWriteMany volume instead of a node disk. To configure it,
-install the `Amazon EFS CSI Driver` via an add-on. See the documentation: <https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver>.
+install the `Amazon EFS CSI Driver` via an add-on. See the documentation: https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver.
 Ensure the add-on is active before proceeding.
 
 Next, configure the Amazon EFS file system ID using the `efsVolumeHandle` option:
@@ -262,6 +293,7 @@ This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Alpha).
 | agent.container_task_ca_cert | string | `""` | The CA certificates bundle to mount it into the container task at `/etc/ssl/certs/ca-certificates.crt`. The CA file can be located inside the agent Pod, allowing selection of a certificate by its path. Alternatively, a base64 string containing the certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca \| base64`. The bundle should include both your private CAs and the standard set of public CAs. |
 | agent.container_task_cpu_limit | float | `8` | CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
 | agent.container_task_cpu_request | float | `1` | CPU resource request defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
+| agent.container_task_image | string | `""` | This option will override container_task_image_registry. |
 | agent.container_task_image_registry | string | `""` | Enforce the use of a custom image registry to pull all container task images. All images must be preemptively pushed to this registry for the agent to work with this option. The registry path may include a repository to be replaced. Example: 'mirror.io' or 'mirror.io/myproject'. |
 | agent.container_task_mem_limit | int | `16384` | Memory resource limit defined in megabytes. |
 | agent.container_task_mem_request | int | `1024` | Memory resource request defined in megabytes. |
