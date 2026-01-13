@@ -19,10 +19,6 @@ Deploys an agent controller with a set of agent workers and executes runs in iso
 - [SSL Certificate Bundles](#ssl-certificate-bundles)
 - [Troubleshooting](#troubleshooting)
 - [Limitations](#limitations)
-- [Issues](#issues)
-- [DaemonSet](#daemonset)
-- [hostPath volume](#hostpath-volume)
-- [Solution](#solution)
 
 ## Overview
 
