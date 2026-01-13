@@ -264,8 +264,6 @@ agent:
     requests:
       cpu: 100m
       memory: 256Mi
-    limits:
-      memory: 512Mi
 
   # -- Controller-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys).
   # @section -- Agent

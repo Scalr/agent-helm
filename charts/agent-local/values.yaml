@@ -139,7 +139,7 @@ affinity:
 # See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes
 resources:
   limits:
-    cpu: "2000m"
+    cpu: "4000m"
     memory: "2048Mi"
   requests:
     cpu: "1000m"

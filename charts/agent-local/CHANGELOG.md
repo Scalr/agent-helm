@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Updated
+
+- Upgrade default resource limits from 2 to 4 cpu.
+
 ## [v0.5.63]
 
 ### Updated

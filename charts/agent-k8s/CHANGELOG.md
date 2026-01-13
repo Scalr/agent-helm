@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changes
+
+- Removed CPU and memory limits for workers. Workers handle many concurrent runs, so their workloads are variable and unpredictable, and default limits can become a performance bottleneck.
+
 ## [v0.5.65]
 
 ### Updated

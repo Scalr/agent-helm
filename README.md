@@ -25,13 +25,8 @@ You can then run `helm search repo scalr-agent-helm` to see the charts.
 
 This repository contains multiple charts for different deployment types and use cases.
 
-- [agent-local](./charts/agent-local) – Uses the `local` driver. Best suited for simple deployments and VCS agents.
-
-> [!WARNING]
-> This chart is compatible with Scalr Agent >= 0.45.0
-
-- [agent-k8s](./charts/agent-k8s) – Uses the `kubernetes` driver with a controller/worker mode. Best suited for large-scale deployments and environments with strict multi-tenancy requirements. Requires more complex configuration and a separate node pool.
-- [agent-docker](./charts/agent-docker) – Uses the `docker` driver with a Docker-in-Docker sidecar container. Originally built to run the Docker-based Agent on Kubernetes due to the lack of native Kubernetes support. It has been retained due to adoption challenges with the native agent-k8s chart, we recommend using the newer agent-local chart for new installations instead of agent-docker.
+- [agent-local](./charts/agent-local) – Deploys a static number of shared agents and executes runs in shared agent pods. **This is the recommended default option.**
+- [agent-k8s](./charts/agent-k8s) – Deploys an agent controller with a set of agent workers and executes runs in isolated pods. Suitable for environments with strict multi-tenancy requirements. Requires more complex configuration and a separate node pool.
 
 ## Development
 
