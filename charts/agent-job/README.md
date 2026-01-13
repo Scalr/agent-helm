@@ -121,9 +121,9 @@ helm upgrade --install scalr-agent scalr-charts/agent-job \
 
 The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
 
-### Optimize Job Startup Time
+### Optimize Run Startup Time
 
-This chart uses Kubernetes Jobs to launch runs, so fast Job launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
+This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
 
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).

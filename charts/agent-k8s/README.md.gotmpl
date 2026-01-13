@@ -86,13 +86,44 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 
 The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
 
-### Optimize Pod Startup Time
+### Optimize Run Startup Time
 
-This chart uses Kubernetes Pods to launch runs, so fast Pod launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
+This chart uses individual Pods to isolate Scalr Runs, so fast pod startup is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
 
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
+Uuse the `container_task_image` or `container_task_image_registry` settings (the latter applies to the [older Docker-image–based software version integrations](https://docs.scalr.io/docs/run-environment#software-releases)) to configure the run image.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Pod launch time.
+
+The run startup performance also depends on node scaling speed when autoscaling is enabled.
+
+### Resource Limits
+
+Proper resource limit configuration is critical for achieving good run performance.
+
+We recommend avoiding CPU limits for worker services, as they process many runs concurrently and their workload can vary unpredictably. Setting CPU limits on workers may lead to throttling and degraded performance under load.
+
+For the run environment (the container where OpenTofu/Terraform is executed), resource requests and limits can be configured using the following Helm values:
+
+```yaml
+# -- CPU resource request, defined in cores.
+# For example:
+#   2.0  = two full CPU cores
+#   0.25 = one quarter of a CPU core
+agent.container_task_cpu_request: 1.0
+
+# -- CPU resource limit, defined in cores.
+# This is the maximum amount of CPU the container is allowed to use.
+agent.container_task_cpu_limit: 8.0
+
+# -- Memory resource request, defined in megabytes.
+# This is the amount of memory reserved for the container.
+agent.container_task_mem_request: 1024
+
+# -- Memory resource limit, defined in megabytes.
+# This is the maximum amount of memory the container can use before being terminated.
+agent.container_task_mem_limit: 16384
+```
 
 ## Disk Requirements
 
