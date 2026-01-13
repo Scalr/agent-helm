@@ -15,6 +15,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)

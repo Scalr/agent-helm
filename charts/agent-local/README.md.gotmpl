@@ -3,8 +3,37 @@
 
 {{ template "chart.description" . }}
 
-> [!WARNING]
-> This chart is compatible with Scalr Agent >= 0.45.0
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Overview](#overview)
+- [Architecture Diagram](#architecture-diagram)
+- [Agent Configuration](#agent-configuration)
+- [Customizing Environment](#customizing-environment)
+- [Volume Configuration](#volume-configuration)
+- [Termination](#termination)
+- [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+- Kubernetes 1.33+
+- Helm 3.0+
+- ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
+- Scalr Agent >= 0.45.0
+
+## Installation
+
+To install the chart with the release name `scalr-agent`:
+
+```console
+$ helm repo add scalr-charts https://scalr.github.io/agent-helm/
+$ helm install scalr-agent scalr-charts/agent-local --set agent.token="<agent-token>"
+```
+
+_See [configuration](#values) below._
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
 ## Overview
 
@@ -29,24 +58,11 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 - Not cost-efficient for bursty workloads — e.g., deployments with high number of Runs during short periods and low activity otherwise, as resources remain allocated even when idle.
 - Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. This chart should only be used within a single RBAC perimeter and is unsuitable for untrusted environments.
 
-## Deployment Diagram
+## Architecture Diagram
 
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
-
-## Installing
-
-To install the chart with the release name `scalr-agent`:
-
-```console
-$ helm repo add scalr-charts https://scalr.github.io/agent-helm/
-$ helm install scalr-agent scalr-charts/agent-local --set agent.token="<agent-token>"
-```
-
-_See [configuration](#values) below._
-
-_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
 ## Agent Configuration
 
