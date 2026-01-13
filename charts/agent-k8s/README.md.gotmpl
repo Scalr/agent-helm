@@ -88,7 +88,7 @@ This chart uses individual Pods to isolate Scalr Runs, so fast pod startup is cr
 
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 Uuse the `container_task_image` or `container_task_image_registry` settings (the latter applies to the [older Docker-image–based software version integrations](https://docs.scalr.io/docs/run-environment#software-releases)) to configure the run image.
-- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`). Otherwise, runs on cold nodes will be delayed by image pull time.
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Pod launch time.
 
 The run startup performance also depends on node scaling speed when autoscaling is enabled.
