@@ -105,6 +105,8 @@ spec:
             {{- end }}
             - name: SCALR_AGENT_DATA_DIR
               value: {{ .Values.agent.dataDir | quote }}
+            - name: SCALR_AGENT_CACHE_DIR
+              value: {{ .Values.agent.cacheDir | quote }}
             - name: SCALR_AGENT_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -121,17 +123,23 @@ spec:
           volumeMounts:
             - name: data-dir
               mountPath: {{ .Values.agent.dataDir }}
+          volumeMounts:
+            - name: cache-dir
+              mountPath: {{ .Values.agent.cacheDir }}
               {{- if .Values.persistence.persistentVolumeClaim.subPath }}
               subPath: {{ .Values.persistence.persistentVolumeClaim.subPath }}
               {{- end }}
       volumes:
         - name: data-dir
+          emptyDir:
+            sizeLimit: {{ .Values.persistence.data.emptyDir.sizeLimit }}
+        - name: cache-dir
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | default (include "agent-local.fullname" .) }}
           {{- else }}
           emptyDir:
-            sizeLimit: {{ .Values.persistence.emptyDir.sizeLimit }}
+            sizeLimit: {{ .Values.persistence.cache.emptyDir.sizeLimit }}
           {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

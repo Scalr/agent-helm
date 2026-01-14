@@ -214,11 +214,15 @@ Two volumes are always attached to run Pods:
 
   The default configuration uses ephemeral `emptyDir` storage with a 4GB limit.
 
+  The volume is mounted at `agent.dataDir`, which must be readable, writable, and executable.
+
 - **Cache Volume**
 
-  The cache volume stores software binaries, OpenTofu/Terraform providers and modules (TBD). This volume is mounted to both the worker (full access) and runner (read-only access to some directories) containers.
+  The cache volume stores software binaries, OpenTofu/Terraform providers and modules. This volume is mounted to both the worker (full access) and runner (read-only access to some directories) containers.
 
   The default configuration uses ephemeral `emptyDir` storage with a 1GB limit. By default, this is used only for the software binaries cache (since it is the default location for these tools), and the OpenTofu/Terraform provider cache is disabled by default.
+
+  The volume is mounted at `agent.cacheDir`, which must be readable, writable, and executable.
 
 ### Cache Volume Persistence
 
@@ -226,13 +230,13 @@ It's recommended to enable persistent storage with `ReadWriteMany` access mode t
 
 Benefits of persistent cache:
 
-- Faster task execution (no provider/binaries re-downloads)
+- Faster task execution (no provider/modules/binaries re-downloads)
 - Reduced network bandwidth usage
 - Better fault tolerance during module/provider registry outages
 
-When enabling a persistent cache directory, it is recommended to also enable provider cache (`providerCache.enabled=true`). Otherwise, only software binaries (Terraform/OpenTofu/OPA/Infracost/etc.) will be cached.
+When enabling a persistent cache directory, it is recommended to also enable provider cache (`providerCache.enabled=true`) and module cache (`moduleCache.enabled=true`). Otherwise, only software binaries (Terraform/OpenTofu/OPA/Infracost/etc.) will be cached.
 
-Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache).
+Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache) and [Module Cache](https://docs.scalr.io/docs/modules-cache).
 
 **Configuration Example with PVC**:
 
@@ -256,8 +260,10 @@ agent:
 If configured correctly, you should see confirmation in the Scalr Run console that plugins are being used from cache:
 
 ```shell
-Initializing plugins and modules...
-Initialized 20 plugins and 0 modules in 6.09s (20 plugins used from cache)
+Initializing modules...
+Initialized 8 modules in 4.12s (8 used from cache)
+Initializing plugins...
+Initialized 20 plugins in 6.09s (20 used from cache)
 ```
 
 See detailed guides:
@@ -475,10 +481,10 @@ For issues not covered above:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| persistence.cache | object | `{"emptyDir":{"sizeLimit":"1Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"90Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores provider binaries, plugin cache, and downloaded tools to speed up runs. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. |
+| persistence.cache | object | `{"emptyDir":{"sizeLimit":"1Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteMany","claimName":"","storage":"90Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores OpenTofu/Terraform providers, modules and binaries. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. |
 | persistence.cache.emptyDir | object | `{"sizeLimit":"1Gi"}` | EmptyDir volume configuration (used when enabled is false). |
 | persistence.cache.emptyDir.sizeLimit | string | `"1Gi"` | Size limit for the emptyDir volume. |
-| persistence.cache.enabled | bool | `false` | Enable persistent storage for cache directory. Highly recommended: Avoids re-downloading providers and binaries (saves 1-5 minutes per run). When false, providers and binaries are downloaded fresh for each task. When true, cache is shared across all task pods for significant performance improvement (may vary depending on NFS performace). |
+| persistence.cache.enabled | bool | `false` | Enable persistent storage for cache directory. Highly recommended: Avoids re-downloading providers and binaries (saves 1-5 minutes per run). When false, providers and binaries are downloaded fresh for each task. When true, cache is shared across all task pods for significant performance improvement (may vary depending on RWM volume performace). |
 | persistence.cache.persistentVolumeClaim | object | `{"accessMode":"ReadWriteMany","claimName":"","storage":"90Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when enabled is true). |
 | persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. Use ReadWriteMany to share cache across multiple task pods. Note: ReadWriteMany requires compatible storage class (e.g., NFS, EFS, Filestore). |
 | persistence.cache.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-cache` is created. |

@@ -9,9 +9,9 @@
 - [Installation](#installation)
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
-- [Agent Configuration](#agent-configuration)
+- [Configuration](#configuration)
 - [Customizing Environment](#customizing-environment)
-- [Volume Configuration](#volume-configuration)
+- [Volumes](#volumes)
 - [Termination](#termination)
 - [Troubleshooting](#troubleshooting)
 
@@ -64,70 +64,81 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
 
-## Agent Configuration
+## Configuration
 
 The Scalr Agent is configured using environment variables, which can be set using the `extraEnv` option in the Helm chart.
 
 ```console
 $ helm install ...
-  --set extraEnv.SCALR_DEBUG=1 \
+  --set extraEnv.SCALR_AGENT_DEBUG=1 \
   --set extraEnv.HTTPS_PROXY="http://myproxy.com:3128"
 ```
+
+See all available configuration options - https://docs.scalr.io/docs/configuration
 
 ## Customizing Environment
 
 This chart uses the local driver to run tasks directly within the container where the agent operates. Therefore, it requires an image that includes both the Scalr Agent service and the additional tooling provided by the [scalr/runner](https://hub.docker.com/r/scalr/runner) image. As a result, this chart uses the [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) image, which combines the minimal Scalr Agent image ([scalr/agent](https://hub.docker.com/r/scalr/agent)) with the extra tools from `scalr/runner`. You can use this image, or `scalr/agent` (as a minimal base for building your own lightweight images), as a starting point for customizing your environment.
 
-## Volume Configuration
+## Volumes
 
-The Scalr Agent uses a data volume for caching run data, configuration versions,
-and OpenTofu/Terraform plugins, stored in the directory specified by `dataHome` (default: `/var/lib/scalr-agent`).
-This directory is mounted to a volume defined in the `persistence` section. Since the data volume is used for temporary files and caching, both ephemeral and persistent storage are suitable for production. However, persistent storage avoids re-downloading providers and binaries on pod restarts and positively impacts Run Stage initialization times.
+Two volumes are always attached to agent Pods:
 
-### Storage Options
+- **Data Volume**
 
-- **`emptyDir`**: Ephemeral storage is enabled by default. Data is lost on pod restarts, requiring providers and binaries to be re-downloaded each time.
-- **`persistentVolumeClaim` (PVC)**: Persistent storage suitable for retaining cache across restarts or sharing it between different Scalr Agent replicas. Supports both dynamic PVC creation and use of existing PVCs.
+  The data volume stores temporary workspace data needed for processing a run, including run metadata and source code.
 
-The volume is mounted at `dataHome`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit.
 
-### Configuration Examples
+  The volume is mounted at `agent.dataDir`, which must be readable, writable, and executable.
 
-#### Single Replica with Persistent Storage
+- **Cache Volume**
 
-Use `ReadWriteOnce` for single-replica deployments (`replicaCount: 1`):
+  The cache volume stores software binaries, OpenTofu/Terraform providers and modules.
+
+  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit.
+
+  The volume is mounted at `agent.cacheDir`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+
+### Cache Volume Persistence
+
+It's recommended to enable persistent storage with `ReadWriteMany` access mode to share the cache across all agent pods.
+
+Benefits of persistent cache:
+
+- Faster task execution (no provider/modules/binaries re-downloads on cold agents)
+- Reduced network bandwidth usage
+- Better fault tolerance during module/provider registry outages
+
+Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache) and [Module Cache](https://docs.scalr.io/docs/modules-cache).
+
+**Configuration Example with PVC**:
 
 ```yaml
 persistence:
   enabled: true
   persistentVolumeClaim:
-    storageClassName: gp2
-    storage: 10Gi
-    accessMode: ReadWriteOnce
-```
-
-#### Multi-Replica with Shared Storage
-
-For multiple replicas (`replicaCount: >1`) in clusters with `ReadWriteMany` support (e.g., NFS, AWS EFS), you can optionally use a single shared PVC.
-
-```yaml
-persistence:
-  enabled: true
-  persistentVolumeClaim:
-    storageClassName: nfs
-    storage: 10Gi
+    # Use existing PVC
+    claimName: "my-cache-pvc"
+    # Or create new PVC (omit claimName)
+    storageClassName: "nfs-client"
+    storage: 40Gi
     accessMode: ReadWriteMany
+extraEnv:
+  SCALR_AGENT_PROVIDER_CACHE_ENABLED: "1" # enabled by default
+  SCALR_AGENT_MODULE_CACHE_ENABLED: "1" # disabled by default
 ```
 
-Using `ReadWriteMany` enables all replicas to access a shared provider and binary cache, preventing each replica from re-downloading providers and binaries and warming up its own cache, as happens with the default ephemeral volume.
+If configured correctly, you should see confirmation in the Scalr Run console that plugins and modules are being used from cache:
 
-You can also use `ReadWriteOnce` in a multi-replica setup, but it limits all replicas to a single node where the PVC is mounted.
+```shell
+Initializing modules...
+Initialized 8 modules in 4.12s (8 used from cache)
+Initializing plugins...
+Initialized 20 plugins in 6.09s (20 used from cache)
+```
 
-#### Use Its Own PVC
-
-If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empty, a PVC is created with the chart's full name (e.g., `{release-name}-agent-local`). To configure an existing PVC, use the `persistentVolumeClaim.claimName` option.
-
-For more details, see the [Kubernetes storage documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
+## Security
 
 ## Termination
 

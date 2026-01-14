@@ -510,14 +510,14 @@ persistence:
       subPath: ""
 
   # -- Cache directory storage configuration.
-  # Stores provider binaries, plugin cache, and downloaded tools to speed up runs.
+  # Stores OpenTofu/Terraform providers, modules and binaries.
   # Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers.
   # @section -- Persistence
   cache:
     # -- Enable persistent storage for cache directory.
     # Highly recommended: Avoids re-downloading providers and binaries (saves 1-5 minutes per run).
     # When false, providers and binaries are downloaded fresh for each task.
-    # When true, cache is shared across all task pods for significant performance improvement (may vary depending on NFS performace).
+    # When true, cache is shared across all task pods for significant performance improvement (may vary depending on RWM volume performace).
     # @section -- Persistence
     enabled: false
 

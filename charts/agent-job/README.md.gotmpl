@@ -211,11 +211,15 @@ Two volumes are always attached to run Pods:
 
   The default configuration uses ephemeral `emptyDir` storage with a 4GB limit.
 
+  The volume is mounted at `agent.dataDir`, which must be readable, writable, and executable.
+
 - **Cache Volume**
 
-  The cache volume stores software binaries, OpenTofu/Terraform providers and modules (TBD). This volume is mounted to both the worker (full access) and runner (read-only access to some directories) containers.
+  The cache volume stores software binaries, OpenTofu/Terraform providers and modules. This volume is mounted to both the worker (full access) and runner (read-only access to some directories) containers.
 
   The default configuration uses ephemeral `emptyDir` storage with a 1GB limit. By default, this is used only for the software binaries cache (since it is the default location for these tools), and the OpenTofu/Terraform provider cache is disabled by default.
+
+  The volume is mounted at `agent.cacheDir`, which must be readable, writable, and executable.
 
 ### Cache Volume Persistence
 
@@ -223,13 +227,13 @@ It's recommended to enable persistent storage with `ReadWriteMany` access mode t
 
 Benefits of persistent cache:
 
-- Faster task execution (no provider/binaries re-downloads)
+- Faster task execution (no provider/modules/binaries re-downloads)
 - Reduced network bandwidth usage
 - Better fault tolerance during module/provider registry outages
 
-When enabling a persistent cache directory, it is recommended to also enable provider cache (`providerCache.enabled=true`). Otherwise, only software binaries (Terraform/OpenTofu/OPA/Infracost/etc.) will be cached.
+When enabling a persistent cache directory, it is recommended to also enable provider cache (`providerCache.enabled=true`) and module cache (`moduleCache.enabled=true`). Otherwise, only software binaries (Terraform/OpenTofu/OPA/Infracost/etc.) will be cached.
 
-Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache).
+Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache) and [Module Cache](https://docs.scalr.io/docs/modules-cache).
 
 **Configuration Example with PVC**:
 
@@ -253,8 +257,10 @@ agent:
 If configured correctly, you should see confirmation in the Scalr Run console that plugins are being used from cache:
 
 ```shell
-Initializing plugins and modules...
-Initialized 20 plugins and 0 modules in 6.09s (20 plugins used from cache)
+Initializing modules...
+Initialized 8 modules in 4.12s (8 used from cache)
+Initializing plugins...
+Initialized 20 plugins in 6.09s (20 used from cache)
 ```
 
 See detailed guides:
