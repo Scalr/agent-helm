@@ -172,7 +172,7 @@ The default is strict and compatible with Terraform/OpenTofu workloads, and itâ€
 
 ### Access to VM Metadata Service
 
-The chart includes an allowMetadataService configuration option to control access to the VM metadata service at 169.254.169.254, which is common for AWS, GCP, and Azure environments.
+The chart includes an `allowMetadataService` configuration option to control access to the VM metadata service at 169.254.169.254, which is common for AWS, GCP, and Azure environments.
 
 When disabled, the chart creates a Kubernetes NetworkPolicy for agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
 
