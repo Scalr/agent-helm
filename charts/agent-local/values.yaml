@@ -189,3 +189,8 @@ persistence:
 
 # -- Termination grace period (in seconds) for pod shutdown.
 terminationGracePeriodSeconds: 120
+
+# -- Allow access to cloud provider metadata service (169.254.169.254).
+# When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service.
+# This enhances security by preventing workloads from retrieving cloud credentials or instance metadata.
+allowMetadataService: true

@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Upgrade default resource limits from 2 to 4 cpu.
 
+### Added
+
+- Added metadata service access control with `allowMetadataService` and NetworkPolicy support.
+- Added OpenTelemetry configuration options for metrics and traces.
+
+### Changed
+
+- The shared data directory (which previously included cache) is now split into separate directories for workspace runtime data and cache:
+  - Added `agent.cacheDir` configuration option to control the cache directory location, default is `/var/lib/scalr-agent/cache`.
+  - Default `agent.dataDir` mount changed from `/var/lib/scalr-agent` to `/var/lib/scalr-agent/data` to avoid collisions with the cache directory.
+  - The `persistence.enabled` option now applies only to the cache directory using a single shared PVC. The data directory will remain on emptyDir regardless of the `persistence.enabled` setting, as the data directory doesn't require persistence.
+  - The `persistence.emptyDir.sizeLimit=20Gi` is now split into `persistence.data.emptyDir.sizeLimit=4Gi` and `persistence.cache.emptyDir.sizeLimit=1Gi`.
+
 ## [v0.5.63]
 
 ### Updated

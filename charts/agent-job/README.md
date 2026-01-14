@@ -278,19 +278,26 @@ Optionally, you can configure a PVC using `persistence.data.enabled` and `persis
 
 ## Security
 
+### Multi-tenant Isolation
+
+This chart provides strong isolation for multi-tenant environments by deploying each run in a separate container with restricted filesystem access.
+
+The agent worker process and the run environment process (where OpenTofu/Terraform is executed) are separated into different containers and communicate via a minimalistic IPC mechanism.
+The run environment process has no filesystem access except to its own data directory, ensuring runs cannot interfere with each other or access shared system resources.
+
 ### Runner Security Context
 
 Runner pods inherit their Linux user, group, seccomp, and capability settings from `task.runner.securityContext`. The defaults run the container as the non-root UID/GID `1000`, drop all Linux capabilities, and enforce a read-only root filesystem.
 
 The default is strict and compatible with Terraform/OpenTofu workloads, and it’s generally not recommended to change it. However, it can be useful to disable `readOnlyRootFilesystem` and switch the user to root if you need to install packages via package managers like `apt-get` or `dnf` from Workspace hooks.
 
-### Restrict Access to VM Metadata Service
+### Access to VM Metadata Service
 
-The chart includes a feature to restrict task pods from accessing the VM metadata service at 169.254.169.254, which is common for both AWS and GCP environments.
+The chart includes an `allowMetadataService` configuration option to control access to the VM metadata service at 169.254.169.254, which is common for AWS, GCP, and Azure environments.
 
-By default this option is enabled, and a Kubernetes NetworkPolicy is applied to task pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+When disabled, the chart creates a Kubernetes NetworkPolicy for task pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
 
-To disable this restriction, set `task.allowMetadataService` to `true`:
+Access is disabled by default. To enabled VM metadata service access, use:
 
 ```shell
 $~ helm upgrade ... \

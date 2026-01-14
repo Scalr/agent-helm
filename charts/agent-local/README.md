@@ -14,6 +14,8 @@ Deploys a static number of agents and executes runs in shared agent pods.
 - [Configuration](#configuration)
 - [Customizing Environment](#customizing-environment)
 - [Volumes](#volumes)
+- [Security](#security)
+- [Metrics and Observability](#metrics-and-observability)
 - [Termination](#termination)
 - [Troubleshooting](#troubleshooting)
 
@@ -58,7 +60,7 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 
 - Doesn’t support autoscaling out of the box. You need manually increase or decrease the number of replicas or configure Horizontal Pod Autoscaler.
 - Not cost-efficient for bursty workloads — e.g., deployments with high number of Runs during short periods and low activity otherwise, as resources remain allocated even when idle.
-- Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. This chart should only be used within a single RBAC perimeter and is unsuitable for untrusted environments.
+- Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. See [Multi-tenant Isolation](#multi-tenant-isolation)
 
 ## Architecture Diagram
 
@@ -142,6 +144,64 @@ Initialized 20 plugins in 6.09s (20 used from cache)
 
 ## Security
 
+### Multi-tenant Isolation
+
+This chart deploys a set of static agent workers that process runs sequentially within the same container, which provides a simple and easy-to-maintain architecture but has important security implications for multi-tenant environments:
+
+- **Container reuse**: Multiple runs may execute in the same container without cleanup between executions.
+- **Shared filesystem**: The agent process and Scalr Run commands (OpenTofu/Terraform) execute in the same container without filesystem isolation, allowing runs to write to shared cache storage that will be reused by subsequent runs.
+- **Cache tampering risk**: Runs can potentially modify cached providers or modules directly without verification.
+
+As a result this chart is suitable only for trusted, single-tenant environments within a single RBAC perimeter.
+
+To enhance security and achieve better isolation between runs:
+  - Enable single-run mode to restart the container after each execution and disable provider/module caching:
+    ```yaml
+    extraEnv:
+      SCALR_AGENT_SINGLE: "true"
+      SCALR_AGENT_PROVIDER_CACHE_ENABLED: "false"
+      SCALR_AGENT_MODULE_CACHE_ENABLED: "false"
+    ```
+  - Use separate agent node pools for each RBAC perimeter (e.g., Scalr Environment).
+
+### Agent Security Context
+
+Agent pods inherit their Linux user, group, seccomp, and capability settings from `securityContext` configuration. The defaults run the container as the non-root UID/GID `1000`, drop all Linux capabilities, and enforce a read-only root filesystem.
+
+The default is strict and compatible with Terraform/OpenTofu workloads, and it’s generally not recommended to change it. However, it can be useful to disable `readOnlyRootFilesystem` and switch the user to root if you need to install packages via package managers like `apt-get` or `dnf` from Workspace hooks.
+
+### Access to VM Metadata Service
+
+The chart includes an allowMetadataService configuration option to control access to the VM metadata service at 169.254.169.254, which is common for AWS, GCP, and Azure environments.
+
+When disabled, the chart creates a Kubernetes NetworkPolicy for agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+
+Access is enabled by default. To restrict VM metadata service access, use:
+
+```shell
+$~ helm upgrade ... \
+    --set allowMetadataService=false
+```
+
+## Metrics and Observability
+
+The agent can be configured to send telemetry data, including both trace spans and metrics, using [OpenTelemetry](https://opentelemetry.io/).
+
+OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
+
+Enable telemetry agent by configuring an OpenTelemetry collector endpoint:
+
+```yaml
+extraEnv:
+  SCALR_AGENT_OTLP_ENDPOINT: "otel-collector:4317"  # gRPC endpoint
+  SCALR_AGENT_OTLP_METRICS_ENABLED: "true"
+  SCALR_AGENT_OTLP_TRACES_ENABLED: "true"
+```
+
+See [all configuration options](https://docs.scalr.io/docs/configuration#telemetry).
+
+Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
+
 ## Termination
 
 The agent termination behavior is controlled by `agent.shutdownMode` Helm option.
@@ -223,6 +283,7 @@ It's best to pull the logs immediately after an incident, since this command wil
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
 | agent.tokenExistingSecret.name | string | `""` | Name of the secret containing the token. |
 | agent.url | string | `""` | The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value is optional, as the domain can be extracted from the token payload. However, it is recommended to specify the URL explicitly for long-lived services to avoid issues if the account is renamed. |
+| allowMetadataService | bool | `true` | Allow access to cloud provider metadata service (169.254.169.254). When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service. This enhances security by preventing workloads from retrieving cloud credentials or instance metadata. |
 | extraEnv | object | `{}` | Additional environment variables for Scalr Agent. Use to configure HTTP proxies or other runtime parameters. |
 | fullnameOverride | string | `""` | Fully override the resource name for all resources. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. |
