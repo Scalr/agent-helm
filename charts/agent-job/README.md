@@ -9,7 +9,7 @@ in its own Kubernetes Job.
 See the [official documentation](https://docs.scalr.io/docs/agent-pools) for more information about Scalr Agents.
 
 > [!WARNING]
-> This chart is in Beta, and implementation details are subject to change.
+> This chart is in Beta, and implementation details are subject to change. See [Planned Changes for Stable](#planned-changes-for-stable).
 
 ## Table of Contents
 
@@ -17,6 +17,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Installation](#installation)
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
+- [Planned Changes for Stable](#planned-changes-for-stable)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)
 - [Graceful Termination](#graceful-termination)
@@ -97,6 +98,14 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
+
+## Planned Changes for Stable
+
+- The `task.runner.image` will transition from the `scalr/agent-runner` image to the `scalr/runner` image. Currently, the runner image comes with bundled agent code to provision the entrypoint script, which creates tight coupling between the `worker` and `runner` image versions as they must ship the same version of the agent inside.
+After this change, the `task.runner.image` can be modified independently of the agent version.
+This change would require the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) Kubernetes feature and will be implemented after Kubernetes 1.35.0 becomes available on major cloud vendors (GKE Regular channel). As a result, the stable version will require Kubernetes 1.35.0 with the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature enabled.
+
+- Changes to [Custom Resource Definitions](#custom-resource-definitions) are possible before the stable release.
 
 ## Custom Runner Images
 
