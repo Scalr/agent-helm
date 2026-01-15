@@ -153,14 +153,21 @@ This chart deploys a set of static agent workers that process runs sequentially 
 As a result this chart is suitable only for trusted, single-tenant environments within a single RBAC perimeter.
 
 To enhance security and achieve better isolation between runs:
-  - Enable single-run mode to restart the container after each execution and disable provider/module caching:
-    ```yaml
-    extraEnv:
-      SCALR_AGENT_SINGLE: "true"
-      SCALR_AGENT_PROVIDER_CACHE_ENABLED: "false"
-      SCALR_AGENT_MODULE_CACHE_ENABLED: "false"
-    ```
-  - Use separate agent node pools for each RBAC perimeter (e.g., Scalr Environment).
+
+- Enable [single execution mode](https://docs.scalr.io/docs/configuration#scalr_agent_single) to restart the container after each execution and disable provider/module caching:
+
+```yaml
+extraEnv:
+  # reinitialize container after each run
+  SCALR_AGENT_SINGLE: "true"
+  # ignores cached data
+  SCALR_AGENT_PROVIDER_CACHE_ENABLED: "false"
+  SCALR_AGENT_MODULE_CACHE_ENABLED: "false"
+```
+
+- Use separate agent node pools for each RBAC perimeter (e.g., Scalr Environment). For example, you can ensure each team in your organization works on individual agent pools without having access to each other's resources.
+
+If you want to manage a single node pool across different teams within your organization using a single agent deployment, consider using the [`agent-job`](/charts/agent-job) chart.
 
 ### Agent Security Context
 

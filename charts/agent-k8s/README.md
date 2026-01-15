@@ -303,7 +303,7 @@ The hostPath volume is unacceptable for many users. It’s also restricted by so
 
 #### Solution
 
-This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Alpha).
+This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Beta).
 
 ## Maintainers
 
