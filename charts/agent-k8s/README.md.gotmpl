@@ -39,8 +39,7 @@ linearly based on the load.
 ### Cons
 
 - Requires access to the Kubernetes API to launch new Pods.
-- Requires a ReadWriteMany Persistent Volume configuration for provider/binary caching. This type of volume is generally vendor-specific and not widely available across all cloud providers.
-- May spawn too many services without having its own dedicated node pool. [Details](#daemonset).
+- Requires dedicated node pool. [Details](#Use-dedicated-node-pool).
 - Relies on a hostPath volume. [Details](#hostpath-volume).
 
 ## Deployment Diagram
@@ -93,6 +92,14 @@ Use the `container_task_image` or `container_task_image_registry` settings (the 
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Pod launch time.
 
 The run startup performance also depends on node scaling speed when autoscaling is enabled.
+
+### Use Dedicated Node Pool
+
+The Scalr agent workers are deployed using a DaemonSet that auto-scales workers across all nodes.
+
+This requires a dedicated cluster or a separate node pool for agent installation.
+
+Otherwise, it may scale across a large number of nodes, spawning excessive number of idle workers.
 
 ### Resource Limits
 
@@ -281,33 +288,6 @@ It's best to pull the logs immediately after an incident, since this command wil
 Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
 
 If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
-
-### Issues
-
-This implementation has several design choices that may prevent adoption.
-
-#### DaemonSet
-
-Scalr Agents from the start were Docker-based and built with multi-tenancy in mind, designed to run and isolate concurrent Scalr Runs within a single agent instance, keeping OpenTofu/Terraform workloads separated by design. They are also built using third-party software bundled via Docker images (OpenTofu, Terraform, OPA, Infracost, etc.), which introduces a Docker dependency.
-
-Our initial Kubernetes implementation followed the pattern introduced by the Docker-based agents. It uses a cloud-native controller/worker model.
-The Agent Controller is deployed as a Deployment, while agent workers are deployed as a DaemonSet across all nodes in the cluster or a specific node pool.
-The Agent Controller pulls tasks from Scalr and launches task pods to execute Run workflows. The DaemonSet ensures a single worker per node to handle multiple Run workflows and reduce resource usage.
-
-The DaemonSet auto-scales workers across all nodes. This is a valid solution only if you have a dedicated cluster or at least a separate node pool. Otherwise, it may scale across a large number of nodes, spawning too many idle workers.
-
-#### hostPath volume
-
-Another important aspect of this implementation is the reliance on a [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) volume.
-Since the Agent is based on the OpenTofu/Terraform architecture, which depends on plugins, each initialization triggers the download of all providers defined in the configuration.
-These downloads can be very large, so local persistent storage was necessary to cache providers and avoid redownloading them for each Scalr Run stage. There’s no scalable way to
-use local storage except through hostPath (per-node cache) or ReadWriteMany volumes, which are vendor-specific and complex to configure — making them impractical to provide out of the box.
-
-The hostPath volume is unacceptable for many users. It’s also restricted by some Kubernetes vendors, such as GKE Autopilot, which enforces stricter limitations.
-
-#### Solution
-
-This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Beta).
 
 {{ template "chart.maintainersSection" . }}
 
