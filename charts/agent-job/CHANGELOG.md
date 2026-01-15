@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Clarified metadata service access defaults and configuration in documentation.
 
+### Fixed
+
+- Fixed `accessModes` configuration for PVC data volume.
+
 ## [v0.5.66]
 
 ### Updated
