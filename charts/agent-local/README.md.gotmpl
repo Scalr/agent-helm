@@ -150,22 +150,9 @@ This chart deploys a set of static agent workers that process runs sequentially 
 - **Shared filesystem**: The agent process and Scalr Run commands (OpenTofu/Terraform) execute in the same container without filesystem isolation, allowing runs to write to shared cache storage that will be reused by subsequent runs.
 - **Cache tampering risk**: Runs can potentially modify cached providers or modules directly without verification.
 
-To enhance security and achieve better isolation between runs:
+This chart is suitable when deploying separate agent deployments (agent pools) for each RBAC perimeter (e.g., Scalr Environment). For example, you can ensure each team in your organization works on individual agent pools without having access to each other's resources.
 
-- Enable [single execution mode](https://docs.scalr.io/docs/configuration#scalr_agent_single) to restart the container after each execution and disable provider/module caching:
-
-```yaml
-extraEnv:
-  # reinitialize container after each run
-  SCALR_AGENT_SINGLE: "true"
-  # ignores cached data
-  SCALR_AGENT_PROVIDER_CACHE_ENABLED: "false"
-  SCALR_AGENT_MODULE_CACHE_ENABLED: "false"
-```
-
-- Use separate agent node pools for each RBAC perimeter (e.g., Scalr Environment). For example, you can ensure each team in your organization works on individual agent pools without having access to each other's resources.
-
-If you want to manage a single node pool across different teams within your organization using a single agent deployment, consider using the [`agent-job`](/charts/agent-job) chart.
+If you want to manage a single agent deployment across different teams within your organization, consider using the [`agent-job`](/charts/agent-job) chart.
 
 ### Agent Security Context
 
