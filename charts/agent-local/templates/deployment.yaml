@@ -123,7 +123,6 @@ spec:
           volumeMounts:
             - name: data-dir
               mountPath: {{ .Values.agent.dataDir }}
-          volumeMounts:
             - name: cache-dir
               mountPath: {{ .Values.agent.cacheDir }}
               {{- if .Values.persistence.persistentVolumeClaim.subPath }}
