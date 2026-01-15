@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added metadata service access control with `allowMetadataService` and NetworkPolicy support.
 - Added OpenTelemetry configuration options for metrics and traces.
+- Added "Security" section to documentation.
 
 ### Changed
 

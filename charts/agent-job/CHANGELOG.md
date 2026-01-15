@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Clarified metadata service access defaults and configuration in documentation.
+- Added "Security > Multi-tenant Isolation" section to documentation.
 
 ### Fixed
 
