@@ -156,6 +156,12 @@ $ helm upgrade ... \
 
 ## Amazon EFS
 
+> [!WARNING]
+> This chart is designed around the use of `hostPath`, and using a network volume instead of hostPath means the entire Scalr run and Terraform runtime depend on it.
+> It is not possible to use a network volume only for the cache, the whole Scalr run would be executed on a network disk, and communication between worker and runner containers will be performed over the network.
+> This would negatively impact run performance and slow down the entire runtime. Using network disks is generally not recommended.
+> If you want to mitigate risks associated with using hostPath, please consider dedicating a separate node pool for Scalr agents, or consider the [`agent-local`](/charts/agent-local) chart or the [`agent-job`](/charts/agent-job) chart instead.
+
 Amazon EFS can be used as a shared ReadWriteMany volume instead of a node disk. To configure it,
 install the `Amazon EFS CSI Driver` via an add-on. See the documentation: https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver.
 Ensure the add-on is active before proceeding.
