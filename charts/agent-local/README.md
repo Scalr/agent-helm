@@ -3,10 +3,41 @@
 ![Version: 0.5.63](https://img.shields.io/badge/Version-0.5.63-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.59.0](https://img.shields.io/badge/AppVersion-0.59.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
-Best suited for simple deployments and VCS agents.
+Deploys a static number of agents and executes runs in shared agent pods.
 
-> [!WARNING]
-> This chart is compatible with Scalr Agent >= 0.45.0
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Overview](#overview)
+- [Architecture Diagram](#architecture-diagram)
+- [Configuration](#configuration)
+- [Customizing Environment](#customizing-environment)
+- [Volumes](#volumes)
+- [Security](#security)
+- [Metrics and Observability](#metrics-and-observability)
+- [Termination](#termination)
+- [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+- Kubernetes 1.33+
+- Helm 3.0+
+- ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
+- Scalr Agent >= 0.45.0
+
+## Installation
+
+To install the chart with the release name `scalr-agent`:
+
+```console
+$ helm repo add scalr-charts https://scalr.github.io/agent-helm/
+$ helm install scalr-agent scalr-charts/agent-local --set agent.token="<agent-token>"
+```
+
+_See [configuration](#values) below._
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
 ## Overview
 
@@ -29,91 +60,139 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 
 - Doesn’t support autoscaling out of the box. You need manually increase or decrease the number of replicas or configure Horizontal Pod Autoscaler.
 - Not cost-efficient for bursty workloads — e.g., deployments with high number of Runs during short periods and low activity otherwise, as resources remain allocated even when idle.
-- Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. This chart should only be used within a single RBAC perimeter and is unsuitable for untrusted environments.
+- Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. See [Multi-tenant Isolation](#multi-tenant-isolation)
 
-## Deployment Diagram
+## Architecture Diagram
 
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
 
-## Installing
-
-To install the chart with the release name `scalr-agent`:
-
-```console
-$ helm repo add scalr-charts https://scalr.github.io/agent-helm/
-$ helm install scalr-agent scalr-charts/agent-local --set agent.token="<agent-token>"
-```
-
-_See [configuration](#values) below._
-
-_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
-
-## Agent Configuration
+## Configuration
 
 The Scalr Agent is configured using environment variables, which can be set using the `extraEnv` option in the Helm chart.
 
 ```console
 $ helm install ...
-  --set extraEnv.SCALR_DEBUG=1 \
+  --set extraEnv.SCALR_AGENT_DEBUG=1 \
   --set extraEnv.HTTPS_PROXY="http://myproxy.com:3128"
 ```
+
+See all available configuration options - https://docs.scalr.io/docs/configuration
 
 ## Customizing Environment
 
 This chart uses the local driver to run tasks directly within the container where the agent operates. Therefore, it requires an image that includes both the Scalr Agent service and the additional tooling provided by the [scalr/runner](https://hub.docker.com/r/scalr/runner) image. As a result, this chart uses the [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) image, which combines the minimal Scalr Agent image ([scalr/agent](https://hub.docker.com/r/scalr/agent)) with the extra tools from `scalr/runner`. You can use this image, or `scalr/agent` (as a minimal base for building your own lightweight images), as a starting point for customizing your environment.
 
-## Volume Configuration
+## Volumes
 
-The Scalr Agent uses a data volume for caching run data, configuration versions,
-and OpenTofu/Terraform plugins, stored in the directory specified by `dataHome` (default: `/var/lib/scalr-agent`).
-This directory is mounted to a volume defined in the `persistence` section. Since the data volume is used for temporary files and caching, both ephemeral and persistent storage are suitable for production. However, persistent storage avoids re-downloading providers and binaries on pod restarts and positively impacts Run Stage initialization times.
+Two volumes are always attached to agent Pods:
 
-### Storage Options
+- **Data Volume**
 
-- **`emptyDir`**: Ephemeral storage is enabled by default. Data is lost on pod restarts, requiring providers and binaries to be re-downloaded each time.
-- **`persistentVolumeClaim` (PVC)**: Persistent storage suitable for retaining cache across restarts or sharing it between different Scalr Agent replicas. Supports both dynamic PVC creation and use of existing PVCs.
+  The data volume stores temporary workspace data needed for processing a run, including run metadata and source code.
 
-The volume is mounted at `dataHome`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit.
 
-### Configuration Examples
+  The volume is mounted at `agent.dataDir`, which must be readable, writable, and executable.
 
-#### Single Replica with Persistent Storage
+- **Cache Volume**
 
-Use `ReadWriteOnce` for single-replica deployments (`replicaCount: 1`):
+  The cache volume stores software binaries, OpenTofu/Terraform providers and modules.
+
+  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit.
+
+  The volume is mounted at `agent.cacheDir`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
+
+### Cache Volume Persistence
+
+It's recommended to enable persistent storage with `ReadWriteMany` access mode to share the cache across all agent pods.
+
+Benefits of persistent cache:
+
+- Faster task execution (no provider/modules/binaries re-downloads on cold agents)
+- Reduced network bandwidth usage
+- Better fault tolerance during module/provider registry outages
+
+Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache) and [Module Cache](https://docs.scalr.io/docs/modules-cache).
+
+**Configuration Example with PVC**:
 
 ```yaml
 persistence:
   enabled: true
   persistentVolumeClaim:
-    storageClassName: gp2
-    storage: 10Gi
-    accessMode: ReadWriteOnce
-```
-
-#### Multi-Replica with Shared Storage
-
-For multiple replicas (`replicaCount: >1`) in clusters with `ReadWriteMany` support (e.g., NFS, AWS EFS), you can optionally use a single shared PVC.
-
-```yaml
-persistence:
-  enabled: true
-  persistentVolumeClaim:
-    storageClassName: nfs
-    storage: 10Gi
+    # Use existing PVC
+    claimName: "my-cache-pvc"
+    # Or create new PVC (omit claimName)
+    storageClassName: "nfs-client"
+    storage: 40Gi
     accessMode: ReadWriteMany
+extraEnv:
+  SCALR_AGENT_PROVIDER_CACHE_ENABLED: "1" # enabled by default
+  SCALR_AGENT_MODULE_CACHE_ENABLED: "1" # disabled by default
 ```
 
-Using `ReadWriteMany` enables all replicas to access a shared provider and binary cache, preventing each replica from re-downloading providers and binaries and warming up its own cache, as happens with the default ephemeral volume.
+If configured correctly, you should see confirmation in the Scalr Run console that plugins and modules are being used from cache:
 
-You can also use `ReadWriteOnce` in a multi-replica setup, but it limits all replicas to a single node where the PVC is mounted.
+```shell
+Initializing modules...
+Initialized 8 modules in 4.12s (8 used from cache)
+Initializing plugins...
+Initialized 20 plugins in 6.09s (20 used from cache)
+```
 
-#### Use Its Own PVC
+## Security
 
-If `persistence.enabled` is `true` and `persistentVolumeClaim.claimName` is empty, a PVC is created with the chart's full name (e.g., `{release-name}-agent-local`). To configure an existing PVC, use the `persistentVolumeClaim.claimName` option.
+### Multi-tenant Isolation
 
-For more details, see the [Kubernetes storage documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
+This chart deploys a set of static agent workers that process runs sequentially within the same container, which provides a simple and easy-to-maintain architecture but has important security implications for multi-tenant environments:
+
+- **Container reuse**: Multiple runs may execute in the same container without cleanup between executions.
+- **Shared filesystem**: The agent process and Scalr Run commands (OpenTofu/Terraform) execute in the same container without filesystem isolation, allowing runs to write to shared cache storage that will be reused by subsequent runs.
+- **Cache tampering risk**: Runs can potentially modify cached providers or modules directly without verification.
+
+This chart is suitable when deploying separate agent deployments (agent pools) for each RBAC perimeter (e.g., Scalr Environment). For example, you can ensure each team in your organization works on individual agent pools without having access to each other's resources.
+
+If you want to manage a single agent deployment across different teams within your organization, consider using the [`agent-job`](/charts/agent-job) chart.
+
+### Agent Security Context
+
+Agent pods inherit their Linux user, group, seccomp, and capability settings from `securityContext` configuration. The defaults run the container as the non-root UID/GID `1000`, drop all Linux capabilities, and enforce a read-only root filesystem.
+
+The default is strict and compatible with Terraform/OpenTofu workloads, and it’s generally not recommended to change it. However, it can be useful to disable `readOnlyRootFilesystem` and switch the user to root if you need to install packages via package managers like `apt-get` or `dnf` from Workspace hooks.
+
+### Access to VM Metadata Service
+
+The chart includes an `allowMetadataService` configuration option to control access to the VM metadata service at 169.254.169.254, which is common for AWS, GCP, and Azure environments.
+
+When disabled, the chart creates a Kubernetes NetworkPolicy for agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+
+Access is enabled by default. To restrict VM metadata service access, use:
+
+```shell
+$~ helm upgrade ... \
+    --set allowMetadataService=false
+```
+
+## Metrics and Observability
+
+The agent can be configured to send telemetry data, including both trace spans and metrics, using [OpenTelemetry](https://opentelemetry.io/).
+
+OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
+
+Enable telemetry agent by configuring an OpenTelemetry collector endpoint:
+
+```yaml
+extraEnv:
+  SCALR_AGENT_OTLP_ENDPOINT: "otel-collector:4317"  # gRPC endpoint
+  SCALR_AGENT_OTLP_METRICS_ENABLED: "true"
+  SCALR_AGENT_OTLP_TRACES_ENABLED: "true"
+```
+
+See [all configuration options](https://docs.scalr.io/docs/configuration#telemetry).
+
+Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
 ## Termination
 
@@ -172,16 +251,31 @@ It's best to pull the logs immediately after an incident, since this command wil
 
 ## Values
 
+### Agent
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. |
+| agent.dataDir | string | `"/var/lib/scalr-agent/data"` | Data directory where the agent stores workspace data (configuration versions, modules, and providers). This directory must be readable, writable, and executable. |
+
+### Persistence
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| persistence.cache.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
+
+### Other Values
+
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling. |
-| agent.dataDir | string | `"/var/lib/scalr-agent"` | The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache. This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries. It is mounted to the volume defined in the persistence section. |
 | agent.shutdownMode | string | `"graceful"` | The agent termination behaviour. Can be graceful, force or drain. See https://docs.scalr.io/docs/configuration#scalr_agent_worker_on_stop_action |
 | agent.token | string | `""` | The agent pool token. |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. |
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
 | agent.tokenExistingSecret.name | string | `""` | Name of the secret containing the token. |
 | agent.url | string | `""` | The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value is optional, as the domain can be extracted from the token payload. However, it is recommended to specify the URL explicitly for long-lived services to avoid issues if the account is renamed. |
+| allowMetadataService | bool | `true` | Allow access to cloud provider metadata service (169.254.169.254). When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service. This enhances security by preventing workloads from retrieving cloud credentials or instance metadata. |
 | extraEnv | object | `{}` | Additional environment variables for Scalr Agent. Use to configure HTTP proxies or other runtime parameters. |
 | fullnameOverride | string | `""` | Fully override the resource name for all resources. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. |
@@ -190,11 +284,14 @@ It's best to pull the logs immediately after an incident, since this command wil
 | imagePullSecrets | list | `[]` | Image pull secret to use for registry authentication. |
 | nameOverride | string | `""` | Override the default resource name prefix for all resources. |
 | nodeSelector | object | `{}` | Node selector for scheduling Scalr Agent pods. |
-| persistence | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data directory. |
-| persistence.emptyDir | object | `{"sizeLimit":"20Gi"}` | Configuration for emptyDir volume (used when persistence.enabled is false). |
-| persistence.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
-| persistence.enabled | bool | `false` | Enable persistent storage. If false, uses emptyDir (ephemeral storage). |
-| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim (used when persistence.enabled is true). |
+| persistence | object | `{"cache":{"emptyDir":{"sizeLimit":"20Gi"}},"data":{"emptyDir":{"sizeLimit":"4Gi"}},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data and cache volumes. |
+| persistence.cache | object | `{"emptyDir":{"sizeLimit":"20Gi"}}` | Cache directory storage configuration. Stores OpenTofu/Terraform providers, modules and binaries. |
+| persistence.cache.emptyDir | object | `{"sizeLimit":"20Gi"}` | EmptyDir volume configuration (used when persistence.enabled is false). |
+| persistence.data | object | `{"emptyDir":{"sizeLimit":"4Gi"}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. |
+| persistence.data.emptyDir | object | `{"sizeLimit":"4Gi"}` | EmptyDir volume configuration. |
+| persistence.data.emptyDir.sizeLimit | string | `"4Gi"` | Size limit for the emptyDir volume. |
+| persistence.enabled | bool | `false` | Enable persistent storage for cache volume. If false, uses emptyDir (ephemeral storage). |
+| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim for cache volume (used when persistence.enabled is true). |
 | persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments. Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS). |
 | persistence.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC is created dynamically. |
 | persistence.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. |
@@ -203,7 +300,7 @@ It's best to pull the logs immediately after an incident, since this command wil
 | podAnnotations | object | `{}` | Annotations for Scalr Agent pods (e.g., for monitoring or logging). |
 | podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true}` | Security context for Scalr Agent pod. |
 | replicaCount | int | `1` | Number of replicas for the Scalr Agent deployment. Adjust for high availability. |
-| resources | object | `{"limits":{"cpu":"2000m","memory":"2048Mi"},"requests":{"cpu":"1000m","memory":"1024Mi"}}` | Resource limits and requests for Scalr Agent pods. Set identical resource limits and requests to enable Guaranteed QoS and minimize eviction risk. See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes |
+| resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"1000m","memory":"1024Mi"}}` | Resource limits and requests for Scalr Agent pods. Set identical resource limits and requests to enable Guaranteed QoS and minimize eviction risk. See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes |
 | secret | object | `{"annotations":{},"labels":{}}` | Secret configuration for storing the Scalr Agent token. |
 | secret.annotations | object | `{}` | Annotations for the Secret resource. |
 | secret.labels | object | `{}` | Additional labels for the Secret resource. |
@@ -225,4 +322,4 @@ It's best to pull the logs immediately after an incident, since this command wil
 | tolerations | list | `[]` | Tolerations for scheduling pods on tainted nodes. |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

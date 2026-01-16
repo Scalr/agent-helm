@@ -9,7 +9,8 @@ metadata:
     {{- include "agent-job.labels" . | nindent 4 }}
     app.kubernetes.io/component: data
 spec:
-  accessModes: ReadWriteOnce
+  accessModes:
+    - {{ .Values.persistence.data.persistentVolumeClaim.accessMode }}
   resources:
     requests:
       storage: {{ .Values.persistence.data.persistentVolumeClaim.storage }}

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `agent.container_task_image` option to configure a custom runner image. See more at <https://docs.scalr.io/docs/configuration#scalr_agent_container_task_image>. If you've used `extraEnv.SCALR_AGENT_CONTAINER_TASK_IMAGE`, please upgrade to the `agent.container_task_image` option to avoid Helm collisions.
+- Added "Performance Optimization" section to documentation.
+
+### Changes
+
+- Removed CPU and memory limits for workers. Workers handle many concurrent runs, so their workloads are variable and unpredictable, and default limits can become a performance bottleneck.
+
 ## [v0.5.65]
 
 ### Updated

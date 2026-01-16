@@ -2,7 +2,7 @@ apiVersion: v2
 name: agent-local
 description: |
   A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
-  Best suited for simple deployments and VCS agents.
+  Deploys a static number of agents and executes runs in shared agent pods.
 type: application
 version: 0.5.63
 appVersion: 0.59.0

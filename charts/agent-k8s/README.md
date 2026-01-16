@@ -3,8 +3,22 @@
 ![Version: 0.5.65](https://img.shields.io/badge/Version-0.5.65-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.59.0](https://img.shields.io/badge/AppVersion-0.59.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
-Uses a controller/worker model. Each run stage is isolated
-in Kubernetes containers with specified resource limits.
+Deploys an agent controller with a set of agent workers and executes runs in isolated pods.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Deployment Diagram](#deployment-diagram)
+- [Installation](#installation)
+- [Performance Optimization](#performance-optimization)
+- [Disk Requirements](#disk-requirements)
+- [Choosing the Data Home Directory](#choosing-the-data-home-directory)
+- [Amazon EFS](#amazon-efs)
+- [Restrict Access to VM Metadata Service](#restrict-access-to-vm-metadata-service)
+- [HTTP Proxy](#http-proxy)
+- [SSL Certificate Bundles](#ssl-certificate-bundles)
+- [Troubleshooting](#troubleshooting)
+- [Limitations](#limitations)
 
 ## Overview
 
@@ -27,8 +41,7 @@ linearly based on the load.
 ### Cons
 
 - Requires access to the Kubernetes API to launch new Pods.
-- Requires a ReadWriteMany Persistent Volume configuration for provider/binary caching. This type of volume is generally vendor-specific and not widely available across all cloud providers.
-- May spawn too many services without having its own dedicated node pool. [Details](#daemonset).
+- Requires dedicated node pool. [Details](#Use-dedicated-node-pool).
 - Relies on a hostPath volume. [Details](#hostpath-volume).
 
 ## Deployment Diagram
@@ -37,7 +50,7 @@ linearly based on the load.
   <img src="assets/agent-k8s-deploy-diagram.jpg" />
 </p>
 
-## Installing
+## Installation
 
 To install the chart with the release name `scalr-agent`:
 
@@ -64,6 +77,56 @@ Set up the taints on the Node Pool, and add tolerations to the agent worker with
 
 ```console
 --set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool
+```
+
+## Performance Optimization
+
+The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
+
+### Optimize Run Startup Time
+
+This chart uses individual Pods to isolate Scalr runs and creates a new pod each time a Scalr run stage is queued. As a result, fast pod startup is critical for low run startup latency.
+Common bottlenecks that may introduce latency include slow image pull times. To optimize this, you can:
+
+- Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
+Use the `container_task_image` or `container_task_image_registry` settings (the latter applies to the [older Docker-image–based software version integrations](https://docs.scalr.io/docs/run-environment#software-releases)) to configure the run image.
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`). Otherwise, runs on cold nodes will be delayed by image pull time.
+- Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Pod launch time.
+
+The run startup performance also depends on node scaling speed when autoscaling is enabled.
+
+### Use Dedicated Node Pool
+
+The Scalr agent workers are deployed using a DaemonSet that auto-scales workers across all nodes.
+
+This requires a dedicated cluster or a separate node pool for agent installation. Otherwise, it may scale across a large number of nodes, spawning excessive number of idle workers.
+
+### Resource Limits
+
+Proper resource limit configuration is critical for achieving good run performance.
+We recommend avoiding CPU limits for worker services, as they are installed per node (via a DaemonSet) and can process multiple runs concurrently, all scheduled on the same node.
+Setting CPU limits on workers may lead to throttling and degraded performance under load.
+
+For the run environment (the container where OpenTofu/Terraform is executed), resource requests and limits can be configured using the following Helm values:
+
+```yaml
+# -- CPU resource request, defined in cores.
+# For example:
+#   2.0  = two full CPU cores
+#   0.25 = one quarter of a CPU core
+agent.container_task_cpu_request: 1.0
+
+# -- CPU resource limit, defined in cores.
+# This is the maximum amount of CPU the container is allowed to use.
+agent.container_task_cpu_limit: 8.0
+
+# -- Memory resource request, defined in megabytes.
+# This is the amount of memory reserved for the container.
+agent.container_task_mem_request: 1024
+
+# -- Memory resource limit, defined in megabytes.
+# This is the maximum amount of memory the container can use before being terminated.
+agent.container_task_mem_limit: 16384
 ```
 
 ## Disk Requirements
@@ -99,6 +162,12 @@ $ helm upgrade ... \
 ```
 
 ## Amazon EFS
+
+> [!WARNING]
+> This chart is designed around the use of `hostPath`, and using a network volume instead of hostPath means the entire Scalr run and Terraform runtime depend on it.
+> It is not possible to use a network volume only for the cache, the whole Scalr run would be executed on a network disk, and communication between worker and runner containers will be performed over the network.
+> This would negatively impact run performance and slow down the entire runtime. Using network disks is generally not recommended.
+> If you want to mitigate risks associated with using hostPath, please consider dedicating a separate node pool for Scalr agents, or consider the [`agent-local`](/charts/agent-local) chart or the [`agent-job`](/charts/agent-job) chart instead.
 
 Amazon EFS can be used as a shared ReadWriteMany volume instead of a node disk. To configure it,
 install the `Amazon EFS CSI Driver` via an add-on. See the documentation: https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver.
@@ -220,33 +289,6 @@ Ensure that your cluster is using a CNI plugin that supports egress NetworkPolic
 
 If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
 
-### Issues
-
-This implementation has several design choices that may prevent adoption.
-
-#### DaemonSet
-
-Scalr Agents from the start were Docker-based and built with multi-tenancy in mind, designed to run and isolate concurrent Scalr Runs within a single agent instance, keeping OpenTofu/Terraform workloads separated by design. They are also built using third-party software bundled via Docker images (OpenTofu, Terraform, OPA, Infracost, etc.), which introduces a Docker dependency.
-
-Our initial Kubernetes implementation followed the pattern introduced by the Docker-based agents. It uses a cloud-native controller/worker model.
-The Agent Controller is deployed as a Deployment, while agent workers are deployed as a DaemonSet across all nodes in the cluster or a specific node pool.
-The Agent Controller pulls tasks from Scalr and launches task pods to execute Run workflows. The DaemonSet ensures a single worker per node to handle multiple Run workflows and reduce resource usage.
-
-The DaemonSet auto-scales workers across all nodes. This is a valid solution only if you have a dedicated cluster or at least a separate node pool. Otherwise, it may scale across a large number of nodes, spawning too many idle workers.
-
-#### hostPath volume
-
-Another important aspect of this implementation is the reliance on a [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) volume.
-Since the Agent is based on the OpenTofu/Terraform architecture, which depends on plugins, each initialization triggers the download of all providers defined in the configuration.
-These downloads can be very large, so local persistent storage was necessary to cache providers and avoid redownloading them for each Scalr Run stage. There’s no scalable way to
-use local storage except through hostPath (per-node cache) or ReadWriteMany volumes, which are vendor-specific and complex to configure — making them impractical to provide out of the box.
-
-The hostPath volume is unacceptable for many users. It’s also restricted by some Kubernetes vendors, such as GKE Autopilot, which enforces stricter limitations.
-
-#### Solution
-
-This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Alpha).
-
 ## Maintainers
 
 | Name | Email | Url |
@@ -263,6 +305,7 @@ This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Alpha).
 | agent.container_task_ca_cert | string | `""` | The CA certificates bundle to mount it into the container task at `/etc/ssl/certs/ca-certificates.crt`. The CA file can be located inside the agent Pod, allowing selection of a certificate by its path. Alternatively, a base64 string containing the certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca \| base64`. The bundle should include both your private CAs and the standard set of public CAs. |
 | agent.container_task_cpu_limit | float | `8` | CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
 | agent.container_task_cpu_request | float | `1` | CPU resource request defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
+| agent.container_task_image | string | `""` | This option will override container_task_image_registry. |
 | agent.container_task_image_registry | string | `""` | Enforce the use of a custom image registry to pull all container task images. All images must be preemptively pushed to this registry for the agent to work with this option. The registry path may include a repository to be replaced. Example: 'mirror.io' or 'mirror.io/myproject'. |
 | agent.container_task_mem_limit | int | `16384` | Memory resource limit defined in megabytes. |
 | agent.container_task_mem_request | int | `1024` | Memory resource request defined in megabytes. |
@@ -295,8 +338,6 @@ This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Alpha).
 | nameOverride | string | `""` |  |
 | podAnnotations | object | `{}` | The Agent Pods annotations. |
 | podSecurityContext | object | `{"fsGroup":0,"runAsNonRoot":false}` | Security context for Scalr Agent pod. |
-| resources.limits.cpu | string | `"1000m"` |  |
-| resources.limits.memory | string | `"1024Mi"` |  |
 | resources.requests.cpu | string | `"250m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
 | restrictMetadataService | bool | `false` | Apply NetworkPolicy to an agent pod that denies access to VM metadata service address (169.254.169.254) |
@@ -315,4 +356,4 @@ This issue is resolved by the [`agent-job`](/charts/agent-job) chart (Alpha).
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

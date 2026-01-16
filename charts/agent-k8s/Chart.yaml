@@ -2,8 +2,7 @@ apiVersion: v2
 name: agent-k8s
 description: |
   A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
-  Uses a controller/worker model. Each run stage is isolated
-  in Kubernetes containers with specified resource limits.
+  Deploys an agent controller with a set of agent workers and executes runs in isolated pods.
 type: application
 version: 0.5.65
 appVersion: 0.59.0

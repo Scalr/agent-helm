@@ -50,10 +50,15 @@ agent:
     # -- Key within the secret that holds the token value.
     key: "token"
 
-  # -- The directory where the Scalr Agent stores run data, configuration versions, and the OpenTofu/Terraform provider cache.
-  # This directory must be readable, writable, and executable to support the execution of OpenTofu/Terraform provider binaries.
-  # It is mounted to the volume defined in the persistence section.
-  dataDir: "/var/lib/scalr-agent"
+  # -- Data directory where the agent stores workspace data (configuration versions, modules, and providers).
+  # This directory must be readable, writable, and executable.
+  # @section -- Agent
+  dataDir: "/var/lib/scalr-agent/data"
+
+  # -- Cache directory where the agent stores provider binaries, plugin cache, and metadata.
+  # This directory must be readable, writable, and executable.
+  # @section -- Agent
+  cacheDir: "/var/lib/scalr-agent/cache"
 
 # -- Additional environment variables for Scalr Agent.
 # Use to configure HTTP proxies or other runtime parameters.
@@ -139,21 +144,18 @@ affinity:
 # See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes
 resources:
   limits:
-    cpu: "2000m"
+    cpu: "4000m"
     memory: "2048Mi"
   requests:
     cpu: "1000m"
     memory: "1024Mi"
 
-# -- Persistent storage configuration for the Scalr Agent data directory.
+# -- Persistent storage configuration for the Scalr Agent data and cache volumes.
 persistence:
-  # -- Enable persistent storage. If false, uses emptyDir (ephemeral storage).
+  # -- Enable persistent storage for cache volume. If false, uses emptyDir (ephemeral storage).
   enabled: false
-  # -- Configuration for emptyDir volume (used when persistence.enabled is false).
-  emptyDir:
-    # -- Size limit for the emptyDir volume.
-    sizeLimit: 20Gi
-  # -- Configuration for persistentVolumeClaim (used when persistence.enabled is true).
+
+  # -- Configuration for persistentVolumeClaim for cache volume (used when persistence.enabled is true).
   persistentVolumeClaim:
     # -- Name of an existing PVC. If empty, a new PVC is created dynamically.
     claimName: ""
@@ -168,5 +170,27 @@ persistence:
     # -- Optional subPath for mounting a specific subdirectory of the volume.
     subPath: ""
 
+  # -- Data directory storage configuration.
+  # Stores workspace data including configuration versions, modules, and run metadata.
+  data:
+    # -- EmptyDir volume configuration.
+    emptyDir:
+      # -- Size limit for the emptyDir volume.
+      sizeLimit: 4Gi
+
+  # -- Cache directory storage configuration.
+  # Stores OpenTofu/Terraform providers, modules and binaries.
+  cache:
+    # -- EmptyDir volume configuration (used when persistence.enabled is false).
+    emptyDir:
+      # -- Size limit for the emptyDir volume.
+      # @section -- Persistence
+      sizeLimit: 20Gi
+
 # -- Termination grace period (in seconds) for pod shutdown.
 terminationGracePeriodSeconds: 120
+
+# -- Allow access to cloud provider metadata service (169.254.169.254).
+# When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service.
+# This enhances security by preventing workloads from retrieving cloud credentials or instance metadata.
+allowMetadataService: true
