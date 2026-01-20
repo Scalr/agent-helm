@@ -61,9 +61,16 @@ spec:
               - /bin/sh
               - -c
               - |
-                curl -fsSL https://storage.googleapis.com/runner-exec-loop/d299348/exec_loop.sh -o /tmp/exec-loop.sh && \
-                echo "365410cdb41ab9f22f11f41b55c6abc04281c0209fc118d31b22e12bff6a07ae /tmp/exec-loop.sh" | sha256sum -c - && \
-                /bin/sh /tmp/exec-loop.sh
+                url="https://storage.googleapis.com/runner-exec-loop/d299348/exec_loop.sh"
+                checksum="365410cdb41ab9f22f11f41b55c6abc04281c0209fc118d31b22e12bff6a07ae"
+                target="/tmp/exec-loop.sh"
+                echo "$(date '+%F %T.%3N') Downloading entrypoint... url=$url target=$target"
+                curl -fsSL "$url" -o "$target" || { echo "$(date '+%F %T.%3N') Download failed"; exit 1; }
+                echo "$(date '+%F %T.%3N') Download complete, verifying checksum..."
+                echo "$checksum  $target" | sha256sum -c - || { echo "$(date '+%F %T.%3N') Checksum verification failed"; exit 1; }
+                echo "$(date '+%F %T.%3N') Checksum verified, executing entrypoint..."
+                chmod +x "$target"
+                exec /bin/sh "$target"
             workingDir: /opt/workdir
             {{- with .Values.task.runner.securityContext }}
             securityContext:
