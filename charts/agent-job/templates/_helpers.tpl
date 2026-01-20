@@ -177,3 +177,36 @@ Generate CA certificate volume
         path: {{ .Values.global.tls.caBundleSecret.key }}
 {{- end }}
 {{- end -}}
+
+{{/*
+Build image string with registry and namespace handling.
+
+Automatically uses .Values.global.imageRegistry and .Values.global.imageNamespace from context.
+
+Usage:
+{{ include "agent-job.image" (dict "context" . "repository" .Values.task.runner.image.repository "tag" .Values.task.runner.image.tag "defaultTag" .Chart.AppVersion) }}
+*/}}
+{{- define "agent-job.image" -}}
+{{- $registry := .context.Values.global.imageRegistry -}}
+{{- $namespace := .context.Values.global.imageNamespace -}}
+{{- $repository := .repository -}}
+{{- $tag := .tag -}}
+{{- if and (not $tag) .defaultTag -}}
+  {{- $tag = .defaultTag -}}
+{{- end -}}
+
+{{- /* Extract image name from repository */ -}}
+{{- $imageName := last (splitList "/" $repository) -}}
+
+{{- /* Build repository path with namespace override if provided */ -}}
+{{- if $namespace -}}
+  {{- $repository = printf "%s/%s" $namespace $imageName -}}
+{{- end -}}
+
+{{- /* Build final image reference */ -}}
+{{- if $registry -}}
+  {{- printf "%s/%s:%s" $registry $repository $tag -}}
+{{- else -}}
+  {{- printf "%s:%s" $repository $tag -}}
+{{- end -}}
+{{- end -}}

@@ -446,8 +446,9 @@ For issues not covered above:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| global.imageNamespace | string | "" | Global image namespace/organization override for all images. Replaces the namespace in repositories (e.g., "myorg" changes "scalr/runner" to "myorg/runner"). Combined: registry="gcr.io/project" + namespace="myorg" + repo="scalr/runner" → "gcr.io/project/myorg/runner:tag" Leave empty to preserve original namespace. |
 | global.imagePullSecrets | list | `[]` | Global image pull secrets for private registries. |
-| global.imageRegistry | string | `""` | Global Docker registry to prepend to all image repositories. |
+| global.imageRegistry | string | "" | Global Docker registry override for all images. Prepended to image repositories. Example: "us-central1-docker.pkg.dev/myorg/images" Leave empty to use default Docker Hub. |
 | global.podAnnotations | object | `{}` | Global pod annotations applied to all pods. |
 | global.podLabels | object | `{}` | Global pod labels applied to all pods. |
 | global.podSecurityContext | object | `{"fsGroup":1000,"fsGroupChangePolicy":"OnRootMismatch","runAsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"},"supplementalGroups":[],"sysctls":[]}` | Security context applied to all pods. |
@@ -565,13 +566,9 @@ For issues not covered above:
 | task.sidecars | list | `[]` | Additional sidecar containers for task job pods. |
 | task.terminationGracePeriodSeconds | int | `360` | Grace period in seconds before forcibly terminating task job containers. |
 | task.tolerations | list | `[]` | Node tolerations for task job pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set task.tolerations[0].key=dedicated,task.tolerations[0].operator=Equal,task.tolerations[0].value=agent-worker,task.tolerations[0].effect=NoSchedule` |
-| task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"","repository":"","tag":""},"resources":{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). |
+| task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"resources":{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). |
 | task.worker.extraEnv | object | `{}` | Additional environment variables for the worker container (merged with agent.extraEnv). |
 | task.worker.extraVolumeMounts | list | `[]` | Additional volume mounts for the worker container. |
-| task.worker.image | object | `{"pullPolicy":"","repository":"","tag":""}` | Worker container image settings (inherits from agent.image if not specified). |
-| task.worker.image.pullPolicy | string | `""` | Image pull policy. Inherits from agent.image.pullPolicy if empty. |
-| task.worker.image.repository | string | `""` | Docker repository for the worker image. Inherits from agent.image.repository if empty. |
-| task.worker.image.tag | string | `""` | Image tag. Inherits from agent.image.tag if empty. |
 | task.worker.resources | object | `{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resource requests and limits for the worker container. |
 | task.worker.securityContext | object | `{}` | Security context for the worker container. |
 

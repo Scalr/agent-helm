@@ -84,9 +84,19 @@ rbac:
 
 # Global configuration that applies to all components (controller, worker, and runner containers).
 global:
-  # -- Global Docker registry to prepend to all image repositories.
+  # -- Global Docker registry override for all images.
+  # Prepended to image repositories. Example: "us-central1-docker.pkg.dev/myorg/images"
+  # Leave empty to use default Docker Hub.
+  # @default -- ""
   # @section -- Global
   imageRegistry: ""
+  # -- Global image namespace/organization override for all images.
+  # Replaces the namespace in repositories (e.g., "myorg" changes "scalr/runner" to "myorg/runner").
+  # Combined: registry="gcr.io/project" + namespace="myorg" + repo="scalr/runner" → "gcr.io/project/myorg/runner:tag"
+  # Leave empty to preserve original namespace.
+  # @default -- ""
+  # @section -- Global
+  imageNamespace: ""
   # -- Global image pull secrets for private registries.
   # @section -- Global
   imagePullSecrets: []
@@ -377,19 +387,6 @@ task:
   # -- Worker container configuration (sidecar that supervises task execution).
   # @section -- Task
   worker:
-    # -- Worker container image settings (inherits from agent.image if not specified).
-    # @section -- Task
-    image:
-      # -- Docker repository for the worker image. Inherits from agent.image.repository if empty.
-      # @section -- Task
-      repository: ""
-      # -- Image tag. Inherits from agent.image.tag if empty.
-      # @section -- Task
-      tag: ""
-      # -- Image pull policy. Inherits from agent.image.pullPolicy if empty.
-      # @section -- Task
-      pullPolicy: ""
-
     # -- Resource requests and limits for the worker container.
     # @section -- Task
     resources:

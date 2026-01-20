@@ -47,12 +47,7 @@ spec:
           {{- end }}
           containers:
           - name: runner
-            {{- $registry := .Values.global.imageRegistry }}
-            {{- if $registry }}
-            image: "{{ $registry }}/{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
-            {{- else }}
-            image: "{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
-            {{- end }}
+            image: {{ include "agent-job.image" (dict "context" . "repository" .Values.task.runner.image.repository "tag" .Values.task.runner.image.tag ) }}
             imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
             # TODO: Enable the Image Volume feature once it is out of beta
             # and mount exec-loop from scalr/agent image instead.
@@ -132,17 +127,8 @@ spec:
               timeoutSeconds: 1
               failureThreshold: 1
           - name: worker
-            {{- $workerImage := .Values.task.worker.image }}
-            {{- if not $workerImage.repository }}
-              {{- $workerImage = .Values.agent.image }}
-            {{- end }}
-            {{- $registry := .Values.global.imageRegistry }}
-            {{- if $registry }}
-            image: "{{ $registry }}/{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
-            {{- else }}
-            image: "{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
-            {{- end }}
-            imagePullPolicy: {{ $workerImage.pullPolicy | default .Values.agent.image.pullPolicy }}
+            image: {{ include "agent-job.image" (dict "context" . "repository" .Values.agent.image.repository "tag" .Values.agent.image.tag "defaultTag" .Chart.AppVersion) }}
+            imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
             command: ["python", "-m", "tacoagent.cmd"]
             {{- with .Values.task.worker.securityContext }}
             securityContext:
