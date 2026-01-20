@@ -414,21 +414,22 @@ task:
   # -- Runner container configuration (environment where Terraform/OpenTofu commands are executed).
   # @section -- Task
   runner:
-    # -- Runner container image settings.
+    # -- Runner container image settings. Default image: https://hub.docker.com/r/scalr/runner, repository: https://github.com/Scalr/runner
+    # Note: For Scalr-managed agents, this may be overridden by Scalr account image settings.
     # @section -- Task
     image:
       # -- Docker repository for the runner image.
       # @section -- Task
-      repository: scalr/agent-runner
-      # -- Image tag. Defaults to the chart appVersion if not specified.
+      repository: scalr/runner
+      # -- Docker tar for the runner image.
       # @section -- Task
-      tag: ""
+      tag: "0.2.0"
       # -- Image pull policy.
       # @section -- Task
       pullPolicy: IfNotPresent
 
     # -- Resource requests and limits for the runner container.
-    # Note: For system agent controllers, this may be overridden by Scalr platform billing resource tier presets.
+    # Note: For scalr-managed agents, this may be overridden by Scalr platform billing resource tier presets.
     # @section -- Task
     resources:
       requests:

@@ -71,7 +71,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) created by the agent controller. It consists of two isolated containers:
 
-- **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image (temporary [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner)).
+- **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
 - **worker**: The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
 
 The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
@@ -101,21 +101,18 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 ## Planned Changes for Stable
 
-- The `task.runner.image` will transition from the `scalr/agent-runner` image to the `scalr/runner` image. Currently, the runner image comes with bundled agent code to provision the entrypoint script, which creates tight coupling between the `worker` and `runner` image versions as they must ship the same version of the agent inside.
-After this change, the `task.runner.image` can be modified independently of the agent version.
-This change would require the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) Kubernetes feature and will be implemented after Kubernetes 1.35.0 becomes available on major cloud vendors (GKE Regular channel). As a result, the stable version will require Kubernetes 1.35.0 with the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature enabled.
-
+- The `task.runner.image` entrypoint will be mouned using [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/). This change would require the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) Kubernetes feature and will be implemented after Kubernetes 1.35.0 becomes available on major cloud vendors (GKE Regular channel). As a result, the stable version will require Kubernetes 1.35.0 with the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature enabled.
 - Changes to [Custom Resource Definitions](#custom-resource-definitions) are possible before the stable release.
 
 ## Custom Runner Images
 
-The chart uses `scalr/runner` by default to provision run environments.
+The chart uses the [scalr/runner](https://hub.docker.com/r/scalr/runner) image by default to provision run environments.
 
-> [!NOTE]
-> Currently, `scalr/agent-runner` is temporarily used instead. This image bundles agent code with the runner to provision the entrypoint script. This will be replaced with `scalr/runner` in a future releases.
+The image source code: https://github.com/Scalr/runner
 
 You can override `task.runner.image.*` to use a custom runner image.
-If you are using a custom runner image, it must include a user with UID/GID `1000`. By default, Scalr images come with a user `scalr` under `1000:1000`.
+
+If you are using a custom runner image, it must include a user with UID/GID `1000`. By default, Scalr images come with a `scalr` user under `1000:1000`.
 
 Example override:
 
@@ -550,14 +547,14 @@ For issues not covered above:
 | task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
 | task.podLabels | object | `{}` | Task-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
 | task.podSecurityContext | object | `{}` | Task-specific pod security context (merged with global.podAnnotations, overrides duplicate keys). |
-| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":""},"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
+| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
 | task.runner.extraEnv | object | `{}` | Additional environment variables for the runner container. |
 | task.runner.extraVolumeMounts | list | `[]` | Additional volume mounts for the runner container. |
-| task.runner.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/agent-runner","tag":""}` | Runner container image settings. |
+| task.runner.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"}` | Runner container image settings. Default image: https://hub.docker.com/r/scalr/runner, repository: https://github.com/Scalr/runner Note: For Scalr-managed agents, this may be overridden by Scalr account image settings. |
 | task.runner.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
-| task.runner.image.repository | string | `"scalr/agent-runner"` | Docker repository for the runner image. |
-| task.runner.image.tag | string | `""` | Image tag. Defaults to the chart appVersion if not specified. |
-| task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource requests and limits for the runner container. Note: For system agent controllers, this may be overridden by Scalr platform billing resource tier presets. |
+| task.runner.image.repository | string | `"scalr/runner"` | Docker repository for the runner image. |
+| task.runner.image.tag | string | `"0.2.0"` | Docker tar for the runner image. |
+| task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource requests and limits for the runner container. Note: For scalr-managed agents, this may be overridden by Scalr platform billing resource tier presets. |
 | task.runner.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}` | Security context for the runner container. The default declaration duplicates some critical options from podSecurityContext to keep them independent. |
 | task.runner.securityContext.allowPrivilegeEscalation | bool | `false` | Allow privilege escalation. |
 | task.runner.securityContext.capabilities | object | `{"drop":["ALL"]}` | Container capabilities restrictions for security. |

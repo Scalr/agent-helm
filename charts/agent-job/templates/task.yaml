@@ -54,11 +54,16 @@ spec:
             image: "{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
             {{- end }}
             imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
-            # TODO: Enable the Image Volume feature once it is out of beta.
-            # Then we can mount the single file from the agent image instead of relying
-            # on the agent-runner image to provide exec-loop.sh.
+            # TODO: Enable the Image Volume feature once it is out of beta
+            # and mount exec-loop from scalr/agent image instead.
             # See: https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/
-            command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
+            command:
+              - /bin/sh
+              - -c
+              - |
+                curl -fsSL https://storage.cloud.google.com/runner-exec-loop/d299348/exec_loop.sh -o /tmp/exec_loop.sh && \
+                echo "365410cdb41ab9f22f11f41b55c6abc04281c0209fc118d31b22e12bff6a07ae /bin/exec-loop" | sha256sum -c - && \
+                /bin/sh /bin/exec-loop
             workingDir: /opt/workdir
             {{- with .Values.task.runner.securityContext }}
             securityContext:
