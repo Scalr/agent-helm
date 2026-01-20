@@ -61,8 +61,8 @@ spec:
               - /bin/sh
               - -c
               - |
-                curl -fsSL https://storage.cloud.google.com/runner-exec-loop/d299348/exec_loop.sh -o /tmp/exec-loop.sh && \
-                echo "ea11a10ce0b384c87f8671fcec5472dcc66f13538f6335497427b8ba9d1ed17e /tmp/exec-loop.sh" | sha256sum -c - && \
+                curl -fsSL https://storage.googleapis.com/runner-exec-loop/d299348/exec_loop.sh -o /tmp/exec-loop.sh && \
+                echo "365410cdb41ab9f22f11f41b55c6abc04281c0209fc118d31b22e12bff6a07ae /tmp/exec-loop.sh" | sha256sum -c - && \
                 /bin/sh /tmp/exec-loop.sh
             workingDir: /opt/workdir
             {{- with .Values.task.runner.securityContext }}
