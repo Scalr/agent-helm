@@ -415,10 +415,10 @@ task:
     # Note: For Scalr-managed agents, this may be overridden by Scalr account image settings.
     # @section -- Task
     image:
-      # -- Docker repository for the runner image.
+      # -- Default repository for the runner image.
       # @section -- Task
       repository: scalr/runner
-      # -- Docker tar for the runner image.
+      # -- Default tag for the runner image.
       # @section -- Task
       tag: "0.2.0"
       # -- Image pull policy.

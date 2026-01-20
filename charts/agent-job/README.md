@@ -553,8 +553,8 @@ For issues not covered above:
 | task.runner.extraVolumeMounts | list | `[]` | Additional volume mounts for the runner container. |
 | task.runner.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"}` | Runner container image settings. Default image: https://hub.docker.com/r/scalr/runner, repository: https://github.com/Scalr/runner Note: For Scalr-managed agents, this may be overridden by Scalr account image settings. |
 | task.runner.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
-| task.runner.image.repository | string | `"scalr/runner"` | Docker repository for the runner image. |
-| task.runner.image.tag | string | `"0.2.0"` | Docker tar for the runner image. |
+| task.runner.image.repository | string | `"scalr/runner"` | Default repository for the runner image. |
+| task.runner.image.tag | string | `"0.2.0"` | Default tag for the runner image. |
 | task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource requests and limits for the runner container. Note: For scalr-managed agents, this may be overridden by Scalr platform billing resource tier presets. |
 | task.runner.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}` | Security context for the runner container. The default declaration duplicates some critical options from podSecurityContext to keep them independent. |
 | task.runner.securityContext.allowPrivilegeEscalation | bool | `false` | Allow privilege escalation. |
