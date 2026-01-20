@@ -61,7 +61,7 @@ spec:
               - /bin/sh
               - -c
               - |
-                curl -fsSL https://storage.cloud.google.com/runner-exec-loop/d299348/exec_loop.sh -o /tmp/exec_loop.sh && \
+                curl -fsSL https://storage.cloud.google.com/runner-exec-loop/d299348/exec_loop.sh -o /bin/exec-loop && \
                 echo "365410cdb41ab9f22f11f41b55c6abc04281c0209fc118d31b22e12bff6a07ae /bin/exec-loop" | sha256sum -c - && \
                 /bin/sh /bin/exec-loop
             workingDir: /opt/workdir
