@@ -112,7 +112,10 @@ The chart uses `scalr/runner` by default to provision run environments.
 > Currently, `scalr/agent-runner` is temporarily used instead. This image bundles agent code with the runner to provision the entrypoint script. This will be replaced with `scalr/runner` in a future releases.
 
 You can override `task.runner.image.*` to use a custom runner image.
-If you are using a custom runner image, it must include a user with UID/GID `1000`. By default, Scalr images come with a user `scalr` under `1000:1000`.
+
+If you are using a custom runner image, it **must**:
+- Include a user with UID/GID `1000`. By default, Scalr images include a `scalr` user with `1000:1000`.
+- Include `/bin/sh` and `curl` tools.
 
 Example override:
 
