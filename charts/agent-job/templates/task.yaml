@@ -47,18 +47,25 @@ spec:
           {{- end }}
           containers:
           - name: runner
-            {{- $registry := .Values.global.imageRegistry }}
-            {{- if $registry }}
-            image: "{{ $registry }}/{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
-            {{- else }}
-            image: "{{ .Values.task.runner.image.repository }}:{{ .Values.task.runner.image.tag | default .Chart.AppVersion }}"
-            {{- end }}
+            image: {{ include "agent-job.image" (dict "context" . "repository" .Values.task.runner.image.repository "tag" .Values.task.runner.image.tag ) }}
             imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
-            # TODO: Enable the Image Volume feature once it is out of beta.
-            # Then we can mount the single file from the agent image instead of relying
-            # on the agent-runner image to provide exec-loop.sh.
+            # TODO: Enable the Image Volume feature once it is out of beta
+            # and mount exec-loop from scalr/agent image instead.
             # See: https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/
-            command: ["/bin/sh", "/opt/scalr-agent/tacoagent/driver/exec_loop.sh"]
+            command:
+              - /bin/sh
+              - -c
+              - |
+                url="https://storage.googleapis.com/runner-exec-loop/d299348/exec_loop.sh"
+                checksum="365410cdb41ab9f22f11f41b55c6abc04281c0209fc118d31b22e12bff6a07ae"
+                target="/tmp/exec-loop.sh"
+                echo "$(date '+%F %T.%3N') Downloading entrypoint... url=$url target=$target"
+                curl -fsSL "$url" -o "$target" || { echo "$(date '+%F %T.%3N') Download failed"; exit 1; }
+                echo "$(date '+%F %T.%3N') Download complete, verifying checksum..."
+                echo "$checksum  $target" | sha256sum -c - || { echo "$(date '+%F %T.%3N') Checksum verification failed"; exit 1; }
+                echo "$(date '+%F %T.%3N') Checksum verified, executing entrypoint..."
+                chmod +x "$target"
+                exec /bin/sh "$target"
             workingDir: /opt/workdir
             {{- with .Values.task.runner.securityContext }}
             securityContext:
@@ -120,17 +127,8 @@ spec:
               timeoutSeconds: 1
               failureThreshold: 1
           - name: worker
-            {{- $workerImage := .Values.task.worker.image }}
-            {{- if not $workerImage.repository }}
-              {{- $workerImage = .Values.agent.image }}
-            {{- end }}
-            {{- $registry := .Values.global.imageRegistry }}
-            {{- if $registry }}
-            image: "{{ $registry }}/{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
-            {{- else }}
-            image: "{{ $workerImage.repository }}:{{ $workerImage.tag | default .Chart.AppVersion }}"
-            {{- end }}
-            imagePullPolicy: {{ $workerImage.pullPolicy | default .Values.agent.image.pullPolicy }}
+            image: {{ include "agent-job.image" (dict "context" . "repository" .Values.agent.image.repository "tag" .Values.agent.image.tag "defaultTag" .Chart.AppVersion) }}
+            imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
             command: ["python", "-m", "tacoagent.cmd"]
             {{- with .Values.task.worker.securityContext }}
             securityContext:

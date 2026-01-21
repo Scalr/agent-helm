@@ -44,14 +44,8 @@ spec:
       {{- end }}
       containers:
         - name: controller
-          {{- $registry := .Values.global.imageRegistry }}
-          {{- $image := .Values.agent.image }}
-          {{- if $registry }}
-          image: "{{ $registry }}/{{ $image.repository }}:{{ $image.tag | default .Chart.AppVersion }}"
-          {{- else }}
-          image: "{{ $image.repository }}:{{ $image.tag | default .Chart.AppVersion }}"
-          {{- end }}
-          imagePullPolicy: {{ $image.pullPolicy }}
+          image: {{ include "agent-job.image" (dict "context" . "repository" .Values.agent.image.repository "tag" .Values.agent.image.tag "defaultTag" .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
           command: ["python", "-m", "tacoagent.cmd"]
           {{- with .Values.agent.controller.securityContext }}
           securityContext:

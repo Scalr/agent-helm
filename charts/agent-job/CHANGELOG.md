@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Clarified metadata service access defaults and configuration in documentation.
 - Added "Security > Multi-tenant Isolation" section to documentation.
+- The `task.runner.image` has switched from `scalr/agent-runner` to `scalr/runner`, the entrypoint is now installed via an external GCS script.
 
 ### Fixed
 
