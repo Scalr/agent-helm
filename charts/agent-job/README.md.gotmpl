@@ -109,7 +109,10 @@ The image source code: https://github.com/Scalr/runner
 
 You can override `task.runner.image.*` to use a custom runner image.
 
-If you are using a custom runner image, it must include a user with UID/GID `1000`. By default, Scalr images come with a `scalr` user under `1000:1000`.
+If you are using a custom runner image, it **must**:
+
+- Include a user with UID/GID `1000`. By default, Scalr images include a `scalr` user with `1000:1000`.
+- Include `/bin/sh` and `curl` tools.
 
 Example override:
 
