@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.67]
+
+### Updated
+
+- Bumping chart version to v0.5.67 for scalr-agent v0.60.0
+
 ### Changed
 
 - Clarified metadata service access defaults and configuration in documentation.

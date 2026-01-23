@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.66]
+
+### Updated
+
+- Bumping chart version to v0.5.66 for scalr-agent v0.60.0
+
 ### Added
 
 - Added `agent.container_task_image` option to configure a custom runner image. See more at <https://docs.scalr.io/docs/configuration#scalr_agent_container_task_image>. If you've used `extraEnv.SCALR_AGENT_CONTAINER_TASK_IMAGE`, please upgrade to the `agent.container_task_image` option to avoid Helm collisions.
