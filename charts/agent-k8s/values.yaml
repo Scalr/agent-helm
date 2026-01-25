@@ -66,28 +66,27 @@ agent:
   container_task_ca_cert: ""
   # -- The OCI image configuration for the golden runner image.
   # Enables the use of a golden runner image or allows changing the image if golden runner
-  # images are enforced at the Scalr account level.
-  # When enabled, a single runner image will be used instead of version-specific Docker images
+  # images are already enabled at the Scalr account level.
+  # When enabled, a single runner image will be used instead of software-specific Docker images
   # (e.g., scalr/opentofu:x.y.z, where x.y.z depends on workspace settings).
-  # OpenTofu/Terraform/etc. will be shipped as binary releases from scalr.io rather than
-  # individual Docker images.
-  # The default image used by the Scalr platform is scalr/runner
-  # (see https://hub.docker.com/r/scalr/runner).
+  # OpenTofu/Terraform/etc. will be shipped as binary releases from scalr.io rather than individual Docker images.
   # Note that not all software versions are available as binary releases on the Scalr platform,
   # and some older OPA/Checkov versions may not be available.
-  # The runner image is enabled for all new accounts and can be overridden by this option.
-  # For older accounts, it can be enabled using this option. Alternatively, you can contact the
-  # Scalr Team to enable it for all agents in your account by default.
-  # Example: "scalr/runner:0.2.0" or "myregistry.io/custom-runner:latest"
+  # For newer accounts, golden runner image is enabled and can be overridden by this option.
+  # For older accounts, golden runner image can be enforced using this option. Alternatively,
+  # you can contact the Scalr Team to enable it for all agents in your account by default.
+  # The default image used by the Scalr platform is the runner image: https://hub.docker.com/r/scalr/runner
   container_task_image: ""
-  # -- The OCI image registry configuration for deprecated Docker-based software releases.
+  # -- The OCI image registry configuration for deprecated software-specific Docker images.
   # Enforce the use of a custom image registry to pull all container task images.
-  # All images must be preemptively pushed to this registry for the agent to work with this option.
-  # The registry path may include a repository prefix to be replaced.
-  # If the path ends with a trailing slash, it will be appended to the original repository.
-  # Examples: 'mirror.io', 'mirror.io/myproject', or 'mirror.io/myproject/'
-  # This option only applies to Docker-based releases and is not applied to the golden runner
-  # image, which can be configured via container_task_image.
+  # This option only applies to software-specific Docker images (e.g., scalr/opentofu:x.y.z
+  # or scalr/terraform:x.y.z) and is not applied to the golden runner image, which can be
+  # configured via containerTaskImage.
+  # If the registry ends with a trailing slash, it will be appended to the original
+  # namespace/image-name. Otherwise, the namespace will be erased.
+  # Examples:
+  #   - gcr.io/my/org/ + scalr/runner:0.0.1 => gcr.io/my/org/scalr/runner:0.0.1
+  #   - gcr.io/my/org + scalr/runner:0.0.1 => gcr.io/my/org/runner:0.0.1
   container_task_image_registry: ""
   # -- Size limit (in megabytes) of the global plugin cache with providers from the public registries.
   gc_plugins_global_size_limit: 2560
