@@ -7,6 +7,7 @@ Deploys an agent controller with a set of agent workers and executes runs in iso
 
 ## Table of Contents
 
+- [Prerequisites](#prerequisites)
 - [Overview](#overview)
 - [Deployment Diagram](#deployment-diagram)
 - [Installation](#installation)
@@ -19,6 +20,11 @@ Deploys an agent controller with a set of agent workers and executes runs in iso
 - [SSL Certificate Bundles](#ssl-certificate-bundles)
 - [Troubleshooting](#troubleshooting)
 - [Limitations](#limitations)
+
+## Prerequisites
+
+- Kubernetes 1.29+ (older versions may work but only maintained Kubernetes versions are officially supported)
+- Helm 3.0+
 
 ## Overview
 
