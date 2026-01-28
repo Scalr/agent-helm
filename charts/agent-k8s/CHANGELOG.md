@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the behavior of the `agent.container_task_image` configuration option. This option now allows enforcing the use of a golden [runner image](https://hub.docker.com/r/scalr/runner), which previously could only be enabled for older Scalr accounts by the Scalr Team on demand.
 Set `SCALR_AGENT_CONTAINER_TASK_IMAGE=scalr/runner:0.2.0` to use a single [runner image](https://hub.docker.com/r/scalr/runner) instead of version-specific Docker images (e.g., `scalr/opentofu:x.y.z`, depending on workspace settings) for containerized drivers like Docker and Kubernetes. OpenTofu/Terraform and other IaC tools will be shipped as binary releases from scalr.io rather than as individual Docker images. Note that not all software versions are available as binary releases on the Scalr platform, and some older OPA/Checkov versions may not be available.
 - Added "Requirements" section documenting that Kubernetes 1.29 or later is required. Older versions may work but only maintained Kubernetes versions are officially supported.
+- Added "Root User Limitation" section documenting nuances of user configuration.
 
 ## [v0.5.66]
 
