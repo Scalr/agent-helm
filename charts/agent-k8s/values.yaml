@@ -73,7 +73,7 @@ agent:
   # you can contact the Scalr Team to enable it for all agents in your account by default.
   container_task_image_mode: legacy
   # -- The OCI image reference for the golden runner image. Applicable when `agent.container_task_image_mode=golden`.
-  # The default image used by the Scalr platform is the [runner image](https://hub.docker.com/r/scalr/runner).
+  # The default image GitHub repository: <https://hub.docker.com/r/scalr/runner>.
   container_task_image: scalr/runner:0.2.0
   # -- The OCI image registry configuration for legacy software-specific runner images:
   # `scalr/terraform`, `scalr/opentofu`, `openpolicyagent/opa`, `infracost/infracost`, and `bridgecrew/checkov`.
