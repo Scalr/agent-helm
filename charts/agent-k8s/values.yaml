@@ -64,26 +64,26 @@ agent:
   # certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca \| base64`.
   # The bundle should include both your private CAs and the standard set of public CAs.
   container_task_ca_cert: ""
-  # -- The OCI image configuration for the golden runner image.
-  # Enables the use of a golden runner image or allows changing the image if golden runner
-  # images are already enabled at the Scalr account level.
-  # When enabled, a single runner image will be used instead of software-specific Docker images
-  # (e.g., scalr/opentofu:x.y.z, where x.y.z depends on workspace settings).
-  # OpenTofu/Terraform/etc. will be shipped as binary releases from scalr.io rather than individual Docker images.
-  # Note that not all software versions are available as binary releases on the Scalr platform,
-  # and some older OPA/Checkov versions may not be available.
-  # For newer accounts, golden runner image is enabled and can be overridden by this option.
-  # For older accounts, golden runner image can be enforced using this option. Alternatively,
+  # -- Choose the runner image mode: golden or legacy.
+  # In legacy mode, software-specific Docker images are used to create Scalr Run containers (e.g., scalr/opentofu:x.y.z, where x.y.z depends on workspace settings).
+  # When golden mode is active, a single runner image will be used instead (defined by agent.containerTaskImage configuration).
+  # OpenTofu/Terraform/etc. will be shipped as binary artifacts from scalr.io rather than bundled in images.
+  # For newer accounts, golden runner image mode is enforced by default.
+  # For older accounts, legacy mode is used and golden mode can be enforced using this option. Alternatively,
   # you can contact the Scalr Team to enable it for all agents in your account by default.
-  # The default image used by the Scalr platform is the runner image: https://hub.docker.com/r/scalr/runner
-  container_task_image: ""
-  # -- The OCI image registry configuration for legacy software-specific Docker images:
-  # `scalr/terraform`, `scalr/opentofu`, `openpolicyagent/opa`, `infracost/infracost` and `bridgecrew/checkov`.
+  container_task_image_mode: legacy
+  # -- The OCI image reference for the golden runner image. Applicable when `agent.container_task_image_mode=golden`.
+  # The default image used by the Scalr platform is the [runner image](https://hub.docker.com/r/scalr/runner).
+  container_task_image: scalr/runner:0.2.0
+  # -- The OCI image registry configuration for legacy software-specific runner images:
+  # `scalr/terraform`, `scalr/opentofu`, `openpolicyagent/opa`, `infracost/infracost`, and `bridgecrew/checkov`.
+  # Applicable when `agent.container_task_image_mode=legacy`.
   # If the registry ends with a trailing slash, it will be appended to the original namespace/image-name.
   # Otherwise, the namespace will be erased.
+  #
   # Examples:
-  #   - gcr.io/my/org/ + scalr/runner:0.0.1 => gcr.io/my/org/scalr/runner:0.0.1
-  #   - gcr.io/my/org + scalr/runner:0.0.1 => gcr.io/my/org/runner:0.0.1
+  # - `agent.container_task_image_registry=gcr.io/my/org/ + scalr/opentofu:1.0.0 => gcr.io/my/org/scalr/opentofu:1.0.0`
+  # - `agent.container_task_image_registry=gcr.io/my/org + scalr/opentofu:1.0.0 => gcr.io/my/org/opentofu:1.0.0`
   container_task_image_registry: ""
   # -- Size limit (in megabytes) of the global plugin cache with providers from the public registries.
   gc_plugins_global_size_limit: 2560
