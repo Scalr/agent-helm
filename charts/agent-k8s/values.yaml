@@ -77,13 +77,10 @@ agent:
   # you can contact the Scalr Team to enable it for all agents in your account by default.
   # The default image used by the Scalr platform is the runner image: https://hub.docker.com/r/scalr/runner
   container_task_image: ""
-  # -- The OCI image registry configuration for deprecated software-specific Docker images.
-  # Enforce the use of a custom image registry to pull all container task images.
-  # This option only applies to software-specific Docker images (e.g., scalr/opentofu:x.y.z
-  # or scalr/terraform:x.y.z) and is not applied to the golden runner image, which can be
-  # configured via containerTaskImage.
-  # If the registry ends with a trailing slash, it will be appended to the original
-  # namespace/image-name. Otherwise, the namespace will be erased.
+  # -- The OCI image registry configuration for legacy software-specific Docker images:
+  # `scalr/terraform`, `scalr/opentofu`, `openpolicyagent/opa`, `infracost/infracost` and `bridgecrew/checkov`.
+  # If the registry ends with a trailing slash, it will be appended to the original namespace/image-name.
+  # Otherwise, the namespace will be erased.
   # Examples:
   #   - gcr.io/my/org/ + scalr/runner:0.0.1 => gcr.io/my/org/scalr/runner:0.0.1
   #   - gcr.io/my/org + scalr/runner:0.0.1 => gcr.io/my/org/runner:0.0.1
