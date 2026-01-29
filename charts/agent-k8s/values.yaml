@@ -68,7 +68,7 @@ agent:
   # In legacy mode, software-specific Docker images are used to create Scalr Run containers (e.g., scalr/opentofu:x.y.z, where x.y.z depends on workspace settings).
   # When golden mode is active, a single runner image will be used instead (defined by agent.containerTaskImage configuration).
   # OpenTofu/Terraform/etc. will be shipped as binary artifacts from scalr.io rather than bundled in images.
-  # For newer accounts, golden runner image mode is enforced by default.
+  # For newer accounts, golden runner image mode is already enforced by default by the Scalr platform, ignoring this option.
   # For older accounts, legacy mode is used and golden mode can be enforced using this option. Alternatively,
   # you can contact the Scalr Team to enable it for all agents in your account by default.
   container_task_image_mode: legacy
