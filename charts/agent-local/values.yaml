@@ -81,7 +81,7 @@ serviceAccount:
   # -- Create a Kubernetes service account for the Scalr Agent.
   create: false
   # -- Whether to automount the service account token in the Scalr Agent pod.
-  automountToken: false
+  automountServiceAccountToken: false
   # -- Annotations for the service account.
   annotations: {}
   # -- Additional labels for the service account.
