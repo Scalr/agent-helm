@@ -251,30 +251,65 @@ It's best to pull the logs immediately after an incident, since this command wil
 
 ## Values
 
+### Scheduling & Placement
+
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling. |
-| agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. @section -- Agent |
-| agent.dataDir | string | `"/var/lib/scalr-agent/data"` | Data directory where the agent stores workspace data (configuration versions, modules, and providers). This directory must be readable, writable, and executable. @section -- Agent |
+| nodeSelector | object | `{}` | Node selector for scheduling Scalr Agent pods. |
+| replicaCount | int | `1` | Number of replicas for the Scalr Agent deployment. Adjust for high availability. |
+| tolerations | list | `[]` | Tolerations for scheduling pods on tainted nodes. |
+
+### Agent
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. |
+| agent.dataDir | string | `"/var/lib/scalr-agent/data"` | Data directory where the agent stores workspace data (configuration versions, modules, and providers). This directory must be readable, writable, and executable. |
 | agent.shutdownMode | string | `"graceful"` | The agent termination behaviour. Can be graceful, force or drain. See https://docs.scalr.io/docs/configuration#scalr_agent_worker_on_stop_action |
 | agent.token | string | `""` | The agent pool token. |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. |
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. |
 | agent.tokenExistingSecret.name | string | `""` | Name of the secret containing the token. |
 | agent.url | string | `""` | The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value is optional, as the domain can be extracted from the token payload. However, it is recommended to specify the URL explicitly for long-lived services to avoid issues if the account is renamed. |
+
+### Security
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | allowMetadataService | bool | `true` | Allow access to cloud provider metadata service (169.254.169.254). When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service. This enhances security by preventing workloads from retrieving cloud credentials or instance metadata. |
+| podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true}` | Security context for Scalr Agent pod. |
+| secret | object | `{"annotations":{},"labels":{}}` | Secret configuration for storing the Scalr Agent token. |
+| secret.annotations | object | `{}` | Annotations for the Secret resource. |
+| secret.labels | object | `{}` | Additional labels for the Secret resource. |
+| securityContext | object | `{"capabilities":{"drop":["ALL"]},"privileged":false,"procMount":"Default","runAsGroup":1000,"runAsNonRoot":true,"runAsUser":1000}` | Security context for Scalr Agent container. |
+| securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
+| securityContext.privileged | bool | `false` | Run container in privileged mode. Enable only if required. |
+| securityContext.procMount | string | `"Default"` | Proc mount type. Valid values: Default, Unmasked, Host. |
+
+### Pod Configuration
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | extraEnv | object | `{}` | Additional environment variables for Scalr Agent. Use to configure HTTP proxies or other runtime parameters. |
-| fullnameOverride | string | `""` | Fully override the resource name for all resources. |
+| podAnnotations | object | `{}` | Annotations for Scalr Agent pods (e.g., for monitoring or logging). |
+
+### Image
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. |
 | image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Image tag. Overrides the default (chart appVersion). Leave empty to use chart default. |
 | imagePullSecrets | list | `[]` | Image pull secret to use for registry authentication. |
-| nameOverride | string | `""` | Override the default resource name prefix for all resources. |
-| nodeSelector | object | `{}` | Node selector for scheduling Scalr Agent pods. |
-| persistence | object | `{"cache":{"emptyDir":{"sizeLimit":"20Gi"}},"data":{"emptyDir":{"sizeLimit":"4Gi"}},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Persistent storage configuration for the Scalr Agent data and cache volumes. |
+
+### Persistence
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | persistence.cache | object | `{"emptyDir":{"sizeLimit":"20Gi"}}` | Cache directory storage configuration. Stores OpenTofu/Terraform providers, modules and binaries. |
 | persistence.cache.emptyDir | object | `{"sizeLimit":"20Gi"}` | EmptyDir volume configuration (used when persistence.enabled is false). |
-| persistence.cache.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. @section -- Persistence |
+| persistence.cache.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. |
 | persistence.data | object | `{"emptyDir":{"sizeLimit":"4Gi"}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. |
 | persistence.data.emptyDir | object | `{"sizeLimit":"4Gi"}` | EmptyDir volume configuration. |
 | persistence.data.emptyDir.sizeLimit | string | `"4Gi"` | Size limit for the emptyDir volume. |
@@ -285,29 +320,40 @@ It's best to pull the logs immediately after an incident, since this command wil
 | persistence.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. |
 | persistence.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
 | persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
-| podAnnotations | object | `{}` | Annotations for Scalr Agent pods (e.g., for monitoring or logging). |
-| podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true}` | Security context for Scalr Agent pod. |
-| replicaCount | int | `1` | Number of replicas for the Scalr Agent deployment. Adjust for high availability. |
+
+### Resource Management
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"1000m","memory":"1024Mi"}}` | Resource limits and requests for Scalr Agent pods. Set identical resource limits and requests to enable Guaranteed QoS and minimize eviction risk. See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/#quality-of-service-classes |
-| secret | object | `{"annotations":{},"labels":{}}` | Secret configuration for storing the Scalr Agent token. |
-| secret.annotations | object | `{}` | Annotations for the Secret resource. |
-| secret.labels | object | `{}` | Additional labels for the Secret resource. |
-| securityContext | object | `{"capabilities":{"drop":["ALL"]},"privileged":false,"procMount":"Default","runAsGroup":1000,"runAsNonRoot":true,"runAsUser":1000}` | Security context for Scalr Agent container. |
-| securityContext.capabilities | object | `{"drop":["ALL"]}` | Restrict container capabilities for security. |
-| securityContext.privileged | bool | `false` | Run container in privileged mode. Enable only if required. |
-| securityContext.procMount | string | `"Default"` | Proc mount type. Valid values: Default, Unmasked, Host. |
+
+### Service account
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
 | serviceAccount.annotations | object | `{}` | Annotations for the service account. |
 | serviceAccount.automountToken | bool | `false` | Whether to automount the service account token in the Scalr Agent pod. |
 | serviceAccount.create | bool | `false` | Create a Kubernetes service account for the Scalr Agent. |
 | serviceAccount.labels | object | `{}` | Additional labels for the service account. |
 | serviceAccount.name | string | `""` | Name of the service account. Generated if not set and 'create' is true. |
+
+### Deployment & Scaling
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| terminationGracePeriodSeconds | int | `120` | Termination grace period (in seconds) for pod shutdown. |
+
+### Other Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| fullnameOverride | string | `""` | Fully override the resource name for all resources. |
+| nameOverride | string | `""` | Override the default resource name prefix for all resources. |
 | strategy | object | `{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"50%"},"type":"RollingUpdate"}` | Deployment strategy configuration. |
 | strategy.rollingUpdate | object | `{"maxSurge":"25%","maxUnavailable":"50%"}` | Rolling update parameters. |
 | strategy.rollingUpdate.maxSurge | string | `"25%"` | Maximum number of pods that can be created above the desired number during an update. |
 | strategy.rollingUpdate.maxUnavailable | string | `"50%"` | Maximum number of pods that can be unavailable during an update. |
 | strategy.type | string | `"RollingUpdate"` | Type of deployment strategy. Options: RollingUpdate, Recreate. |
-| terminationGracePeriodSeconds | int | `120` | Termination grace period (in seconds) for pod shutdown. |
-| tolerations | list | `[]` | Tolerations for scheduling pods on tainted nodes. |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)
