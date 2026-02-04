@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Migration options:
 
-  - Delete the existing Deployment before upgrading (causes brief downtime):
+  - Delete the existing Deployment before upgrading (causes brief downtime, uninstallation will termineta active jobs):
 
     ```bash
     kubectl delete deployment <release-name> -n <namespace>
