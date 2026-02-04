@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `task.job.basename` option to override the base name prefix for spawned Kubernetes Jobs.
+- Added "Task Naming" documentation section explaining how Job names are generated.
+
+### Changed
+
+- Renamed CRD from `AgentTask` to `AgentTaskTemplate` for clarity.
+- Default base name changed from chart name (`agent-job`) to `scalr-agent` for cleaner resource naming.
+- Deployment and task template names now use `fullname` template instead of hardcoded values.
+- Updated RBAC to reference `agenttasktemplates` instead of `atasks`.
+
+### Removed
+
+- Removed `atasks.scalr.io` CRD (replaced by `agenttasktemplates.scalr.io`).
+- Removed unused helper templates: `agent-job.componentName`, `agent-job.dataPVCName`, `agent-job.cachePVCName`.
+
+### Fixed
+
+- Fixed `podSecurityContext` description comments (incorrectly referenced `podAnnotations`).
+
 ## [v0.5.67]
 
 ### Updated

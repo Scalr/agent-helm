@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scalr-agent
+  name: {{ include "agent-job.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
@@ -95,7 +95,7 @@ spec:
             - name: SCALR_AGENT_KUBERNETES_MODE
               value: "controller"
             - name: SCALR_AGENT_KUBERNETES_JOB_TEMPLATE
-              value: "scalr-agent-task"
+              value: {{ include "agent-job.fullname" . }}-task-template
             - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
               value: "drain"
             - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT

@@ -14,3 +14,8 @@ maintainers:
     email: packages@scalr.com
 sources:
   - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+
+# dependencies:
+#   - name: crds
+#     version: "0.0.0"
+#     condition: crds.create
