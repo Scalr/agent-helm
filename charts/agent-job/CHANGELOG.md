@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Renamed CRD from `AgentTask` to `AgentTaskTemplate` for clarity.
+- Renamed CRD from `AgentTask` to `AgentTaskTemplate` for clarity, as the CRD defines a template for tasks, not a task itself.
 - Default base name changed from chart name (`agent-job`) to `scalr-agent` for cleaner resource naming.
-- Deployment and task template names now use `fullname` template instead of hardcoded values.
+- Deployment and task template names now use the `fullname` template instead of hardcoded values.
 - Updated RBAC to reference `agenttasktemplates` instead of `atasks`.
+- Job naming scheme changed from `atask-xxx` to `<basename>-<run-id>-<stage>` (e.g., `scalr-agent-run-v0p500fu3s9ban8s8-plan`). This provides better control over job naming and uses run IDs familiar to users and operators for better observability.
 
 ### Removed
 

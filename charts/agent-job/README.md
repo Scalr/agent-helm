@@ -122,9 +122,9 @@ Where:
 
 | Release Name | `task.job.basename` | Resulting Job Name |
 |--------------|---------------------|-------------------|
-| `scalr-agent` | (empty) | `scalr-agent-run-abcd1234-plan` |
-| `prod-agent` | (empty) | `prod-agent-run-abcd1234-apply` |
-| `scalr-agent` | `my-jobs` | `my-jobs-run-abcd1234-policy` |
+| scalr-agent | (empty) | scalr-agent-run-abcd1234-plan |
+| prod-agent | (empty) | prod-agent-run-abcd1234-apply |
+| scalr-agent | my-jobs | my-jobs-run-abcd1234-policy |
 
 To customize the basename:
 
