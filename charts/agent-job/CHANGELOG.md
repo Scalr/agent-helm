@@ -13,16 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Selector labels changed**: The default `app.kubernetes.io/name` label changed from `agent-job` to `scalr-agent`. Kubernetes does not allow modifying Deployment selectors, so existing installations will fail to upgrade with "field is immutable" error.
 
-    Migration options:
+  Migration options:
 
-    1. Delete the existing Deployment before upgrading (causes brief downtime):
+  - Delete the existing Deployment before upgrading (causes brief downtime):
 
     ```bash
     kubectl delete deployment <release-name> -n <namespace>
     helm upgrade --install <release-name> scalr-agent/agent-job ...
     ```
 
-    1. Preserve the old name to maintain compatibility (no downtime):
+  - Preserve the old name to maintain compatibility (no downtime):
 
     ```bash
     helm upgrade --install <release-name> scalr-agent/agent-job \
