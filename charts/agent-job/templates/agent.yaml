@@ -94,7 +94,7 @@ spec:
               value: "kubernetes-job"
             - name: SCALR_AGENT_KUBERNETES_MODE
               value: "controller"
-            - name: SCALR_AGENT_KUBERNETES_JOB_TEMPLATE
+            - name: SCALR_AGENT_KUBERNETES_TASK_TEMPLATE
               value: {{ include "agent-job.fullname" . }}-task-template
             - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
               value: "drain"
