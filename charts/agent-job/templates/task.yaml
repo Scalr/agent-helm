@@ -1,15 +1,16 @@
 apiVersion: scalr.io/v1
-kind: AgentTask
+kind: AgentTaskTemplate
 metadata:
-  name: scalr-agent-task
+  name: {{ include "agent-job.fullname" . }}-task-template
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
     app.kubernetes.io/component: task
 spec:
+  basename: {{ .Values.task.job.basename | default (include "agent-job.fullname" .) }}
   jobTemplate:
     spec:
-      # The agent doesn't support Scalr Run retries on infrastracture layer at the moment.
+      # The agent doesn't support task retries on infrastructure layer at the moment.
       backoffLimit: 0
       restartPolicy: Never
       ttlSecondsAfterFinished: {{ .Values.task.job.ttlSecondsAfterFinished }}

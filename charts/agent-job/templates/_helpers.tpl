@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "agent-job.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default "scalr-agent" .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -14,7 +14,7 @@ If release name contains chart name it will be used as a full name.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- $name := default "scalr-agent" .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -61,34 +61,6 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
-{{/*
-Generate a stable, release-scoped name for chart sub-components.
-*/}}
-{{- define "agent-job.componentName" -}}
-{{- printf "%s-%s" (include "agent-job.fullname" .context) .component | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
-Resolve the data PVC name, falling back to the chart-managed default.
-*/}}
-{{- define "agent-job.dataPVCName" -}}
-{{- if .Values.persistence.data.persistentVolumeClaim.claimName }}
-{{- .Values.persistence.data.persistentVolumeClaim.claimName -}}
-{{- else }}
-{{- printf "%s-data" (include "agent-job.fullname" .) -}}
-{{- end }}
-{{- end }}
-
-{{/*
-Resolve the cache PVC name, falling back to the chart-managed default.
-*/}}
-{{- define "agent-job.cachePVCName" -}}
-{{- if .Values.persistence.cache.persistentVolumeClaim.claimName }}
-{{- .Values.persistence.cache.persistentVolumeClaim.claimName -}}
-{{- else }}
-{{- printf "%s-cache" (include "agent-job.fullname" .) -}}
-{{- end }}
-{{- end }}
 
 {{/*
 Convert Kubernetes quantity to megabytes

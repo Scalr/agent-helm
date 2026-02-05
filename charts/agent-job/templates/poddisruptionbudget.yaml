@@ -2,7 +2,7 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "agent-job.fullname" . }}-agent
+  name: {{ include "agent-job.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}

@@ -1,7 +1,8 @@
 # Default values for agent-job.
 
-# -- Override the chart name portion of resource names.
+# -- Override the base name used in resource names (defaults to "scalr-agent").
 nameOverride: ""
+
 # -- Override the full name of resources (takes precedence over nameOverride).
 fullnameOverride: ""
 
@@ -79,7 +80,7 @@ rbac:
   # @section -- RBAC
   clusterRules:
     - apiGroups: ["scalr.io"]
-      resources: ["atasks"]
+      resources: ["agenttasktemplates"]
       verbs: ["get", "list", "watch"]
 
 # Global configuration that applies to all components (controller, worker, and runner containers).
@@ -283,7 +284,7 @@ agent:
   # @section -- Agent
   podLabels: {}
 
-  # -- Controller-specific pod security context (merged with global.podAnnotations, overrides duplicate keys).
+  # -- Controller-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys).
   # @section -- Agent
   podSecurityContext: {}
 
@@ -332,11 +333,15 @@ agent:
   # @section -- Agent
   terminationGracePeriodSeconds: 180
 
-# Task job configuration (Kubernetes Job) containing worker and runner containers.
+# Agent task configuration (Kubernetes Job) containing worker and runner containers.
 task:
   # -- Job configuration for task execution.
   # @section -- Task
   job:
+    # -- Base name prefix for spawned Kubernetes Jobs (defaults to fullname, e.g., "scalr-agent").
+    # Jobs are named as `<basename>-<run-id>`. See README for details on task naming.
+    # @section -- Task
+    basename: ""
     # -- Time in seconds after job completion before it is automatically deleted.
     # @section -- Task
     ttlSecondsAfterFinished: 60
@@ -364,7 +369,7 @@ task:
   # @section -- Task
   podLabels: {}
 
-  # -- Task-specific pod security context (merged with global.podAnnotations, overrides duplicate keys).
+  # -- Task-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys).
   # @section -- Task
   podSecurityContext: {}
 

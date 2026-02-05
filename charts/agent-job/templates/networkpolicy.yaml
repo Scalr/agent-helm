@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "agent-job.fullname" . }}-task-network-policy
+  name: {{ include "agent-job.fullname" . }}-network-policy
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
