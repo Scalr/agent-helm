@@ -405,13 +405,13 @@ helm upgrade scalr-agent scalr-agent-helm/agent-job \
   --set agent.debug="1"
 ```
 
-Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31) and attach them to your support ticket.
 
 ### Collecting Logs
 
-When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `run-*` job pod). Job pods are available for 60 seconds after completion. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
+When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `scalr-agent-run-*` job pod). Job pods are available for 60 seconds after completion by default. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
 
-Use `kubectl logs` to retrieve logs from the `scalr-agent-*` and `run-*` pods (if any):
+Use `kubectl logs` to retrieve logs from the `scalr-agent-*` pods:
 
 ```shell
 kubectl logs -n <namespace> <task-pod-name> --all-containers
