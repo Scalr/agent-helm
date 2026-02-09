@@ -5,6 +5,7 @@
 
 ## Table of Contents
 
+- [Prerequisites](#prerequisites)
 - [Overview](#overview)
 - [Deployment Diagram](#deployment-diagram)
 - [Installation](#installation)
@@ -12,11 +13,17 @@
 - [Disk Requirements](#disk-requirements)
 - [Choosing the Data Home Directory](#choosing-the-data-home-directory)
 - [Amazon EFS](#amazon-efs)
+- [Root User Limitation](#root-user-limitation)
 - [Restrict Access to VM Metadata Service](#restrict-access-to-vm-metadata-service)
 - [HTTP Proxy](#http-proxy)
 - [SSL Certificate Bundles](#ssl-certificate-bundles)
 - [Troubleshooting](#troubleshooting)
 - [Limitations](#limitations)
+
+## Prerequisites
+
+- Kubernetes 1.29+ (older versions may work but only maintained Kubernetes versions are officially supported)
+- Helm 3.0+
 
 ## Overview
 
@@ -197,6 +204,14 @@ efsMountOptions:
 ```
 
 Changing these defaults may affect Scalr Agent behavior. For more information, see: <https://www.ibm.com/docs/en/aix/7.2.0?topic=client-nfs-file-attribute-cache-tuning>
+
+### Root User Limitation
+
+The chart defaults to running the agent as root because `hostPath` storage is typically owned by root on the node.
+While you can configure `securityContext` to run as a non-root user, this is intended for [EFS](#amazon-efs)
+and is not supported for the default `hostPath` setup.
+The chart is expected to be run on a dedicated node pool to mitigate security risks associated with hostPath and root users.
+If you consider this an issue, we recommend looking into the [`agent-local`](/charts/agent-local) or [`agent-job`](/charts/agent-job) (Beta) charts, which provide more secure defaults.
 
 ## Restrict Access to VM Metadata Service
 

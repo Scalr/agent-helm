@@ -7,6 +7,7 @@ Deploys an agent controller with a set of agent workers and executes runs in iso
 
 ## Table of Contents
 
+- [Prerequisites](#prerequisites)
 - [Overview](#overview)
 - [Deployment Diagram](#deployment-diagram)
 - [Installation](#installation)
@@ -14,11 +15,17 @@ Deploys an agent controller with a set of agent workers and executes runs in iso
 - [Disk Requirements](#disk-requirements)
 - [Choosing the Data Home Directory](#choosing-the-data-home-directory)
 - [Amazon EFS](#amazon-efs)
+- [Root User Limitation](#root-user-limitation)
 - [Restrict Access to VM Metadata Service](#restrict-access-to-vm-metadata-service)
 - [HTTP Proxy](#http-proxy)
 - [SSL Certificate Bundles](#ssl-certificate-bundles)
 - [Troubleshooting](#troubleshooting)
 - [Limitations](#limitations)
+
+## Prerequisites
+
+- Kubernetes 1.29+ (older versions may work but only maintained Kubernetes versions are officially supported)
+- Helm 3.0+
 
 ## Overview
 
@@ -200,6 +207,14 @@ efsMountOptions:
 
 Changing these defaults may affect Scalr Agent behavior. For more information, see: <https://www.ibm.com/docs/en/aix/7.2.0?topic=client-nfs-file-attribute-cache-tuning>
 
+### Root User Limitation
+
+The chart defaults to running the agent as root because `hostPath` storage is typically owned by root on the node.
+While you can configure `securityContext` to run as a non-root user, this is intended for [EFS](#amazon-efs)
+and is not supported for the default `hostPath` setup.
+The chart is expected to be run on a dedicated node pool to mitigate security risks associated with hostPath and root users.
+If you consider this an issue, we recommend looking into the [`agent-local`](/charts/agent-local) or [`agent-job`](/charts/agent-job) (Beta) charts, which provide more secure defaults.
+
 ## Restrict Access to VM Metadata Service
 
 The chart includes an optional feature to restrict the pods from accessing the VM metadata service at 169.254.169.254, that is common for both AWS and GCP environments.
@@ -305,8 +320,9 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 | agent.container_task_ca_cert | string | `""` | The CA certificates bundle to mount it into the container task at `/etc/ssl/certs/ca-certificates.crt`. The CA file can be located inside the agent Pod, allowing selection of a certificate by its path. Alternatively, a base64 string containing the certificate bundle can be used. The example encoding it: `cat /path/to/bundle.ca \| base64`. The bundle should include both your private CAs and the standard set of public CAs. |
 | agent.container_task_cpu_limit | float | `8` | CPU resource limit defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
 | agent.container_task_cpu_request | float | `1` | CPU resource request defined in cores. If your container needs two full cores to run, you would put the value 2. If your container only needs ¼ of a core, you would put a value of 0.25 cores. |
-| agent.container_task_image | string | `""` | This option will override container_task_image_registry. |
-| agent.container_task_image_registry | string | `""` | Enforce the use of a custom image registry to pull all container task images. All images must be preemptively pushed to this registry for the agent to work with this option. The registry path may include a repository to be replaced. Example: 'mirror.io' or 'mirror.io/myproject'. |
+| agent.container_task_image | string | `"scalr/runner:0.2.0"` | The OCI image reference for the golden runner image. Applicable when `agent.container_task_image_mode=golden`. The default image GitHub repository: <https://hub.docker.com/r/scalr/runner>. |
+| agent.container_task_image_mode | string | `"legacy"` | Choose the runner image mode: golden or legacy. "In golden runner image mode, software-specific Docker images are used to create Scalr Run containers (e.g., scalr/opentofu:x.y.z, where x.y.z depends on workspace settings). In legact runner image mode, a single runner image will be used instead (defined by agent.containerTaskImage configuration). OpenTofu/Terraform/etc. will be shipped as binary artifacts from scalr.io rather than bundled in images. For newer accounts, golden runner image mode is already enforced by default by the Scalr platform, ignoring this option. For older accounts, legacy mode is used and golden mode can be enforced using this option. Alternatively, you can contact the Scalr Team to enable it for all agents in your account by default. |
+| agent.container_task_image_registry | string | `""` | The OCI image registry configuration for legacy software-specific runner images: `scalr/terraform`, `scalr/opentofu`, `openpolicyagent/opa`, `infracost/infracost`, and `bridgecrew/checkov`. Applicable when `agent.container_task_image_mode=legacy`. If the registry ends with a trailing slash, it will be appended to the original namespace/image-name. Otherwise, the namespace will be erased.  Examples: - `agent.container_task_image_registry=gcr.io/my/org/ + scalr/opentofu:1.0.0 => gcr.io/my/org/scalr/opentofu:1.0.0` - `agent.container_task_image_registry=gcr.io/my/org + scalr/opentofu:1.0.0 => gcr.io/my/org/opentofu:1.0.0` |
 | agent.container_task_mem_limit | int | `16384` | Memory resource limit defined in megabytes. |
 | agent.container_task_mem_request | int | `1024` | Memory resource request defined in megabytes. |
 | agent.container_task_scheduling_timeout | int | `120` | The container task's (e.g., Kubernetes Pod) scheduling timeout in seconds. The task will be waiting for the scheduling in the queued status; if the cluster does not allocate resources for the container in that timeout, the task will be switched to the errored status. |
@@ -356,4 +372,4 @@ If your cluster doesn't currently support egress NetworkPolicies, you may need t
 | workerTolerations | list | `[]` | Kubernetes Node Tolerations for the agent worker and the agent task pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set workerTolerations[0].operator=Equal,workerTolerations[0].effect=NoSchedule,workerTolerations[0].key=dedicated,workerTolerations[0].value=scalr-agent-worker-pool` |
 
 ----------------------------------------------
-Autogenerated from chart metadata using [helm-docs v1.11.0](https://github.com/norwoodj/helm-docs/releases/v1.11.0)
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `agent.container_task_image_mode` configuration option to control runner image behavior. Set to `golden` to use a single [runner image](https://hub.docker.com/r/scalr/runner) for all runs, or `legacy` (default) to use software-specific Docker images (e.g., `scalr/opentofu:x.y.z`, depending on workspace settings). In golden mode, OpenTofu/Terraform and other IaC tools are shipped as binary releases from scalr.io rather than bundled in Docker images. Note that not all software versions are available as binary releases on the Scalr platform, and some older OPA/Checkov versions may not be available. For newer accounts, golden runner image mode is already enforced by default by the Scalr platform, ignoring this option. For older accounts, use this option to enable golden mode on individual agents or contact the Scalr Team to enable it globally.
+- Added the default for `agent.container_task_image`. The default image is `scalr/runner:0.2.0`. From now on, the default image will only be changed alongside agent updates.
+- **Breaking**: `agent.container_task_image_registry` now only applies to legacy mode (`agent.container_task_image_mode=legacy`) and affects legacy runner images only: `scalr/terraform`, `scalr/opentofu`, `openpolicyagent/opa`, `infracost/infracost`, and `bridgecrew/checkov`. For the golden runner image in golden mode, specify the full image path including registry in `agent.container_task_image` instead.
+- Added "Requirements" section documenting that Kubernetes 1.29 or later is required. Older versions may work but only maintained Kubernetes versions are officially supported.
+- Added "Root User Limitation" section documenting nuances of user configuration.
+
 ## [v0.5.66]
 
 ### Updated
