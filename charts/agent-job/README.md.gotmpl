@@ -142,6 +142,7 @@ If you are using a custom runner image, it **must**:
 
 - Include a user with UID/GID `1000`. By default, Scalr images include a `scalr` user with `1000:1000`.
 - Include `/bin/sh` and `curl` tools.
+- Include glibc 2.32 or later.
 
 Example override:
 
