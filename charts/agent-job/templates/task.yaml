@@ -57,8 +57,8 @@ spec:
               - /bin/sh
               - -c
               - |
-                url="https://storage.googleapis.com/runner-exec-loop/d299348/exec_loop.sh"
-                checksum="365410cdb41ab9f22f11f41b55c6abc04281c0209fc118d31b22e12bff6a07ae"
+                url="https://storage.googleapis.com/runner-exec-loop/994c9f3df5/exec_loop.sh"
+                checksum="121082c8b8dedd135cfd2bb0b3bea227df2fbda1498e7be0f931d007ac02d13b"
                 target="/tmp/exec-loop.sh"
                 echo "$(date '+%F %T.%3N') Downloading entrypoint... url=$url target=$target"
                 curl -fsSL "$url" -o "$target" || { echo "$(date '+%F %T.%3N') Download failed"; exit 1; }
@@ -156,10 +156,12 @@ spec:
                 value: "kubernetes-job"
               - name: SCALR_AGENT_KUBERNETES_MODE
                 value: "worker"
+              - name: SCALR_AGENT_KUBERNETES_TASK_STARTUP_TIMEOUT
+                value: {{ .Values.task.startupTimeout | quote }}
               - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
                 value: "grace-shutdown"
               - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
-                value: "360"
+                value: {{ sub .Values.task.terminationGracePeriodSeconds | quote }}
               - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
                 value: "false"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}

@@ -389,6 +389,12 @@ task:
   # @section -- Task
   sidecars: []
 
+  # -- Maximum time in seconds for the agent worker container to become ready
+  # and begin Scalr run execution. If the pod does not start within this period,
+  # the controller fails the Scalr run and deletes the job.
+  # @section -- Task
+  startupTimeout: 180
+
   # -- Worker container configuration (sidecar that supervises task execution).
   # @section -- Task
   worker:
