@@ -22,14 +22,14 @@ spec:
         checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
       {{- end }}
       labels:
-        {{- with .Values.global.podLabels }}
-        {{- toYaml . | nindent 12 }}
-        {{- end }}
-        {{- with .Values.agent.podLabels }}
-        {{- toYaml . | nindent 12 }}
-        {{- end }}
         {{- include "agent-job.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: agent
+        {{- with .Values.global.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.agent.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
