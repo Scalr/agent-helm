@@ -30,7 +30,7 @@ spec:
           {{- with .Values.global.podLabels }}
           {{- toYaml . | nindent 8 }}
           {{- end }}
-          {{- with .Values.as.podLabels }}
+          {{- with .Values.task.podLabels }}
           {{- toYaml . | nindent 8 }}
           {{- end }}
         spec:
