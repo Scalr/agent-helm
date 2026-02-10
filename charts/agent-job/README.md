@@ -439,6 +439,7 @@ For issues not covered above:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | agent.affinity | object | `{}` | Node affinity for the controller pod. |
+| agent.annotations | object | `{}` | Additional annotations for the Deployment (workload object). |
 | agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. |
 | agent.controller | object | `{"extraEnv":[],"extraEnvFrom":[],"securityContext":{}}` | Controller-specific configuration. |
 | agent.controller.extraEnv | list | `[]` | Additional environment variables for the controller container only. |
@@ -451,6 +452,7 @@ For issues not covered above:
 | agent.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | agent.image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | agent.image.tag | string | `""` | Image tag. Defaults to the chart appVersion if not specified. |
+| agent.labels | object | `{}` | Additional labels for the Deployment (workload object). |
 | agent.logFormat | string | `"json"` | The log formatter. Options: plain, dev or json. Defaults to json. |
 | agent.moduleCache.enabled | bool | `false` | Enable module caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. |
 | agent.moduleCache.sizeLimit | string | `"40Gi"` | Module cache soft limit. Must be tuned according to cache directory size. |
@@ -578,6 +580,8 @@ For issues not covered above:
 | task.job | object | `{"basename":"","ttlSecondsAfterFinished":60}` | Job configuration for task execution. |
 | task.job.basename | string | `""` | Base name prefix for spawned Kubernetes Jobs (defaults to fullname, e.g., "scalr-agent"). Jobs are named as `<basename>-<run-id>`. See README for details on task naming. |
 | task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it is automatically deleted. |
+| task.jobAnnotations | object | `{}` | Additional annotations for the Job (workload object). |
+| task.jobLabels | object | `{}` | Additional labels for the Job (workload object). |
 | task.nodeSelector | object | `{}` | Node selector for assigning task job pods to specific nodes. Example: `--set task.nodeSelector."node-type"="agent-worker"` |
 | task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
 | task.podLabels | object | `{}` | Task-specific pod labels (merged with global.podLabels, overrides duplicate keys). |

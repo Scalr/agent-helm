@@ -5,7 +5,15 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
+    {{- with .Values.agent.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
     app.kubernetes.io/component: agent
+  {{- $agentAnnotations := merge (deepCopy (default (dict) .Values.global.annotations)) (default (dict) .Values.agent.annotations) }}
+  {{- if not (empty $agentAnnotations) }}
+  annotations:
+    {{- toYaml $agentAnnotations | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.agent.replicaCount }}
   selector:

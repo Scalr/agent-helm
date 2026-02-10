@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `task.job.basename` option to override the base name prefix for spawned Kubernetes Jobs.
 - Added "Task Naming" documentation section explaining how Job names are generated.
+- Added workload-level labels and annotations for the Deployment (`agent.labels`, `agent.annotations`) and Job (`task.jobLabels`, `task.jobAnnotations`).
+- Added global labels and annotations applied to all chart resources (`global.labels`, `global.annotations`).
 
 ### Changed
 

@@ -107,6 +107,12 @@ global:
   # -- Global pod labels applied to all pods.
   # @section -- Global
   podLabels: {}
+  # -- Global labels applied to all chart resources (metadata.labels).
+  # @section -- Global
+  labels: {}
+  # -- Global annotations applied to all chart resources (metadata.annotations).
+  # @section -- Global
+  annotations: {}
   # -- Security context applied to all pods.
   # @section -- Global
   podSecurityContext:
@@ -284,6 +290,14 @@ agent:
   # @section -- Agent
   podLabels: {}
 
+  # -- Additional labels for the Deployment (workload object).
+  # @section -- Agent
+  labels: {}
+
+  # -- Additional annotations for the Deployment (workload object).
+  # @section -- Agent
+  annotations: {}
+
   # -- Controller-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys).
   # @section -- Agent
   podSecurityContext: {}
@@ -345,6 +359,14 @@ task:
     # -- Time in seconds after job completion before it is automatically deleted.
     # @section -- Task
     ttlSecondsAfterFinished: 60
+
+  # -- Additional labels for the Job (workload object).
+  # @section -- Task
+  jobLabels: {}
+
+  # -- Additional annotations for the Job (workload object).
+  # @section -- Task
+  jobAnnotations: {}
 
   # -- Node selector for assigning task job pods to specific nodes.
   # Example: `--set task.nodeSelector."node-type"="agent-worker"`

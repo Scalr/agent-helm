@@ -7,6 +7,10 @@ metadata:
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
     app.kubernetes.io/component: agent
+  {{- with (include "agent-job.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if .Values.agent.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.agent.podDisruptionBudget.minAvailable }}
