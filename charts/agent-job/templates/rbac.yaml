@@ -39,6 +39,6 @@ subjects:
     namespace: {{ .Release.Namespace | quote }}
 roleRef:
   kind: ClusterRole
-  name: {{ include "agent-job.fullname" . }}-clusterrole
+  name: {{ .Release.Namespace }}-{{ include "agent-job.fullname" . }}-clusterrole
   apiGroup: rbac.authorization.k8s.io
 {{- end }}
