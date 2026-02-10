@@ -598,6 +598,7 @@ For issues not covered above:
 | task.runner.securityContext.runAsNonRoot | bool | `true` | Run container as non-root user for security. |
 | task.runner.securityContext.seLinuxOptions | object | `{}` | SELinux options for the container. |
 | task.sidecars | list | `[]` | Additional sidecar containers for task job pods. |
+| task.startupTimeout | int | `180` | Maximum time in seconds for the agent worker container to become ready and begin Scalr run execution. If the pod does not start within this period, the controller fails the Scalr run and deletes the job. |
 | task.terminationGracePeriodSeconds | int | `360` | Grace period in seconds before forcibly terminating task job containers. |
 | task.tolerations | list | `[]` | Node tolerations for task job pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set task.tolerations[0].key=dedicated,task.tolerations[0].operator=Equal,task.tolerations[0].value=agent-worker,task.tolerations[0].effect=NoSchedule` |
 | task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"resources":{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). |

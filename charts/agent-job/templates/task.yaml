@@ -161,7 +161,7 @@ spec:
               - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
                 value: "grace-shutdown"
               - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
-                value: {{ sub .Values.task.terminationGracePeriodSeconds | quote }}
+                value: {{ .Values.task.terminationGracePeriodSeconds | quote }}
               - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
                 value: "false"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}

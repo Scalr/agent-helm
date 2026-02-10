@@ -101,7 +101,7 @@ spec:
             - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
               value: "180"
             - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
-              value: {{ sub .Values.agent.terminationGracePeriodSeconds | quote }}
+              value: {{ .Values.agent.terminationGracePeriodSeconds | quote }}
             - name: SCALR_AGENT_KUBERNETES_TASK_STARTUP_TIMEOUT
               value: {{ .Values.task.startupTimeout | quote }}
             - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
