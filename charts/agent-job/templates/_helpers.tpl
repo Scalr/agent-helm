@@ -36,10 +36,22 @@ Common labels
 {{- define "agent-job.labels" -}}
 helm.sh/chart: {{ include "agent-job.chart" . }}
 {{ include "agent-job.selectorLabels" . }}
+{{- with .Values.global.labels }}
+{{- toYaml . }}
+{{- end }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Common annotations
+*/}}
+{{- define "agent-job.annotations" -}}
+{{- with .Values.global.annotations }}
+{{- toYaml . }}
+{{- end }}
 {{- end }}
 
 {{/*

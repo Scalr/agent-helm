@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `task.job.basename` option to override the base name prefix for spawned Kubernetes Jobs.
 - Added "Task Naming" documentation section explaining how Job names are generated.
+- Added workload-level labels and annotations for the Deployment (`agent.labels`, `agent.annotations`) and Job (`task.jobLabels`, `task.jobAnnotations`).
+- Added global labels and annotations applied to all chart resources (`global.labels`, `global.annotations`).
 
 ### Changed
 
@@ -47,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deployment and task template names now use the `fullname` template instead of hardcoded values.
 - Updated RBAC to reference `agenttasktemplates` instead of `atasks`.
 - Job naming scheme changed from `atask-xxx` to `<basename>-<run-id>-<stage>` (e.g., `scalr-agent-run-v0p500fu3s9ban8s8-plan`). This provides better control over job naming and uses run IDs familiar to users and operators for better observability.
+- ClusterRole and ClusterRoleBinding names now include namespace prefix to avoid conflicts in multi-namespace deployments.
 
 ### Removed
 
@@ -56,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `podSecurityContext` description comments (incorrectly referenced `podAnnotations`).
+- Fixed selector labels not being included in Deployment pod template labels.
+- Fixed pod labels indentation in Deployment template.
+- Fixed ClusterRoleBinding by removing incorrect `namespace` field from metadata.
 
 ## [v0.5.67]
 
