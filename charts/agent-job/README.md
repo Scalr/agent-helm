@@ -167,6 +167,7 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
+- [Build](#custom-runner-images) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
 
 ### Use Persistent Cache
 
@@ -481,9 +482,11 @@ For issues not covered above:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| global.annotations | object | `{}` | Global annotations applied to all chart resources (metadata.annotations). |
 | global.imageNamespace | string | "" | Global image namespace/organization override for all images. Replaces the namespace in repositories (e.g., "myorg" changes "scalr/runner" to "myorg/runner"). Combined: registry="gcr.io/project" + namespace="myorg" + repo="scalr/runner" → "gcr.io/project/myorg/runner:tag" Leave empty to preserve original namespace. |
 | global.imagePullSecrets | list | `[]` | Global image pull secrets for private registries. |
 | global.imageRegistry | string | "" | Global Docker registry override for all images. Prepended to image repositories. Example: "us-central1-docker.pkg.dev/myorg/images" Leave empty to use default Docker Hub. |
+| global.labels | object | `{}` | Global labels applied to all chart resources (metadata.labels). |
 | global.podAnnotations | object | `{}` | Global pod annotations applied to all pods. |
 | global.podLabels | object | `{}` | Global pod labels applied to all pods. |
 | global.podSecurityContext | object | `{"fsGroup":1000,"fsGroupChangePolicy":"OnRootMismatch","runAsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"},"supplementalGroups":[],"sysctls":[]}` | Security context applied to all pods. |
