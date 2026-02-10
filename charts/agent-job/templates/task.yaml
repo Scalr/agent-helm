@@ -24,15 +24,15 @@ spec:
           {{- with (merge (deepCopy .Values.global.podAnnotations) .Values.task.podAnnotations) }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
-        labels:
-          {{- include "agent-job.selectorLabels" . | nindent 8 }}
-          app.kubernetes.io/component: task
-          {{- with .Values.global.podLabels }}
-          {{- toYaml . | nindent 8 }}
-          {{- end }}
-          {{- with .Values.task.podLabels }}
-          {{- toYaml . | nindent 8 }}
-          {{- end }}
+          labels:
+            {{- include "agent-job.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: task
+            {{- with .Values.global.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with .Values.task.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
         spec:
           restartPolicy: Never
           {{- with .Values.global.imagePullSecrets }}
