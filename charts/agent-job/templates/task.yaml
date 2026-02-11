@@ -173,8 +173,8 @@ spec:
                 value: "kubernetes-job"
               - name: SCALR_AGENT_KUBERNETES_MODE
                 value: "worker"
-              - name: SCALR_AGENT_KUBERNETES_TASK_STARTUP_TIMEOUT
-                value: {{ .Values.task.startupTimeout | quote }}
+              - name: SCALR_AGENT_KUBERNETES_TASK_STARTUP_TIMEOUT_SECONDS
+                value: {{ .Values.task.startupTimeoutSeconds | quote }}
               - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
                 value: "grace-shutdown"
               - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT

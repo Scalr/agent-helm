@@ -110,8 +110,8 @@ spec:
               value: "180"
             - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
               value: {{ .Values.agent.terminationGracePeriodSeconds | quote }}
-            - name: SCALR_AGENT_KUBERNETES_TASK_STARTUP_TIMEOUT
-              value: {{ .Values.task.startupTimeout | quote }}
+            - name: SCALR_AGENT_KUBERNETES_TASK_STARTUP_TIMEOUT_SECONDS
+              value: {{ .Values.task.startupTimeoutSeconds | quote }}
             - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
               value: "false"
             {{- $telemetry := .Values.otel -}}
