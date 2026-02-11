@@ -79,10 +79,10 @@ spec:
                 target="/tmp/exec-loop.sh"
                 echo "$(date '+%F %T.%3N') | INFO | exec-loop: Downloading entrypoint... url=$url target=$target"
                 curl -fsSL "$url" -o "$target" || { echo "$(date '+%F %T.%3N') Download failed"; exit 1; }
-                echo "$(date '+%F %T.%3N') | INFO | exec-loop: Download complete, verifying checksum..."
+                echo "$(date '+%F %T.%3N') | INFO | exec-loop: Download complete, checksum verification... checksum=$checksum..."
                 echo "$checksum  $target" | sha256sum -c - >/dev/null 2>&1 \
-                  && echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification OK checksum=$checksum" \
-                  || { echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification failed checksum=$checksum"; exit 1; }
+                  && echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification OK" \
+                  || { echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification failed c"; exit 1; }
                 echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verified, executing entrypoint..."
                 chmod +x "$target"
                 exec /bin/sh "$target"
