@@ -118,6 +118,8 @@ Where:
 - **run-id**: Unique identifier assigned by the Scalr platform (e.g., `run-v0p500fu3s9ban8s8`).
 - **stage**: The execution stage (e.g., `plan`, `apply`, `policy`, etc).
 
+The basename has a 30-character limit. If it exceeds this, it will be omitted.
+
 **Examples:**
 
 | Release Name | `task.job.basename` | Resulting Job Name |
