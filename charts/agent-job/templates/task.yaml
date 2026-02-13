@@ -74,8 +74,8 @@ spec:
               - /bin/sh
               - -c
               - |
-                url="https://storage.googleapis.com/runner-exec-loop/994c9f3df5/exec_loop.sh"
-                checksum="121082c8b8dedd135cfd2bb0b3bea227df2fbda1498e7be0f931d007ac02d13b"
+                url="https://storage.googleapis.com/runner-exec-loop/98bc5a369d/exec_loop.sh"
+                checksum="ac1e9d70bb5ed171fc4d2d2a256ad0439040605e4a3008a953ee9f5b991d6800"
                 target="/tmp/exec-loop.sh"
                 echo "$(date '+%F %T.%3N') | INFO | exec-loop: Downloading entrypoint... url=$url target=$target"
                 curl -fsSL "$url" -o "$target" || { echo "$(date '+%F %T.%3N') Download failed"; exit 1; }
