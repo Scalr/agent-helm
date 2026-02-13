@@ -23,10 +23,10 @@ spec:
   template:
     metadata:
       annotations:
-      {{- with (merge (deepCopy .Values.global.podAnnotations) .Values.agent.podAnnotations) }}
+        {{- with (merge (deepCopy .Values.global.podAnnotations) .Values.agent.podAnnotations) }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- if not .Values.agent.tokenExistingSecret.name }}
+        {{- end }}
+        {{- if not .Values.agent.tokenExistingSecret.name }}
         checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
       {{- end }}
       labels:
