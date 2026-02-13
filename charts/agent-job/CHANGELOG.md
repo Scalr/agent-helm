@@ -9,6 +9,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Breaking Changes
+
+- **Selector labels changed**: The default `app.kubernetes.io/name` label changed from `agent-job` to `scalr-agent`. Kubernetes does not allow modifying Deployment selectors, so existing installations will fail to upgrade with "field is immutable" error.
+
+  Migration options:
+
+  - Delete the existing Deployment before upgrading (causes brief downtime, uninstallation will termineta active jobs):
+
+    ```bash
+    kubectl delete deployment <release-name> -n <namespace>
+    helm upgrade --install <release-name> scalr-agent/agent-job ...
+    ```
+
+  - Preserve the old name to maintain compatibility (no downtime):
+
+    ```bash
+    helm upgrade --install <release-name> scalr-agent/agent-job \
+    --set nameOverride="agent-job" ...
+    ```
+
+- **CRD replaced**: The `atasks.scalr.io` CRD has been replaced by `agenttasktemplates.scalr.io`. Existing `AgentTask` resources will no longer be recognized. The old CRD must be manually removed after upgrading:
+
+  ```bash
+  kubectl delete crd atasks.scalr.io
+  ```
+
+### Added
+
+- Added `task.job.basename` option to override the base name prefix for spawned Kubernetes Jobs.
+- Added "Task Naming" documentation section explaining how Job names are generated.
+- Added workload-level labels and annotations for the Deployment (`agent.labels`, `agent.annotations`) and Job (`task.jobLabels`, `task.jobAnnotations`).
+- Added global labels and annotations applied to all chart resources (`global.labels`, `global.annotations`).
+
+### Changed
+
+- Renamed CRD from `AgentTask` to `AgentTaskTemplate` for clarity, as the CRD defines a template for tasks, not a task itself.
+- Default base name changed from chart name (`agent-job`) to `scalr-agent` for cleaner resource naming.
+- Deployment and task template names now use the `fullname` template instead of hardcoded values.
+- Updated RBAC to reference `agenttasktemplates` instead of `atasks`.
+- Job naming scheme changed from `atask-xxx` to `<basename>-<run-id>-<stage>` (e.g., `scalr-agent-run-v0p500fu3s9ban8s8-plan`). This provides better control over job naming and uses run IDs familiar to users and operators for better observability.
+- ClusterRole and ClusterRoleBinding names now include namespace prefix to avoid conflicts in multi-namespace deployments.
+
+### Removed
+
+- Removed `atasks.scalr.io` CRD (replaced by `agenttasktemplates.scalr.io`).
+- Removed unused helper templates: `agent-job.componentName`, `agent-job.dataPVCName`, `agent-job.cachePVCName`.
+
+### Fixed
+
+- Fixed `podSecurityContext` description comments (incorrectly referenced `podAnnotations`).
+- Fixed selector labels not being included in Deployment pod template labels.
+- Fixed pod labels indentation in Deployment template.
+- Fixed ClusterRoleBinding by removing incorrect `namespace` field from metadata.
+
 ## [v0.5.67]
 
 ### Updated

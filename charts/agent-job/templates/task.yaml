@@ -1,15 +1,33 @@
 apiVersion: scalr.io/v1
-kind: AgentTask
+kind: AgentTaskTemplate
 metadata:
-  name: scalr-agent-task
+  name: {{ include "agent-job.fullname" . }}-task-template
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
     app.kubernetes.io/component: task
+  {{- with (include "agent-job.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
+  basename: {{ .Values.task.job.basename | default (include "agent-job.fullname" .) }}
   jobTemplate:
+    {{- $jobAnnotations := merge (deepCopy (default (dict) .Values.global.annotations)) (default (dict) .Values.task.jobAnnotations) }}
+    {{- $jobLabels := merge (deepCopy (default (dict) .Values.global.labels)) (default (dict) .Values.task.jobLabels) }}
+    {{- if or (not (empty $jobAnnotations)) (not (empty $jobLabels)) }}
+    metadata:
+      {{- if not (empty $jobAnnotations) }}
+      annotations:
+        {{- toYaml $jobAnnotations | nindent 8 }}
+      {{- end }}
+      {{- if not (empty $jobLabels) }}
+      labels:
+        {{- toYaml $jobLabels | nindent 8 }}
+      {{- end }}
+    {{- end }}
     spec:
-      # The agent doesn't support Scalr Run retries on infrastracture layer at the moment.
+      # The agent doesn't support task retries on infrastructure layer at the moment.
       backoffLimit: 0
       restartPolicy: Never
       ttlSecondsAfterFinished: {{ .Values.task.job.ttlSecondsAfterFinished }}

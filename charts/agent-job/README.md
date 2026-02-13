@@ -18,6 +18,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
 - [Planned Changes for Stable](#planned-changes-for-stable)
+- [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)
 - [Graceful Termination](#graceful-termination)
@@ -104,6 +105,34 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 - The `task.runner.image` entrypoint will be mouned using [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/). This change would require the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) Kubernetes feature and will be implemented after Kubernetes 1.35.0 becomes available on major cloud vendors (GKE Regular channel). As a result, the stable version will require Kubernetes 1.35.0 with the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature enabled.
 - Changes to [Custom Resource Definitions](#custom-resource-definitions) are possible before the stable release.
 
+### Agent Task Naming
+
+When the agent controller spawns a Kubernetes Job for a Scalr Run, the Job is named using the pattern:
+
+```
+<basename>-<run-id>-<stage>
+```
+
+Where:
+- **basename**: Configurable prefix derived from the chart's fullname (defaults to `scalr-agent`). Override with `task.job.basename`.
+- **run-id**: Unique identifier assigned by the Scalr platform (e.g., `run-v0p500fu3s9ban8s8`).
+- **stage**: The execution stage (e.g., `plan`, `apply`, `policy`, etc).
+
+**Examples:**
+
+| Release Name | `task.job.basename` | Resulting Job Name |
+|--------------|---------------------|-------------------|
+| scalr-agent | (empty) | scalr-agent-run-abcd1234-plan |
+| prod-agent | (empty) | prod-agent-run-abcd1234-apply |
+| scalr-agent | my-jobs | my-jobs-run-abcd1234-policy |
+
+To customize the basename:
+
+```shell
+helm upgrade --install scalr-agent scalr-agent/agent-job \
+  --set task.job.basename="custom-prefix"
+```
+
 ## Custom Runner Images
 
 The chart uses the [scalr/runner](https://hub.docker.com/r/scalr/runner) image by default to provision run environments.
@@ -138,6 +167,7 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
+- [Build](#custom-runner-images) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
 
 ### Use Persistent Cache
 
@@ -347,12 +377,12 @@ Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
 ## Custom Resource Definitions
 
-This chart bundles the **AgentTask CRD** (`atasks.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
+This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
 
 **Verify installation:**
 
 ```shell
-kubectl get crd atasks.scalr.io
+kubectl get crd agenttasktemplates.scalr.io
 ```
 
 ## RBAC
@@ -361,7 +391,7 @@ By default the chart provisions:
 
 - **ServiceAccount** used by the controller and task pods
 - **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
-- **ClusterRole/ClusterRoleBinding** granting read access to `AgentTask` resources (`atasks.scalr.io`)
+- **ClusterRole/ClusterRoleBinding** granting read access to `AgentTaskTemplate` resources (`agenttasktemplates.scalr.io`)
 
 Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
 
@@ -377,13 +407,13 @@ helm upgrade scalr-agent scalr-agent-helm/agent-job \
   --set agent.debug="1"
 ```
 
-Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31) and attach them to your support ticket.
 
 ### Collecting Logs
 
-When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `atask-*` job pod). Job pods are available for 60 seconds after completion. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
+When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `scalr-agent-run-*` job pod). Job pods are available for 60 seconds after completion by default. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
 
-Use `kubectl logs` to retrieve logs from the `scalr-agent-*` and `atask-*` pods (if any):
+Use `kubectl logs` to retrieve logs from the `scalr-agent-*` pods:
 
 ```shell
 kubectl logs -n <namespace> <task-pod-name> --all-containers
@@ -410,6 +440,7 @@ For issues not covered above:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | agent.affinity | object | `{}` | Node affinity for the controller pod. |
+| agent.annotations | object | `{}` | Additional annotations for the Deployment (workload object). |
 | agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. |
 | agent.controller | object | `{"extraEnv":[],"extraEnvFrom":[],"securityContext":{}}` | Controller-specific configuration. |
 | agent.controller.extraEnv | list | `[]` | Additional environment variables for the controller container only. |
@@ -422,6 +453,7 @@ For issues not covered above:
 | agent.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | agent.image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | agent.image.tag | string | `""` | Image tag. Defaults to the chart appVersion if not specified. |
+| agent.labels | object | `{}` | Additional labels for the Deployment (workload object). |
 | agent.logFormat | string | `"json"` | The log formatter. Options: plain, dev or json. Defaults to json. |
 | agent.moduleCache.enabled | bool | `false` | Enable module caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. |
 | agent.moduleCache.sizeLimit | string | `"40Gi"` | Module cache soft limit. Must be tuned according to cache directory size. |
@@ -432,7 +464,7 @@ For issues not covered above:
 | agent.podDisruptionBudget.maxUnavailable | string | `nil` | Maximum number of controller pods that can be unavailable. Either minAvailable or maxUnavailable must be set, not both. |
 | agent.podDisruptionBudget.minAvailable | int | `1` | Minimum number of controller pods that must be available. Either minAvailable or maxUnavailable must be set, not both. |
 | agent.podLabels | object | `{}` | Controller-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
-| agent.podSecurityContext | object | `{}` | Controller-specific pod security context (merged with global.podAnnotations, overrides duplicate keys). |
+| agent.podSecurityContext | object | `{}` | Controller-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys). |
 | agent.providerCache.enabled | bool | `false` | Enable provider caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. |
 | agent.providerCache.sizeLimit | string | `"40Gi"` | Provider cache soft limit. Must be tuned according to cache directory size. |
 | agent.replicaCount | int | `1` | Number of agent controller replicas. |
@@ -450,9 +482,11 @@ For issues not covered above:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| global.annotations | object | `{}` | Global annotations applied to all chart resources (metadata.annotations). |
 | global.imageNamespace | string | "" | Global image namespace/organization override for all images. Replaces the namespace in repositories (e.g., "myorg" changes "scalr/runner" to "myorg/runner"). Combined: registry="gcr.io/project" + namespace="myorg" + repo="scalr/runner" → "gcr.io/project/myorg/runner:tag" Leave empty to preserve original namespace. |
 | global.imagePullSecrets | list | `[]` | Global image pull secrets for private registries. |
 | global.imageRegistry | string | "" | Global Docker registry override for all images. Prepended to image repositories. Example: "us-central1-docker.pkg.dev/myorg/images" Leave empty to use default Docker Hub. |
+| global.labels | object | `{}` | Global labels applied to all chart resources (metadata.labels). |
 | global.podAnnotations | object | `{}` | Global pod annotations applied to all pods. |
 | global.podLabels | object | `{}` | Global pod labels applied to all pods. |
 | global.podSecurityContext | object | `{"fsGroup":1000,"fsGroupChangePolicy":"OnRootMismatch","runAsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seLinuxOptions":{},"seccompProfile":{"type":"RuntimeDefault"},"supplementalGroups":[],"sysctls":[]}` | Security context applied to all pods. |
@@ -524,7 +558,7 @@ For issues not covered above:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| rbac.clusterRules | list | `[{"apiGroups":["scalr.io"],"resources":["atasks"],"verbs":["get","list","watch"]}]` | Cluster-wide RBAC rules (applied via ClusterRole bound in the release namespace). |
+| rbac.clusterRules | list | `[{"apiGroups":["scalr.io"],"resources":["agenttasktemplates"],"verbs":["get","list","watch"]}]` | Cluster-wide RBAC rules (applied via ClusterRole bound in the release namespace). |
 | rbac.create | bool | `true` | Create the namespaced Role/RoleBinding and cluster-scope RoleBinding. |
 | rbac.rules | list | `[{"apiGroups":[""],"resources":["pods"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]},{"apiGroups":[""],"resources":["pods/exec"],"verbs":["get","create"]},{"apiGroups":[""],"resources":["pods/status"],"verbs":["get","patch","update"]},{"apiGroups":["apps"],"resources":["deployments"],"verbs":["get","list","watch"]},{"apiGroups":["batch"],"resources":["jobs"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":["batch"],"resources":["jobs/status"],"verbs":["get","patch","update"]}]` | Namespaced RBAC rules granted to the controller ServiceAccount. |
 
@@ -546,12 +580,15 @@ For issues not covered above:
 | task.affinity | object | `{}` | Node affinity for task job pods. |
 | task.allowMetadataService | bool | `false` | Disables a NetworkPolicy to the task containers that denies access to VM metadata service (169.254.169.254). |
 | task.extraVolumes | list | `[]` | Additional volumes for task job pods. |
-| task.job | object | `{"ttlSecondsAfterFinished":60}` | Job configuration for task execution. |
+| task.job | object | `{"basename":"","ttlSecondsAfterFinished":60}` | Job configuration for task execution. |
+| task.job.basename | string | `""` | Base name prefix for spawned Kubernetes Jobs (defaults to fullname, e.g., "scalr-agent"). Jobs are named as `<basename>-<run-id>`. See README for details on task naming. |
 | task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it is automatically deleted. |
+| task.jobAnnotations | object | `{}` | Additional annotations for the Job (workload object). |
+| task.jobLabels | object | `{}` | Additional labels for the Job (workload object). |
 | task.nodeSelector | object | `{}` | Node selector for assigning task job pods to specific nodes. Example: `--set task.nodeSelector."node-type"="agent-worker"` |
 | task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
 | task.podLabels | object | `{}` | Task-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
-| task.podSecurityContext | object | `{}` | Task-specific pod security context (merged with global.podAnnotations, overrides duplicate keys). |
+| task.podSecurityContext | object | `{}` | Task-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys). |
 | task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
 | task.runner.extraEnv | object | `{}` | Additional environment variables for the runner container. |
 | task.runner.extraVolumeMounts | list | `[]` | Additional volume mounts for the runner container. |
@@ -581,7 +618,7 @@ For issues not covered above:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | fullnameOverride | string | `""` | Override the full name of resources (takes precedence over nameOverride). |
-| nameOverride | string | `""` | Override the chart name portion of resource names. |
+| nameOverride | string | `""` | Override the base name used in resource names (defaults to "scalr-agent"). |
 
 ----------------------------------------------
 Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

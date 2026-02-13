@@ -15,6 +15,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
 - [Planned Changes for Stable](#planned-changes-for-stable)
+- [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)
 - [Graceful Termination](#graceful-termination)
@@ -101,6 +102,34 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 - The `task.runner.image` entrypoint will be mouned using [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/). This change would require the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) Kubernetes feature and will be implemented after Kubernetes 1.35.0 becomes available on major cloud vendors (GKE Regular channel). As a result, the stable version will require Kubernetes 1.35.0 with the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature enabled.
 - Changes to [Custom Resource Definitions](#custom-resource-definitions) are possible before the stable release.
 
+### Agent Task Naming
+
+When the agent controller spawns a Kubernetes Job for a Scalr Run, the Job is named using the pattern:
+
+```
+<basename>-<run-id>-<stage>
+```
+
+Where:
+- **basename**: Configurable prefix derived from the chart's fullname (defaults to `scalr-agent`). Override with `task.job.basename`.
+- **run-id**: Unique identifier assigned by the Scalr platform (e.g., `run-v0p500fu3s9ban8s8`).
+- **stage**: The execution stage (e.g., `plan`, `apply`, `policy`, etc).
+
+**Examples:**
+
+| Release Name | `task.job.basename` | Resulting Job Name |
+|--------------|---------------------|-------------------|
+| scalr-agent | (empty) | scalr-agent-run-abcd1234-plan |
+| prod-agent | (empty) | prod-agent-run-abcd1234-apply |
+| scalr-agent | my-jobs | my-jobs-run-abcd1234-policy |
+
+To customize the basename:
+
+```shell
+helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
+  --set task.job.basename="custom-prefix"
+```
+
 ## Custom Runner Images
 
 The chart uses the [scalr/runner](https://hub.docker.com/r/scalr/runner) image by default to provision run environments.
@@ -135,6 +164,7 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
+- [Build](#custom-runner-images) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
 
 ### Use Persistent Cache
 
@@ -344,12 +374,12 @@ Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
 ## Custom Resource Definitions
 
-This chart bundles the **AgentTask CRD** (`atasks.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
+This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
 
 **Verify installation:**
 
 ```shell
-kubectl get crd atasks.scalr.io
+kubectl get crd agenttasktemplates.scalr.io
 ```
 
 ## RBAC
@@ -358,7 +388,7 @@ By default the chart provisions:
 
 - **ServiceAccount** used by the controller and task pods
 - **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
-- **ClusterRole/ClusterRoleBinding** granting read access to `AgentTask` resources (`atasks.scalr.io`)
+- **ClusterRole/ClusterRoleBinding** granting read access to `AgentTaskTemplate` resources (`agenttasktemplates.scalr.io`)
 
 Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
 
@@ -374,13 +404,13 @@ helm upgrade scalr-agent scalr-agent-helm/{{ template "chart.name" . }} \
   --set agent.debug="1"
 ```
 
-Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+Then collect logs ([see below](#collecting-logs)) and open a support request at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31) and attach them to your support ticket.
 
 ### Collecting Logs
 
-When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `atask-*` job pod). Job pods are available for 60 seconds after completion. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
+When inspecting logs, you'll need both the agent log (from the `scalr-agent-*` deployment pod) and the task log (from an `scalr-agent-run-*` job pod). Job pods are available for 60 seconds after completion by default. You may want to increase this time window using `task.job.ttlSecondsAfterFinished` to allow more time for log collection.
 
-Use `kubectl logs` to retrieve logs from the `scalr-agent-*` and `atask-*` pods (if any):
+Use `kubectl logs` to retrieve logs from the `scalr-agent-*` pods:
 
 ```shell
 kubectl logs -n <namespace> <task-pod-name> --all-containers

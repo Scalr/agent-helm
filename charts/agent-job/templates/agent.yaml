@@ -1,11 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scalr-agent
+  name: {{ include "agent-job.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-job.labels" . | nindent 4 }}
+    {{- with .Values.agent.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
     app.kubernetes.io/component: agent
+  {{- $agentAnnotations := merge (deepCopy (default (dict) .Values.global.annotations)) (default (dict) .Values.agent.annotations) }}
+  {{- if not (empty $agentAnnotations) }}
+  annotations:
+    {{- toYaml $agentAnnotations | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.agent.replicaCount }}
   selector:
@@ -22,13 +30,13 @@ spec:
         checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
       {{- end }}
       labels:
+        {{- include "agent-job.selectorLabels" . | nindent 8 }}
         {{- with .Values.global.podLabels }}
-        {{- toYaml . | nindent 12 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- with .Values.agent.podLabels }}
-        {{- toYaml . | nindent 12 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- include "agent-job.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: agent
     spec:
       {{- with .Values.global.imagePullSecrets }}
@@ -94,8 +102,8 @@ spec:
               value: "kubernetes-job"
             - name: SCALR_AGENT_KUBERNETES_MODE
               value: "controller"
-            - name: SCALR_AGENT_KUBERNETES_JOB_TEMPLATE
-              value: "scalr-agent-task"
+            - name: SCALR_AGENT_KUBERNETES_TASK_TEMPLATE
+              value: {{ include "agent-job.fullname" . }}-task-template
             - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
               value: "drain"
             - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
