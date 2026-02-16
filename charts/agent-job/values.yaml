@@ -399,10 +399,6 @@ task:
   # @section -- Task
   allowMetadataService: false
 
-  # -- Grace period in seconds before forcibly terminating task job containers.
-  # @section -- Task
-  terminationGracePeriodSeconds: 360
-
   # -- Additional volumes for task job pods.
   # @section -- Task
   extraVolumes: []
@@ -410,6 +406,16 @@ task:
   # -- Additional sidecar containers for task job pods.
   # @section -- Task
   sidecars: []
+
+  # -- Grace period in seconds before forcibly terminating task job containers.
+  # @section -- Task
+  terminationGracePeriodSeconds: 360
+
+  # -- Maximum time in seconds for the agent worker container to become ready
+  # and begin Scalr run execution. If the pod does not start within this period,
+  # the controller fails the Scalr run and deletes the job.
+  # @section -- Task
+  startupTimeoutSeconds: 180
 
   # -- Worker container configuration (sidecar that supervises task execution).
   # @section -- Task

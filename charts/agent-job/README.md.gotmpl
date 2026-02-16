@@ -115,6 +115,8 @@ Where:
 - **run-id**: Unique identifier assigned by the Scalr platform (e.g., `run-v0p500fu3s9ban8s8`).
 - **stage**: The execution stage (e.g., `plan`, `apply`, `policy`, etc).
 
+The basename has a 32-character limit. If it exceeds this, it will be omitted.
+
 **Examples:**
 
 | Release Name | `task.job.basename` | Resulting Job Name |
@@ -358,7 +360,7 @@ The agent can be configured to send telemetry data, including both trace spans a
 
 OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
 
-Enable telemetry for both the agent controller deployment and the agent worker by configuring an OpenTelemetry collector endpoint:
+Enable telemetry for both the agent controller deployment and the agent worker jobs by configuring an OpenTelemetry collector endpoint:
 
 ```yaml
 otel:
