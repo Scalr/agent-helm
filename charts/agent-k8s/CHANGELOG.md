@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.67]
+
+### Updated
+
+- Bumping chart version to v0.5.67 for scalr-agent v0.61.3
+
 ### Added
 
 - Added `agent.container_task_image_mode` configuration option to control runner image behavior. Set to `golden` to use a single [runner image](https://hub.docker.com/r/scalr/runner) for all runs, or `legacy` (default) to use software-specific Docker images (e.g., `scalr/opentofu:x.y.z`, depending on workspace settings). In golden mode, OpenTofu/Terraform and other IaC tools are shipped as binary releases from scalr.io rather than bundled in Docker images. Note that not all software versions are available as binary releases on the Scalr platform, and some older OPA/Checkov versions may not be available. For newer accounts, golden runner image mode is already enforced by default by the Scalr platform, ignoring this option. For older accounts, use this option to enable golden mode on individual agents or contact the Scalr Team to enable it globally.
