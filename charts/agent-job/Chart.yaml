@@ -5,8 +5,8 @@ description: |
   It uses a job-based model, where each Scalr Run is isolated
   in its own Kubernetes Job.
 type: application
-version: 0.5.67
-appVersion: 0.60.0
+version: 0.5.68
+appVersion: 0.61.3
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
 icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
 maintainers:
@@ -14,8 +14,3 @@ maintainers:
     email: packages@scalr.com
 sources:
   - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
-
-# dependencies:
-#   - name: crds
-#     version: "0.0.0"
-#     condition: crds.create

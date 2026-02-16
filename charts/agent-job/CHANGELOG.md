@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.68]
+
+### Updated
+
+- Bumping chart version to v0.5.68 for scalr-agent v0.61.3
+
 ### Breaking Changes
 
 - **Selector labels changed**: The default `app.kubernetes.io/name` label changed from `agent-job` to `scalr-agent`. Kubernetes does not allow modifying Deployment selectors, so existing installations will fail to upgrade with "field is immutable" error.
