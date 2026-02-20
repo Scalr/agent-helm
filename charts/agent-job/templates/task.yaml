@@ -86,8 +86,8 @@ spec:
               - name: worker
                 mountPath: /usr/bin/runner
                 readOnly: true
-                # TODO: Use subPath to mount a single file instead of the entire image filesystem.
-                # Not critical, but not ideal either.
+                # TODO: Use subPath to mount a single file.
+                # Currently the entire worker image filesystem is mounted. Not critical since the component is public, but not ideal either.
                 # See: https://github.com/bottlerocket-os/bottlerocket/issues/4755
               - name: data-dir
                 mountPath: /opt/workdir
