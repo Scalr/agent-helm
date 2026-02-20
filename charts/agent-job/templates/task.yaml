@@ -70,22 +70,23 @@ spec:
             # TODO: Enable the Image Volume feature once it is out of beta
             # and mount exec-loop from scalr/agent image instead.
             # See: https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/
-            command:
-              - /bin/sh
-              - -c
-              - |
-                url="https://storage.googleapis.com/runner-exec-loop/994c9f3df5/exec_loop.sh"
-                checksum="121082c8b8dedd135cfd2bb0b3bea227df2fbda1498e7be0f931d007ac02d13b"
-                target="/tmp/exec-loop.sh"
-                echo "$(date '+%F %T.%3N') | INFO | exec-loop: Downloading entrypoint... url=$url target=$target"
-                curl -fsSL "$url" -o "$target" || { echo "$(date '+%F %T.%3N') Download failed"; exit 1; }
-                echo "$(date '+%F %T.%3N') | INFO | exec-loop: Download complete, checksum verification... checksum=$checksum..."
-                echo "$checksum  $target" | sha256sum -c - >/dev/null 2>&1 \
-                  && echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification OK" \
-                  || { echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification failed"; exit 1; }
-                echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verified, executing entrypoint..."
-                chmod +x "$target"
-                exec /bin/sh "$target"
+            # command:
+            #   - /bin/sh
+            #   - -c
+            #   - |
+            #     url="https://storage.googleapis.com/runner-exec-loop/994c9f3df5/exec_loop.sh"
+            #     checksum="121082c8b8dedd135cfd2bb0b3bea227df2fbda1498e7be0f931d007ac02d13b"
+            #     target="/tmp/exec-loop.sh"
+            #     echo "$(date '+%F %T.%3N') | INFO | exec-loop: Downloading entrypoint... url=$url target=$target"
+            #     curl -fsSL "$url" -o "$target" || { echo "$(date '+%F %T.%3N') Download failed"; exit 1; }
+            #     echo "$(date '+%F %T.%3N') | INFO | exec-loop: Download complete, checksum verification... checksum=$checksum..."
+            #     echo "$checksum  $target" | sha256sum -c - >/dev/null 2>&1 \
+            #       && echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification OK" \
+            #       || { echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verification failed"; exit 1; }
+            #     echo "$(date '+%F %T.%3N') | INFO | exec-loop: Checksum verified, executing entrypoint..."
+            #     chmod +x "$target"
+            #     exec /bin/sh "$target"
+            command: ["ls", "-al", "/worker"]
             workingDir: /opt/workdir
             {{- with .Values.task.runner.securityContext }}
             securityContext:
@@ -101,6 +102,8 @@ spec:
             resources:
               {{- toYaml .Values.task.runner.resources | nindent 14 }}
             volumeMounts:
+              - name: worker
+                mountPath: /worker
               - name: data-dir
                 mountPath: /opt/workdir
                 subPath: run/config
@@ -260,6 +263,10 @@ spec:
           {{- toYaml . | nindent 10 }}
           {{- end }}
           volumes:
+            - name: worker
+              image:
+                reference: {{ include "agent-job.image" (dict "context" . "repository" .Values.agent.image.repository "tag" .Values.agent.image.tag "defaultTag" .Chart.AppVersion) }}
+                pullPolicy: {{ .Values.agent.image.pullPolicy }}
             - name: sa-token
               projected:
                 sources:
