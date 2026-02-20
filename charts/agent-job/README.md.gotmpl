@@ -99,8 +99,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 ## Planned Changes for Stable
 
-- The `task.runner.image` entrypoint will be mouned using [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/). This change would require the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) Kubernetes feature and will be implemented after Kubernetes 1.35.0 becomes available on major cloud vendors (GKE Regular channel). As a result, the stable version will require Kubernetes 1.35.0 with the [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature enabled.
-- Changes to [Custom Resource Definitions](#custom-resource-definitions) are possible before the stable release.
+- Require containerd 2.2+ as the minimum version once it reaches GA
 
 ### Agent Task Naming
 
