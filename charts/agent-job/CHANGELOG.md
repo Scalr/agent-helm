@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Updated
+
+- Updated Kubernetes requirements: 1.35 is now the minimum required version.
+
 ## [v0.5.68]
 
 ### Updated
