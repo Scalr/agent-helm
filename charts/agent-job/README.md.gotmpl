@@ -31,7 +31,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 
 ## Prerequisites
 
-- Kubernetes 1.33+
+- Kubernetes 1.35+
 - Helm 3.0+
 - ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
 
@@ -99,7 +99,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 ## Planned Changes for Stable
 
-- Require containerd 2.2+ as the minimum version once it reaches GA
+- Require Kubernetes with containerd 2.2+ as the minimum version once it reaches GA.
 
 ### Agent Task Naming
 
@@ -142,8 +142,10 @@ You can override `task.runner.image.*` to use a custom runner image.
 If you are using a custom runner image, it **must**:
 
 - Include a user with UID/GID `1000`. By default, Scalr images include a `scalr` user with `1000:1000`.
-- Include `/bin/sh` and `curl` tools.
+- Include `/bin/sh`.
 - Include glibc 2.32 or later.
+
+For OpenTofu/Terraform operations, it is recommended to include basic tools such as `git`, `ssh`, and `curl`, which may be used by the OpenTofu/Terraform CLI when downloading modules from remote Git servers.
 
 Example override:
 
