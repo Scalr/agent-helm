@@ -102,7 +102,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 ## Planned Changes for Stable
 
-- Require Kubernetes with containerd 2.2+ as the minimum version once it reaches GA.
+- Require Kubernetes 1.35.1 with containerd 2.2+ as the minimum version once it reaches GA.
 
 ## Agent Task Naming
 
