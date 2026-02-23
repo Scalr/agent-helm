@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Fixed
+
+- Fixed `task.allowMetadataService` NetworkPolicy to be compatible with GKE Dataplane V2. Updated documentation with tested configurations and known limitations.
+
 ## [v0.5.68]
 
 ### Updated
