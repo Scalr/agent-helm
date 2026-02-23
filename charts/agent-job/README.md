@@ -336,7 +336,7 @@ The default is strict and compatible with Terraform/OpenTofu workloads, and itâ€
 ### Access to VM Metadata Service
 
 > [!WARNING]
-> This feature has known limitations. See [Limitations](#limitations).
+> This feature has known [limitations](#limitations). Verify that it is effective for your setup before relying on it.
 
 The chart includes an `allowMetadataService` option to control task pod access to the VM metadata service at `169.254.169.254`, used by AWS, GCP, and Azure to expose instance metadata and credentials.
 
