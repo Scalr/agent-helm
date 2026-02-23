@@ -351,7 +351,7 @@ $~ helm upgrade ... \
 
 #### Limitations
 
-This feature relies on egress NetworkPolicy enforcement, which requires a compatible [CNI plugin](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/network-policy#plugins) . Effectiveness may vary depending on how your cloud provider implements the Instance Metadata Service (IMDS).
+This feature relies on egress NetworkPolicy enforcement, which requires a compatible [CNI plugin](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/network-policy#plugins). Effectiveness may vary depending on how your cloud provider implements the Instance Metadata Service (IMDS).
 
 Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Tested configurations:
 
