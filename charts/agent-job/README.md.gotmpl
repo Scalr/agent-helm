@@ -332,23 +332,31 @@ The default is strict and compatible with Terraform/OpenTofu workloads, and it�
 
 ### Access to VM Metadata Service
 
-The chart includes an `allowMetadataService` configuration option to control access to the VM metadata service at 169.254.169.254, which is common for AWS, GCP, and Azure environments.
+> [!WARNING]
+> This feature has known limitations. See [Limitations](#limitations).
 
-When disabled, the chart creates a Kubernetes NetworkPolicy for task pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+The chart includes an `allowMetadataService` option to control task pod access to the VM metadata service at `169.254.169.254`, used by AWS, GCP, and Azure to expose instance metadata and credentials.
 
-Access is disabled by default. To enabled VM metadata service access, use:
+By default, the chart creates a [NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/) for task pods that blocks egress traffic to `169.254.169.254/32`. All other outbound traffic is allowed. Controller pods are not affected.
+
+To disable this policy and allow access to the VM metadata service, set:
 
 ```shell
 $~ helm upgrade ... \
     --set task.allowMetadataService=true
 ```
 
-**Note**: The controller pod is not affected by this NetworkPolicy and retains full network access.
+#### Limitations
 
-> [!WARNING]
-> Ensure that your cluster is using a CNI plugin that supports egress NetworkPolicies. Example: Calico, Cilium, or native GKE NetworkPolicy provider for supported versions.
->
-> If your cluster doesn't currently support egress NetworkPolicies, you may need to recreate it with the appropriate settings.
+This feature relies on egress NetworkPolicy enforcement, which requires a compatible [CNI plugin](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/network-policy#plugins) . Effectiveness may vary depending on how your cloud provider implements the Instance Metadata Service (IMDS).
+
+Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Tested configurations:
+
+| Cluster | CNI | IMDS Blocked |
+|---------|-----|:------------:|
+| AWS EKS | Calico | ✅ |
+| GKE | Dataplane V1 (Calico) | ❌ |
+| GKE | [Dataplane V2](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/dataplane-v2) (Cilium/eBPF) | ✅ |
 
 ## Job History Management
 
