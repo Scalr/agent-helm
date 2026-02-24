@@ -439,7 +439,16 @@ task:
 
     # -- Security context for the worker container.
     # @section -- Task
-    securityContext: {}
+    securityContext:
+      # -- Container capabilities.
+      # CHOWN and FOWNER are required for the worker to change file ownership and
+      # modify permissions on files it does not own (e.g., unpacking tar archives
+      # that contain root-owned files or broken timestamps, then normalizing
+      # ownership to the container user 1000:1000).
+      # @section -- Task
+      capabilities:
+        drop: ["ALL"]
+        add: ["CHOWN", "FOWNER"]
 
   # -- Runner container configuration (environment where Terraform/OpenTofu commands are executed).
   # @section -- Task

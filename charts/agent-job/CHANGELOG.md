@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- Added `CHOWN` and `FOWNER` capabilities to the worker container to allow normalizing file ownership to the container user (1000:1000) when unpacking tar archives that contain root-owned files or broken timestamps.
+
 ## [v0.5.68]
 
 ### Updated
