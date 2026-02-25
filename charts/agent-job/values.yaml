@@ -76,6 +76,9 @@ rbac:
     - apiGroups: ["batch"]
       resources: ["jobs/status"]
       verbs: ["get", "patch", "update"]
+    - apiGroups: [""]
+      resources: ["events"]
+      verbs: ["get"]
   # -- Cluster-wide RBAC rules (applied via ClusterRole bound in the release namespace).
   # @section -- RBAC
   clusterRules:
