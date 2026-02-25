@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Fixed
+
+- Moved `allowMetadataService` from the top-level scope to `agent.allowMetadataService` to match the template reference in `networkpolicy.yaml`. Previously, the NetworkPolicy was always created regardless of the `allowMetadataService` value because the template checks `.Values.agent.allowMetadataService` while the value was defined at the root level.
+
 ## [v0.5.65]
 
 ### Updated

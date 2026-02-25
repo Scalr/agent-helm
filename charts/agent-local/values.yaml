@@ -71,6 +71,12 @@ agent:
   # @section -- Agent
   cacheDir: "/var/lib/scalr-agent/cache"
 
+  # -- Allow access to cloud provider metadata service (169.254.169.254).
+  # When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service.
+  # This enhances security by preventing workloads from retrieving cloud credentials or instance metadata.
+  # @section -- Agent
+  allowMetadataService: true
+
 # -- Additional environment variables for Scalr Agent.
 # Use to configure HTTP proxies or other runtime parameters.
 # @section -- Pod Configuration
@@ -238,9 +244,3 @@ persistence:
 # -- Termination grace period (in seconds) for pod shutdown.
 # @section -- Deployment & Scaling
 terminationGracePeriodSeconds: 120
-
-# -- Allow access to cloud provider metadata service (169.254.169.254).
-# When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service.
-# This enhances security by preventing workloads from retrieving cloud credentials or instance metadata.
-# @section -- Security
-allowMetadataService: true
