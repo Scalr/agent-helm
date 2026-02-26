@@ -1,6 +1,6 @@
 # agent-local
 
-![Version: 0.5.65](https://img.shields.io/badge/Version-0.5.65-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.61.3](https://img.shields.io/badge/AppVersion-0.61.3-informational?style=flat-square)
+![Version: 0.5.66](https://img.shields.io/badge/Version-0.5.66-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.61.4](https://img.shields.io/badge/AppVersion-0.61.4-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Deploys a static number of agents and executes runs in shared agent pods.
@@ -164,16 +164,31 @@ The default is strict and compatible with Terraform/OpenTofu workloads, and it�
 
 ### Access to VM Metadata Service
 
-The chart includes an `allowMetadataService` configuration option to control access to the VM metadata service at 169.254.169.254, which is common for AWS, GCP, and Azure environments.
+> [!WARNING]
+> This feature has known [limitations](#limitations). Verify that it is effective for your setup before relying on it.
 
-When disabled, the chart creates a Kubernetes NetworkPolicy for agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+The chart includes an `allowMetadataService` configuration option to control agent pod access to the VM metadata service at `169.254.169.254`, used by AWS, GCP, and Azure to expose instance metadata and credentials.
 
-Access is enabled by default. To restrict VM metadata service access, use:
+By default, access to the VM metadata service is allowed. To block it, the chart can create a [NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/) that denies egress traffic to `169.254.169.254/32` while allowing all other outbound traffic.
+
+To enable this policy and block access to the VM metadata service, set:
 
 ```shell
 $~ helm upgrade ... \
     --set allowMetadataService=false
 ```
+
+#### Limitations
+
+This feature relies on egress NetworkPolicy enforcement, which requires a compatible [CNI plugin](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/network-policy#plugins). Effectiveness may vary depending on how your cloud provider implements the Instance Metadata Service (IMDS).
+
+Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Tested configurations:
+
+| Cluster | CNI | IMDS Blocked |
+|---------|-----|:------------:|
+| AWS EKS | Calico | ✅ |
+| GKE | Dataplane V1 (Calico) | ❌ |
+| GKE | [Dataplane V2](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/dataplane-v2) (Cilium/eBPF) | ✅ |
 
 ## Metrics and Observability
 
@@ -277,7 +292,7 @@ It's best to pull the logs immediately after an incident, since this command wil
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| allowMetadataService | bool | `true` | Allow access to cloud provider metadata service (169.254.169.254). When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service. This enhances security by preventing workloads from retrieving cloud credentials or instance metadata. |
+| allowMetadataService | bool | `true` | When set to `true` (default), disables the NetworkPolicy that blocks access to the VM metadata service (`169.254.169.254`) for agent containers. When set to `false`, a NetworkPolicy is created to prevent workloads from accessing cloud credentials or instance metadata. |
 | podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true}` | Security context for Scalr Agent pod. |
 | secret | object | `{"annotations":{},"labels":{}}` | Secret configuration for storing the Scalr Agent token. |
 | secret.annotations | object | `{}` | Annotations for the Secret resource. |

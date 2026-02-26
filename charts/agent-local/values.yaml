@@ -239,8 +239,7 @@ persistence:
 # @section -- Deployment & Scaling
 terminationGracePeriodSeconds: 120
 
-# -- Allow access to cloud provider metadata service (169.254.169.254).
-# When false, creates a NetworkPolicy that blocks agent containers from accessing the metadata service.
-# This enhances security by preventing workloads from retrieving cloud credentials or instance metadata.
+# -- When set to `true` (default), disables the NetworkPolicy that blocks access to the VM metadata service (`169.254.169.254`) for agent containers.
+# When set to `false`, a NetworkPolicy is created to prevent workloads from accessing cloud credentials or instance metadata.
 # @section -- Security
 allowMetadataService: true
