@@ -1,4 +1,4 @@
-{{- if not .Values.agent.allowMetadataService }}
+{{- if not .Values.allowMetadataService }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -13,11 +13,22 @@ spec:
   policyTypes:
     - Egress
   egress:
+    # Allow DNS resolution to kube-dns.
+    # This must be explicitly allowed because ipBlock (below) only matches
+    # external IPs and does not cover cluster-internal service IPs.
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - port: 53
+        protocol: UDP
+      - port: 53
+        protocol: TCP
+    # Allow all external egress except the IMDS endpoint.
+    # 169.254.169.254 is the link-local address used by AWS, GCP, and Azure
+    # to serve instance metadata including node-level cloud credentials.
     - to:
       - ipBlock:
-          # Allow all egress traffic by default
           cidr: 0.0.0.0/0
           except:
-            # Deny access to VM metadata service (IMDS)
             - 169.254.169.254/32
 {{- end }}

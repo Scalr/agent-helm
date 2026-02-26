@@ -102,7 +102,7 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
 
 ## Planned Changes for Stable
 
-- Require Kubernetes 1.35.1 with containerd 2.2+ as the minimum version once it reaches GA.
+- Require Kubernetes with containerd 2.2+ as the minimum version once it reaches GA.
 
 ## Agent Task Naming
 
@@ -339,7 +339,7 @@ The default is strict and compatible with Terraform/OpenTofu workloads, and itâ€
 > [!WARNING]
 > This feature has known [limitations](#limitations). Verify that it is effective for your setup before relying on it.
 
-The chart includes an `allowMetadataService` option to control task pod access to the VM metadata service at `169.254.169.254`, used by AWS, GCP, and Azure to expose instance metadata and credentials.
+The chart includes an `task.allowMetadataService` configuration option to control task pod access to the VM metadata service at `169.254.169.254`, used by AWS, GCP, and Azure to expose instance metadata and credentials.
 
 By default, the chart creates a [NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/) for task pods that blocks egress traffic to `169.254.169.254/32`. All other outbound traffic is allowed. Controller pods are not affected.
 
@@ -589,7 +589,7 @@ For issues not covered above:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | task.affinity | object | `{}` | Node affinity for task job pods. |
-| task.allowMetadataService | bool | `false` | Disables a NetworkPolicy to the task containers that denies access to VM metadata service (169.254.169.254). |
+| task.allowMetadataService | bool | `false` | When set to `true`, disables the NetworkPolicy that blocks access to the VM metadata service (`169.254.169.254`) for agent task containers. When set to `false` (default), a NetworkPolicy is created to prevent workloads from accessing cloud credentials or instance metadata. |
 | task.extraVolumes | list | `[]` | Additional volumes for task job pods. |
 | task.job | object | `{"basename":"","ttlSecondsAfterFinished":60}` | Job configuration for task execution. |
 | task.job.basename | string | `""` | Base name prefix for spawned Kubernetes Jobs (defaults to fullname, e.g., "scalr-agent"). Jobs are named as `<basename>-<run-id>`. See README for details on task naming. |
