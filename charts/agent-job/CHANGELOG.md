@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changes
+
+- Added `list` permission for `events` to allow the controller to include debug information for failed task pods.
+
 ## [v0.5.69]
 
 ### Updated
