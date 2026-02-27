@@ -218,6 +218,8 @@ spec:
               - name: sa-token
                 mountPath: /var/run/secrets/kubernetes.io/serviceaccount
                 readOnly: true
+              - name: podinfo
+                mountPath: /etc/podinfo
               - name: data-dir
                 mountPath: {{ .Values.agent.dataDir }}
               - name: cache-dir
@@ -296,6 +298,15 @@ spec:
             {{- with .Values.task.extraVolumes }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+            - name: podinfo
+              downwardAPI:
+                items:
+                  - path: "labels"
+                    fieldRef:
+                      fieldPath: metadata.labels
+                  - path: "annotations"
+                    fieldRef:
+                      fieldPath: metadata.annotations
           {{- with .Values.task.nodeSelector }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}

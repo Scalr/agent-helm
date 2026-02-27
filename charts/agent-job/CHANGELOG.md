@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changes
 
 - Added `list` permission for `events` to allow the controller to include debug information for failed task pods.
+- Pod labels and annotations are now mounted to `/etc/podinfo` in the agent worker and agent controller containers via the Downward API; the agent service reads the `ad.datadoghq.com/tags` annotation and forwards it as resource attributes to the OTLP collector.
 
 ## [v0.5.69]
 
