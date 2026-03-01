@@ -406,7 +406,14 @@ Example:
 
 ```yaml
 annotations:
-  ad.datadoghq.com/tags: '{"env": "production", "team": "backend"}'
+  ad.datadoghq.com/tags: '{"env":"production","team":"backend"}'
+```
+
+When the annotation is present on task pods, it is automatically extended with account and workspace context:
+
+```yaml
+annotations:
+  ad.datadoghq.com/tags: '{"env":"production","team":"backend","account_name":"mainiacp","account_id":"acc-svrcncgh453bi8g","workspace_name":"main","workspace_id":"ws-v0p5qsps90tv7tvuc"}'
 ```
 
 ## Custom Resource Definitions
