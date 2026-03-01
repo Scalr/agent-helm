@@ -9,7 +9,7 @@ in its own Kubernetes Job.
 See the [official documentation](https://docs.scalr.io/docs/agent-pools) for more information about Scalr Agents.
 
 > [!WARNING]
-> This chart is in Beta, and implementation details are subject to change. See [Planned Changes for Stable](#planned-changes-for-stable).
+> This chart is in Beta, and implementation details are subject to change.
 
 ## Table of Contents
 
