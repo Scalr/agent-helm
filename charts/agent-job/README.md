@@ -386,6 +386,39 @@ See [all configuration options](#opentelemetry).
 
 Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
+### Resource Attributes Autodiscovery
+
+When running in Kubernetes, the agent automatically discovers and enriches OTLP resource attributes
+from pod labels and annotations mounted via the Downward API.
+
+#### Scalr Tag Autodiscovery
+
+The following pod labels are mapped to OTLP resource attributes:
+
+| Label | Default | OTLP Attribute |
+|---|---|---|
+| `infra.scalr.io/app` | — | `app` |
+| `infra.scalr.io/env` | — | `deployment.environment.name` |
+| `infra.scalr.io/service` | `scalr-agent` | `service.name` |
+
+#### Datadog Tag Autodiscovery
+
+The agent supports [Datadog Tag Autodiscovery](https://docs.datadoghq.com/containers/kubernetes/tag/?tab=datadogoperator#tag-autodiscovery) via the `ad.datadoghq.com/tags` pod annotation. Tags defined in this annotation are parsed as a JSON object and merged into the OTLP resource attributes.
+
+Example:
+
+```yaml
+annotations:
+  ad.datadoghq.com/tags: '{"env":"production","team":"backend"}'
+```
+
+When the annotation is present on task pods, it is automatically extended with account and workspace context:
+
+```yaml
+annotations:
+  ad.datadoghq.com/tags: '{"env":"production","team":"backend","account_name":"mainiacp","account_id":"acc-svrcncgh453bi8g","workspace_name":"main","workspace_id":"ws-v0p5qsps90tv7tvuc"}'
+```
+
 ## Custom Resource Definitions
 
 This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
