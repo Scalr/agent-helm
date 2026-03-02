@@ -67,7 +67,7 @@ spec:
           - name: runner
             image: {{ include "agent-job.image" (dict "context" . "repository" .Values.task.runner.image.repository "tag" .Values.task.runner.image.tag ) }}
             imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
-            command: "/usr/bin/runner/exec-loop"
+            command: ["/usr/bin/runner/exec-loop"]
             workingDir: /opt/workdir
             {{- with .Values.task.runner.securityContext }}
             securityContext:
