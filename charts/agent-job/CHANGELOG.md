@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `list` permission for `events` to allow the controller to include debug information for failed task pods.
 
+## [v0.5.70]
+
+### Updated
+
+- Bumping chart version to v0.5.70 for scalr-agent v0.62.0
+
 ## [v0.5.69]
 
 ### Updated
