@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+
 ### Added
 
 - Pod labels and annotations are now mounted to `/etc/podinfo` in the agent worker and agent controller containers via the Downward API.
@@ -17,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changes
 
 - Added `list` permission for `events` to allow the controller to include debug information for failed task pods.
+
+## [v0.5.71]
+
+### Updated
+
+- Bumping chart version to v0.5.71 for scalr-agent v0.63.0
 
 ## [v0.5.70]
 
