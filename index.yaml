@@ -2,6 +2,22 @@ apiVersion: v1
 entries:
   agent-docker:
   - apiVersion: v2
+    appVersion: 0.63.0
+    created: "2026-03-04T12:29:16.812421792Z"
+    description: 'A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
+      where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
+      Run phases are isolated into docker containers. '
+    digest: 893d33e78786819f425c43cd927adff44058e5d85abf3256ada5ea7e0d38f7e1
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-docker
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.5.71/agent-docker-0.5.71.tgz
+    version: 0.5.71
+  - apiVersion: v2
     appVersion: 0.62.0
     created: "2026-03-02T12:28:04.887838518Z"
     description: 'A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
@@ -1249,6 +1265,25 @@ entries:
     version: 0.1.0
   agent-job:
   - apiVersion: v2
+    appVersion: 0.63.0
+    created: "2026-03-04T12:29:16.935499895Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      It uses a job-based model, where each Scalr Run is isolated in its own Kubernetes
+      Job. '
+    digest: 6af2139dbe64d04fc31424092b4864909446da6e4ce036fe7c47a0d4ad80b1e5
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-job
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.71/agent-job-0.5.71.tgz
+    version: 0.5.71
+  - apiVersion: v2
     appVersion: 0.62.0
     created: "2026-03-02T12:28:05.109898322Z"
     description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
@@ -1462,6 +1497,22 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.59/agent-job-0.5.59.tgz
     version: 0.5.59
   agent-k8s:
+  - apiVersion: v2
+    appVersion: 0.63.0
+    created: "2026-03-04T12:29:17.084806535Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys an agent controller with a set of agent workers and executes runs in
+      isolated pods. '
+    digest: 103ec5c43779c7dbf483ab7cee55b3aae08239728b04c6f917cd46adac70ac1e
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.5.70/agent-k8s-0.5.70.tgz
+    version: 0.5.70
   - apiVersion: v2
     appVersion: 0.62.0
     created: "2026-03-02T12:28:05.377953382Z"
@@ -2794,6 +2845,21 @@ entries:
     version: 0.1.0
   agent-local:
   - apiVersion: v2
+    appVersion: 0.63.0
+    created: "2026-03-04T12:29:17.235818699Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys a static number of agents and executes runs in shared agent pods. '
+    digest: cd5ccd182e48f5467676e8e91d5c241b6e369b1f2610f011372c9315050b94ce
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.68/agent-local-0.5.68.tgz
+    version: 0.5.68
+  - apiVersion: v2
     appVersion: 0.62.0
     created: "2026-03-02T12:28:05.612280069Z"
     description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
@@ -3213,4 +3279,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
     version: 0.5.40
-generated: "2026-03-02T12:28:05.612873487Z"
+generated: "2026-03-04T12:29:17.236516683Z"
