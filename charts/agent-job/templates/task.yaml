@@ -67,7 +67,7 @@ spec:
           - name: runner
             image: {{ include "agent-job.image" (dict "context" . "repository" .Values.task.runner.image.repository "tag" .Values.task.runner.image.tag ) }}
             imagePullPolicy: {{ .Values.task.runner.image.pullPolicy }}
-            command: ["sh", "/usr/bin/runner/exec-loop"]
+            command: ["/usr/bin/runner/exec-loop"]
             workingDir: /opt/workdir
             {{- with .Values.task.runner.securityContext }}
             securityContext:
@@ -89,6 +89,7 @@ spec:
                 # TODO: Use subPath to mount a single file.
                 # Currently the entire worker image filesystem is mounted. Not critical since the component is public, but not ideal either.
                 # See: https://github.com/bottlerocket-os/bottlerocket/issues/4755
+                # Ticket: SCALRCORE-37528
               - name: data-dir
                 mountPath: /opt/workdir
                 subPath: run/config
@@ -218,6 +219,8 @@ spec:
               - name: sa-token
                 mountPath: /var/run/secrets/kubernetes.io/serviceaccount
                 readOnly: true
+              - name: podinfo
+                mountPath: /etc/podinfo
               - name: data-dir
                 mountPath: {{ .Values.agent.dataDir }}
               - name: cache-dir
@@ -296,6 +299,15 @@ spec:
             {{- with .Values.task.extraVolumes }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+            - name: podinfo
+              downwardAPI:
+                items:
+                  - path: "labels"
+                    fieldRef:
+                      fieldPath: metadata.labels
+                  - path: "annotations"
+                    fieldRef:
+                      fieldPath: metadata.annotations
           {{- with .Values.task.nodeSelector }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}
