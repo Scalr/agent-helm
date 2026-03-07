@@ -22,6 +22,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)
 - [Graceful Termination](#graceful-termination)
+- [Out-of-Memory Termination](#out-of-memory-termination)
 - [HTTP Proxy](#http-proxy)
 - [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Volumes](#volumes)
@@ -194,6 +195,31 @@ karpenter.sh/do-not-evict: "true"
 karpenter.sh/do-not-disrupt: "true"
 autopilot.gke.io/priority: "high"
 ```
+
+## Out-of-Memory Termination
+
+When a Scalr Run container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process, giving it no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
+
+To address this, the Scalr agent monitors memory usage inside the runner container and sends SIGTERM before the hard limit is reached, giving OpenTofu/Terraform time to push state and exit cleanly.
+
+The agent uses a two-tier memory limit model:
+
+```shell
+hard limit (task.runner.resources.limits.memory)
+  └── soft limit (task.runner.memorySoftLimitPercent, default 85%)
+        └── warn threshold (task.runner.memoryWarnPercent, default 70%)
+```
+
+- Warn threshold — when memory usage exceeds this percentage of the hard limit, a warning is logged to the run console.
+- Soft limit — when memory usage exceeds this percentage of the hard limit, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft limit and the hard limit gives the process time to complete the state push before Kubernetes forcefully kills it.
+- Hard limit — enforced by Kubernetes. If the process does not exit after receiving SIGTERM and memory continues to grow, the container will be killed with SIGKILL.
+
+The gap between `task.runner.memorySoftLimitPercent` and 100% determines the headroom available for the state push. A state push typically requires little memory, but large state files or complex workloads may need more.
+
+- Setting `task.runner.memorySoftLimitPercent` too high (e.g., 95%) leaves little headroom — if memory continues to grow after SIGTERM is sent, the process may be killed before the state push completes.
+- Setting `task.runner.memorySoftLimitPercent` too low (e.g., 50%) may cause premature termination of workloads that would otherwise have completed successfully.
+
+The default of 85% is a reasonable balance for most workloads. If you are experiencing or want to lower risk of state loss during OOM events, consider lowering this value or increasing `task.runner.resources.limits.memory`.
 
 ## HTTP Proxy
 
@@ -639,13 +665,15 @@ For issues not covered above:
 | task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
 | task.podLabels | object | `{}` | Task-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
 | task.podSecurityContext | object | `{}` | Task-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys). |
-| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
+| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"memorySoftLimitPercent":85,"memoryWarnPercent":70,"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
 | task.runner.extraEnv | object | `{}` | Additional environment variables for the runner container. |
 | task.runner.extraVolumeMounts | list | `[]` | Additional volume mounts for the runner container. |
 | task.runner.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"}` | Runner container image settings. Default image: https://hub.docker.com/r/scalr/runner, repository: https://github.com/Scalr/runner Note: For Scalr-managed agents, this may be overridden by Scalr account image settings. |
 | task.runner.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | task.runner.image.repository | string | `"scalr/runner"` | Default repository for the runner image. |
 | task.runner.image.tag | string | `"0.2.0"` | Default tag for the runner image. |
+| task.runner.memorySoftLimitPercent | int | `85` | Memory soft limit as a percentage of the hard limit (task.runner.resources.limits.memory). When memory usage exceeds this value, the process will be gracefully terminated by the agent. Graceful termination ensures that OpenTofu/Terraform workloads push state before exiting, preventing state loss. Setting this value too high reduces the memory headroom available for state push and increases the risk of state loss. |
+| task.runner.memoryWarnPercent | int | `70` | Memory warning threshold as a percentage of the hard limit (task.runner.resources.limits.memory). A warning is logged when memory usage exceeds this value. |
 | task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource requests and limits for the runner container. Note: For scalr-managed agents, this may be overridden by Scalr platform billing resource tier presets. |
 | task.runner.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}` | Security context for the runner container. The default declaration duplicates some critical options from podSecurityContext to keep them independent. |
 | task.runner.securityContext.allowPrivilegeEscalation | bool | `false` | Allow privilege escalation. |
