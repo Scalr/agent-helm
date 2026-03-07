@@ -183,11 +183,17 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 
 A major performance bottleneck in any IaC pipeline is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-volume-persistence).
 
-## Graceful Termination
+## Agent Termination
 
-Both the controller (long-lived service) and worker (one-off function per run) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself automatically from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
+Both the controller (long-lived service) and worker (short-lived, one per run) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
 
-Force-terminating active Jobs (e.g., with SIGKILL) or terminating with an insufficient grace period may interrupt underlying IaC workflows and lead to undefined behavior. To prevent Pod eviction for active task Jobs, the default configuration applies the following annotations to reduce the risk of evictions by common autoscalers like Cluster Autoscaler, GKE Autopilot, and Karpenter:
+Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to push a status update to the Scalr platform.
+
+Force-terminating active Jobs (e.g., with SIGKILL) or using an insufficient grace period may interrupt underlying OpenTofu/Terraform workloads and lead to undefined behavior — ranging from degraded performance and processing delays to state loss and stuck runs.
+
+### Pod Eviction
+
+To reduce the risk of Pod eviction for active task Jobs, the default configuration applies the following annotations for common autoscalers such as Cluster Autoscaler, GKE Autopilot, and Karpenter:
 
 ```yaml
 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
@@ -196,17 +202,21 @@ karpenter.sh/do-not-disrupt: "true"
 autopilot.gke.io/priority: "high"
 ```
 
-## Out-of-Memory Termination
+Monitor node resource pressure and eviction events to ensure stable operation.
 
-When a runner container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process, giving it no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
+### Out-of-Memory Termination
+
+The runner container executes run workloads and processes user configuration, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
+
+When a runner container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process with no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
 
 To address this, the Scalr agent monitors memory usage inside the runner container and sends SIGTERM before the hard limit is reached, giving OpenTofu/Terraform time to push state and exit cleanly.
 
 The agent uses a two-tier memory limit model:
 
-- Warn threshold (`task.runner.memoryWarnPercent`, default 90% of soft limit) — when exceeded, a warning is logged to the run console after the run completes, indicating the workload is approaching its memory limit.
-- Soft limit (`task.runner.memorySoftLimitPercent`, default 80% of hard limit) — when exceeded, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft and hard limits gives the process time to complete the state push.
-- Hard limit (`task.runner.resources.limits.memory`) — enforced by Kubernetes. If the process does not exit after SIGTERM and memory continues to grow, the container is killed with SIGKILL.
+- **Warn threshold** (`task.runner.memoryWarnPercent`, default 90% of soft limit) — when exceeded, a warning is logged to the run console after the run completes, indicating the workload is approaching its memory limit.
+- **Soft limit** (`task.runner.memorySoftLimitPercent`, default 80% of hard limit) — when exceeded, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft and hard limits gives the process time to complete the state push.
+- **Hard limit** (`task.runner.resources.limits.memory`) — enforced by Kubernetes. If the process does not exit after SIGTERM and memory continues to grow, the container is killed with SIGKILL.
 
 The gap between the soft limit and the hard limit is the memory budget available for the state push after SIGTERM is sent. OOM termination is not precise and may fail during sudden memory spikes, so sufficient headroom is important to handle the race between graceful termination and the Kubernetes hard kill.
 
