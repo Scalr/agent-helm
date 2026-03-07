@@ -201,7 +201,7 @@ autopilot.gke.io/priority: "high"
 
 Monitor node resource pressure and eviction events to ensure stable operation.
 
-### Out-of-Memory Termination
+### Scalr Run Out-of-Memory Termination
 
 The runner container executes run workloads and processes user configuration, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
 
