@@ -200,8 +200,6 @@ Monitor node resource pressure and eviction events to ensure stable operation.
 
 ### Out-of-Memory Termination
 
-For agent containers (controller and worker), monitor memory usage and provide sufficient memory limits to avoid OOM termination.
-
 The runner container executes run workloads and processes user configuration, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
 
 When a runner container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process with no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
