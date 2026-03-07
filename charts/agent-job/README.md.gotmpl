@@ -183,9 +183,7 @@ A major performance bottleneck in any IaC pipeline is the time spent re-download
 
 Both the controller (long-lived service) and worker (short-lived, one per run) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
 
-Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to push a status update to the Scalr platform.
-
-Force-terminating active Jobs (e.g., with SIGKILL) or using an insufficient grace period may interrupt underlying OpenTofu/Terraform workloads and lead to undefined behavior — ranging from degraded performance and processing delays to state loss and stuck runs.
+Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to perform a graceful shutdown of the underlying OpenTofu/Terraform workload or push a status update to the Scalr platform, and can lead to undefined behavior — ranging from degraded performance and processing delays to state loss and stuck runs.
 
 ### Pod Eviction
 
@@ -201,6 +199,8 @@ autopilot.gke.io/priority: "high"
 Monitor node resource pressure and eviction events to ensure stable operation.
 
 ### Out-of-Memory Termination
+
+For agent containers (controller and worker), monitor memory usage and provide sufficient memory limits to avoid OOM termination.
 
 The runner container executes run workloads and processes user configuration, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
 
