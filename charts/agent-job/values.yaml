@@ -475,6 +475,7 @@ task:
 
     # -- Memory warning threshold as a percentage of the hard limit (task.runner.resources.limits.memory).
     # A warning is logged when memory usage exceeds this value.
+    # Have no effect when task.runner.resources.limits.memory is not set.
     # @section -- Task
     memoryWarnPercent: 70
 
@@ -482,6 +483,7 @@ task:
     # When memory usage exceeds this value, the process will be gracefully terminated by the agent.
     # Graceful termination ensures that OpenTofu/Terraform workloads push state before exiting, preventing state loss.
     # Setting this value too high reduces the memory headroom available for state push and increases the risk of state loss.
+    # Have no effect when task.runner.resources.limits.memory is not set.
     # @section -- Task
     memorySoftLimitPercent: 85
 
