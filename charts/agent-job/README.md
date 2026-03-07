@@ -21,7 +21,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)
-- [Graceful Termination](#graceful-termination)
+- [Agent Termination](#agent-termination)
 - [HTTP Proxy](#http-proxy)
 - [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Volumes](#volumes)
@@ -182,11 +182,15 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 
 A major performance bottleneck in any IaC pipeline is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-volume-persistence).
 
-## Graceful Termination
+## Agent Termination
 
-Both the controller (long-lived service) and worker (one-off function per run) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself automatically from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
+Both the controller (long-lived service) and worker (short-lived, one per run) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
 
-Force-terminating active Jobs (e.g., with SIGKILL) or terminating with an insufficient grace period may interrupt underlying IaC workflows and lead to undefined behavior. To prevent Pod eviction for active task Jobs, the default configuration applies the following annotations to reduce the risk of evictions by common autoscalers like Cluster Autoscaler, GKE Autopilot, and Karpenter:
+Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to perform a graceful shutdown of the underlying OpenTofu/Terraform workload or push a status update to the Scalr platform, and can lead to undefined behavior — ranging from degraded performance and Scalr Run processing delays to agent capacity issues, stuck runs, or even OpenTofu/Terraform state loss.
+
+### Pod Eviction
+
+To reduce the risk of Pod eviction for active Scalr agents, the default configuration applies the following annotations for common autoscalers such as Cluster Autoscaler, GKE Autopilot, and Karpenter:
 
 ```yaml
 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
@@ -194,6 +198,32 @@ karpenter.sh/do-not-evict: "true"
 karpenter.sh/do-not-disrupt: "true"
 autopilot.gke.io/priority: "high"
 ```
+
+Monitor node resource pressure and eviction events to ensure stable operation.
+
+### Scalr Run Out-of-Memory Termination
+
+The runner container executes Scalr Run workloads and processes end-user IaC configuration and code, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
+
+When a runner container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process with no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
+
+To address this, the Scalr agent monitors memory usage inside the runner container and sends SIGTERM before the hard limit is reached, giving OpenTofu/Terraform time to push state and exit cleanly.
+
+The agent uses a two-tier memory limit model:
+
+- **Warn threshold** (`task.runner.memoryWarnPercent`, default 90% of soft limit) — when exceeded, a warning is logged to the run console after the run completes, indicating the workload is approaching its memory limit.
+- **Soft limit** (`task.runner.memorySoftLimitPercent`, default 80% of hard limit) — when exceeded, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft and hard limits gives the process time to complete the state push.
+- **Hard limit** (`task.runner.resources.limits.memory`) — enforced by Kubernetes. If the process does not exit after SIGTERM and memory continues to grow, the container is killed with SIGKILL.
+
+The gap between the soft limit and the hard limit is the memory budget available for the state push after SIGTERM is sent. OOM termination is not precise and may fail during sudden memory spikes, so sufficient headroom is important to handle the race between graceful termination and the Kubernetes hard kill.
+
+- Setting `task.runner.memorySoftLimitPercent` too high (e.g., 95%) leaves little headroom — if memory continues to grow after SIGTERM, the process may be killed before the state push completes.
+- Setting `task.runner.memorySoftLimitPercent` too low (e.g., 50%) may cause premature termination of workloads that would otherwise have completed successfully.
+
+The default of 80% is a reasonable balance for most workloads. If you are experiencing state loss during OOM events, consider lowering this value or increasing `task.runner.resources.limits.memory`.
+
+> [!NOTE]
+> `task.runner.memorySoftLimitPercent` and `task.runner.memoryWarnPercent` have no effect when `task.runner.resources.limits.memory` is not set.
 
 ## HTTP Proxy
 
@@ -639,13 +669,15 @@ For issues not covered above:
 | task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
 | task.podLabels | object | `{}` | Task-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
 | task.podSecurityContext | object | `{}` | Task-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys). |
-| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
+| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"memorySoftLimitPercent":80,"memoryWarnPercent":90,"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
 | task.runner.extraEnv | object | `{}` | Additional environment variables for the runner container. |
 | task.runner.extraVolumeMounts | list | `[]` | Additional volume mounts for the runner container. |
 | task.runner.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"}` | Runner container image settings. Default image: https://hub.docker.com/r/scalr/runner, repository: https://github.com/Scalr/runner Note: For Scalr-managed agents, this may be overridden by Scalr account image settings. |
 | task.runner.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | task.runner.image.repository | string | `"scalr/runner"` | Default repository for the runner image. |
 | task.runner.image.tag | string | `"0.2.0"` | Default tag for the runner image. |
+| task.runner.memorySoftLimitPercent | int | `80` | Memory soft limit as a percentage of the hard limit (task.runner.resources.limits.memory). When memory usage exceeds this value, the process will be gracefully terminated by the agent. Graceful termination ensures that OpenTofu/Terraform workloads push state before exiting, preventing state loss. Setting this value too high reduces the memory headroom available for state push and increases the risk of state loss. Have no effect when task.runner.resources.limits.memory is not set. For example, when task.runner.resources.limits.memory is set to 1000Mi and memorySoftLimitPercent is 80%, the workload will be gracefully terminated when memory usage reaches 800Mi. |
+| task.runner.memoryWarnPercent | int | `90` | Memory warning threshold as a percentage of the soft limit (task.runner.memorySoftLimitPercent). A warning is logged to the run console when memory usage exceeds this value, indicating that the workload is at risk of being terminated due to high memory usage. The warning is reported after the run completes. Has no effect when task.runner.memorySoftLimitPercent or task.runner.resources.limits.memory are not set. |
 | task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource requests and limits for the runner container. Note: For scalr-managed agents, this may be overridden by Scalr platform billing resource tier presets. |
 | task.runner.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}` | Security context for the runner container. The default declaration duplicates some critical options from podSecurityContext to keep them independent. |
 | task.runner.securityContext.allowPrivilegeEscalation | bool | `false` | Allow privilege escalation. |
