@@ -198,7 +198,7 @@ autopilot.gke.io/priority: "high"
 
 ## Out-of-Memory Termination
 
-When a Scalr Run container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process, giving it no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
+When a runner container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process, giving it no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
 
 To address this, the Scalr agent monitors memory usage inside the runner container and sends SIGTERM before the hard limit is reached, giving OpenTofu/Terraform time to push state and exit cleanly.
 
