@@ -201,24 +201,19 @@ To address this, the Scalr agent monitors memory usage inside the runner contain
 
 The agent uses a two-tier memory limit model:
 
-```shell
-hard limit (task.runner.resources.limits.memory)
-  └── soft limit (task.runner.memorySoftLimitPercent, default 90%)
-        └── warn threshold (task.runner.memoryWarnPercent, default 90%)
-```
+- Warn threshold (`task.runner.memoryWarnPercent`, default 90% of soft limit) — when exceeded, a warning is logged to the run console after the run completes, indicating the workload is approaching its memory limit.
+- Soft limit (`task.runner.memorySoftLimitPercent`, default 80% of hard limit) — when exceeded, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft and hard limits gives the process time to complete the state push.
+- Hard limit (`task.runner.resources.limits.memory`) — enforced by Kubernetes. If the process does not exit after SIGTERM and memory continues to grow, the container is killed with SIGKILL.
 
-- Warn threshold — when memory usage exceeds this percentage of the soft limit, a warning is logged to the run console after the run completes, indicating that the workload is at risk of being terminated due to high memory usage.
-- Soft limit — when memory usage exceeds this percentage of the hard limit, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft limit and the hard limit gives the process time to complete the state push before Kubernetes forcefully kills it.
-- Hard limit — enforced by Kubernetes. If the process does not exit after receiving SIGTERM and memory continues to grow, the container will be killed with SIGKILL.
+The gap between the soft limit and the hard limit is the memory budget available for the state push after SIGTERM is sent. OOM termination is not precise and may fail during sudden memory spikes, so sufficient headroom is important to handle the race between graceful termination and the Kubernetes hard kill.
 
-The gap between `task.runner.memorySoftLimitPercent` and 100% determines the headroom available for the state push. A state push typically requires little memory, but large state files or complex workloads may need more.
-
-- Setting `task.runner.memorySoftLimitPercent` too high (e.g., 95%) leaves little headroom — if memory continues to grow after SIGTERM is sent, the process may be killed before the state push completes.
+- Setting `task.runner.memorySoftLimitPercent` too high (e.g., 95%) leaves little headroom — if memory continues to grow after SIGTERM, the process may be killed before the state push completes.
 - Setting `task.runner.memorySoftLimitPercent` too low (e.g., 50%) may cause premature termination of workloads that would otherwise have completed successfully.
 
-The default of 90% is a reasonable balance for most workloads. If you are experiencing state loss during OOM events or want to reduce the risk of it, consider lowering this value or increasing `task.runner.resources.limits.memory`.
+The default of 80% is a reasonable balance for most workloads. If you are experiencing state loss during OOM events, consider lowering this value or increasing `task.runner.resources.limits.memory`.
 
-`task.runner.memorySoftLimitPercent` and `task.runner.memoryWarnPercent` have no effect when `task.runner.resources.limits.memory` is not set.
+> [!NOTE]
+> `task.runner.memorySoftLimitPercent` and `task.runner.memoryWarnPercent` have no effect when `task.runner.resources.limits.memory` is not set.
 
 ## HTTP Proxy
 
