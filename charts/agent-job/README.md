@@ -206,11 +206,11 @@ The agent uses a two-tier memory limit model:
 
 ```shell
 hard limit (task.runner.resources.limits.memory)
-  └── soft limit (task.runner.memorySoftLimitPercent, default 85%)
-        └── warn threshold (task.runner.memoryWarnPercent, default 70%)
+  └── soft limit (task.runner.memorySoftLimitPercent, default 90%)
+        └── warn threshold (task.runner.memoryWarnPercent, default 90%)
 ```
 
-- Warn threshold — when memory usage exceeds this percentage of the hard limit, a warning is logged to the run console.
+- Warn threshold — when memory usage exceeds this percentage of the soft limit, a warning is logged to the run console after the run completes, indicating that the workload is at risk of being terminated due to high memory usage.
 - Soft limit — when memory usage exceeds this percentage of the hard limit, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft limit and the hard limit gives the process time to complete the state push before Kubernetes forcefully kills it.
 - Hard limit — enforced by Kubernetes. If the process does not exit after receiving SIGTERM and memory continues to grow, the container will be killed with SIGKILL.
 
@@ -219,7 +219,9 @@ The gap between `task.runner.memorySoftLimitPercent` and 100% determines the hea
 - Setting `task.runner.memorySoftLimitPercent` too high (e.g., 95%) leaves little headroom — if memory continues to grow after SIGTERM is sent, the process may be killed before the state push completes.
 - Setting `task.runner.memorySoftLimitPercent` too low (e.g., 50%) may cause premature termination of workloads that would otherwise have completed successfully.
 
-The default of 85% is a reasonable balance for most workloads. If you are experiencing or want to lower risk of state loss during OOM events, consider lowering this value or increasing `task.runner.resources.limits.memory`.
+The default of 90% is a reasonable balance for most workloads. If you are experiencing state loss during OOM events or want to reduce the risk of it, consider lowering this value or increasing `task.runner.resources.limits.memory`.
+
+`task.runner.memorySoftLimitPercent` and `task.runner.memoryWarnPercent` have no effect when `task.runner.resources.limits.memory` is not set.
 
 ## HTTP Proxy
 
@@ -665,15 +667,15 @@ For issues not covered above:
 | task.podAnnotations | object | `{}` | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
 | task.podLabels | object | `{}` | Task-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
 | task.podSecurityContext | object | `{}` | Task-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys). |
-| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"memorySoftLimitPercent":85,"memoryWarnPercent":70,"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
+| task.runner | object | `{"extraEnv":{},"extraVolumeMounts":[],"image":{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"},"memorySoftLimitPercent":90,"memoryWarnPercent":90,"resources":{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}}` | Runner container configuration (environment where Terraform/OpenTofu commands are executed). |
 | task.runner.extraEnv | object | `{}` | Additional environment variables for the runner container. |
 | task.runner.extraVolumeMounts | list | `[]` | Additional volume mounts for the runner container. |
 | task.runner.image | object | `{"pullPolicy":"IfNotPresent","repository":"scalr/runner","tag":"0.2.0"}` | Runner container image settings. Default image: https://hub.docker.com/r/scalr/runner, repository: https://github.com/Scalr/runner Note: For Scalr-managed agents, this may be overridden by Scalr account image settings. |
 | task.runner.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | task.runner.image.repository | string | `"scalr/runner"` | Default repository for the runner image. |
 | task.runner.image.tag | string | `"0.2.0"` | Default tag for the runner image. |
-| task.runner.memorySoftLimitPercent | int | `85` | Memory soft limit as a percentage of the hard limit (task.runner.resources.limits.memory). When memory usage exceeds this value, the process will be gracefully terminated by the agent. Graceful termination ensures that OpenTofu/Terraform workloads push state before exiting, preventing state loss. Setting this value too high reduces the memory headroom available for state push and increases the risk of state loss. Have no effect when task.runner.resources.limits.memory is not set. |
-| task.runner.memoryWarnPercent | int | `70` | Memory warning threshold as a percentage of the hard limit (task.runner.resources.limits.memory). A warning is logged when memory usage exceeds this value. Have no effect when task.runner.resources.limits.memory is not set. |
+| task.runner.memorySoftLimitPercent | int | `90` | Memory soft limit as a percentage of the hard limit (task.runner.resources.limits.memory). When memory usage exceeds this value, the process will be gracefully terminated by the agent. Graceful termination ensures that OpenTofu/Terraform workloads push state before exiting, preventing state loss. Setting this value too high reduces the memory headroom available for state push and increases the risk of state loss. Have no effect when task.runner.resources.limits.memory is not set. |
+| task.runner.memoryWarnPercent | int | `90` | Memory warning threshold as a percentage of the soft limit (task.runner.memorySoftLimitPercent). A warning is logged to the run console when memory usage exceeds this value, indicating that the workload is at risk of being terminated due to high memory usage. The warning is reported after the run completes. Has no effect when task.runner.memorySoftLimitPercent or task.runner.resources.limits.memory are not set. |
 | task.runner.resources | object | `{"limits":{"cpu":"4000m","memory":"2048Mi"},"requests":{"cpu":"500m","memory":"512Mi"}}` | Resource requests and limits for the runner container. Note: For scalr-managed agents, this may be overridden by Scalr platform billing resource tier presets. |
 | task.runner.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seLinuxOptions":{}}` | Security context for the runner container. The default declaration duplicates some critical options from podSecurityContext to keep them independent. |
 | task.runner.securityContext.allowPrivilegeEscalation | bool | `false` | Allow privilege escalation. |
