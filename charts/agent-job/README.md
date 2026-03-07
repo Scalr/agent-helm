@@ -203,7 +203,7 @@ Monitor node resource pressure and eviction events to ensure stable operation.
 
 ### Scalr Run Out-of-Memory Termination
 
-The runner container executes Scalr Run workloads and processes user configuration, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
+The runner container executes Scalr Run workloads and processes end-user IaC configuration and code, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
 
 When a runner container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process with no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
 
