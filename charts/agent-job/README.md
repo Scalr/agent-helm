@@ -190,7 +190,7 @@ Because agents may be managing an active run stage, it is important to allow the
 
 ### Pod Eviction
 
-To reduce the risk of Pod eviction for active task Jobs, the default configuration applies the following annotations for common autoscalers such as Cluster Autoscaler, GKE Autopilot, and Karpenter:
+To reduce the risk of Pod eviction for active Scalr agents, the default configuration applies the following annotations for common autoscalers such as Cluster Autoscaler, GKE Autopilot, and Karpenter:
 
 ```yaml
 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
