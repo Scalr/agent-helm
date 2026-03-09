@@ -470,6 +470,24 @@ task:
         cpu: 4000m
         memory: 2048Mi
 
+    # -- Memory soft limit as a percentage of the hard limit (task.runner.resources.limits.memory).
+    # When memory usage exceeds this value, the process will be gracefully terminated by the agent.
+    # Graceful termination ensures that OpenTofu/Terraform workloads push state before exiting, preventing state loss.
+    # Setting this value too high reduces the memory headroom available for state push and increases the risk of state loss.
+    # Have no effect when task.runner.resources.limits.memory is not set.
+    # For example, when task.runner.resources.limits.memory is set to 1000Mi and memorySoftLimitPercent is 80%,
+    # the workload will be gracefully terminated when memory usage reaches 800Mi.
+    # @section -- Task
+    memorySoftLimitPercent: 80
+
+    # -- Memory warning threshold as a percentage of the soft limit (task.runner.memorySoftLimitPercent).
+    # A warning is logged to the run console when memory usage exceeds this value, indicating that
+    # the workload is at risk of being terminated due to high memory usage. The warning is reported
+    # after the run completes.
+    # Has no effect when task.runner.memorySoftLimitPercent or task.runner.resources.limits.memory are not set.
+    # @section -- Task
+    memoryWarnPercent: 90
+
     # -- Additional environment variables for the runner container.
     # @section -- Task
     extraEnv: {}

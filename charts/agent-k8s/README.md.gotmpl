@@ -15,6 +15,7 @@
 - [Amazon EFS](#amazon-efs)
 - [Root User Limitation](#root-user-limitation)
 - [Restrict Access to VM Metadata Service](#restrict-access-to-vm-metadata-service)
+- [Termination](#termination)
 - [HTTP Proxy](#http-proxy)
 - [SSL Certificate Bundles](#ssl-certificate-bundles)
 - [Troubleshooting](#troubleshooting)
@@ -225,6 +226,30 @@ $ helm upgrade ... \
 ```
 
 With this option enabled, a Kubernetes NetworkPolicy is applied to the agent pods that denies egress traffic to 169.254.169.254/32, blocking access to the VM metadata service. All other outbound traffic is allowed.
+
+## Termination
+
+Both the controller (singleton service) and worker (one per node service) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
+
+Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to perform a graceful shutdown of the underlying OpenTofu/Terraform workload or push a status update to the Scalr platform, and can lead to undefined behavior — ranging from degraded performance and Scalr Run processing delays to agent capacity issues, stuck runs, or even OpenTofu/Terraform state loss.
+
+### Pod Eviction
+
+To reduce the risk of Pod eviction for active Scalr agents, the default configuration applies the following annotations for common autoscalers such as Cluster Autoscaler:
+
+```yaml
+cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+```
+
+Monitor node resource pressure and eviction events to ensure stable operation.
+
+### Scalr Run Out-of-Memory Termination
+
+The runner container executes Scalr Run workloads and processes end-user IaC configuration and code, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
+
+When a runner container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process with no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
+
+Monitor your run's resource usage and configure resource requests and limits accordingly to mitigate the risk of unexpected termination.
 
 ### HTTP Proxy
 
