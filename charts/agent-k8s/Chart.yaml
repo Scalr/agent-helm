@@ -4,8 +4,8 @@ description: |
   A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
   Deploys an agent controller with a set of agent workers and executes runs in isolated pods.
 type: application
-version: 0.5.70
-appVersion: 0.63.0
+version: 0.5.71
+appVersion: 0.63.1
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
 maintainers:
   - name: scalr
