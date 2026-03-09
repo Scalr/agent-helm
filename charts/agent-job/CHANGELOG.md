@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
-- Added `task.runner.memoryWarnPercent` — memory warning threshold as a percentage of the hard limit (`task.runner.resources.limits.memory`). A warning is logged to the run console when memory usage exceeds this value. Default: `90`.
 - Added `task.runner.memorySoftLimitPercent` — memory soft limit as a percentage of the hard limit (`task.runner.resources.limits.memory`). The workload is gracefully terminated by the agent when memory usage exceeds this value, allowing OpenTofu/Terraform to push state before the hard limit is reached. Default: `80`.
+- Added `task.runner.memoryWarnPercent` — memory warning threshold as a percentage of the soft limit (`task.runner.memorySoftLimitPercent`). A warning is logged to the run console when memory usage exceeds this value. Default: `90`.
 
 ## [v0.5.70]
 
