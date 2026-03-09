@@ -1,6 +1,6 @@
 # agent-job
 
-![Version: 0.5.70](https://img.shields.io/badge/Version-0.5.70-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.62.0](https://img.shields.io/badge/AppVersion-0.62.0-informational?style=flat-square)
+![Version: 0.5.71](https://img.shields.io/badge/Version-0.5.71-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.63.0](https://img.shields.io/badge/AppVersion-0.63.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 It uses a job-based model, where each Scalr Run is isolated
@@ -9,7 +9,7 @@ in its own Kubernetes Job.
 See the [official documentation](https://docs.scalr.io/docs/agent-pools) for more information about Scalr Agents.
 
 > [!WARNING]
-> This chart is in Beta, and implementation details are subject to change. See [Planned Changes for Stable](#planned-changes-for-stable).
+> This chart is in Beta, and implementation details are subject to change.
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Installation](#installation)
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
-- [Planned Changes for Stable](#planned-changes-for-stable)
+- [Planned Changes](#planned-changes)
 - [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)
@@ -100,9 +100,15 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
 
-## Planned Changes for Stable
+## Planned Changes
 
-- Require Kubernetes with containerd 2.2+ as the minimum version once it reaches GA.
+This section outlines planned architecture changes that may be relevant for long-term chart maintenance.
+
+### Update Minimum Requirements to Kubernetes 1.36 Once GA
+
+Update the minimum required Kubernetes version to 1.36, which includes the stable [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature and containerd 2.2+ with [subPath](https://github.com/containerd/containerd/pull/11578) support for ImageVolume.
+In Kubernetes 1.35 (current minimal required version), ImageVolume is in Beta status but enabled by default, and we consider it ready for limited usage.
+This chart relies on ImageVolume to provision application components via OCI registry and plans to use this feature more heavily in the future.
 
 ## Agent Task Naming
 
@@ -416,6 +422,39 @@ See [all configuration options](#opentelemetry).
 
 Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
+### Resource Attributes Autodiscovery
+
+When running in Kubernetes, the agent automatically discovers and enriches OTLP resource attributes
+from pod labels and annotations mounted via the Downward API.
+
+#### Scalr Tag Autodiscovery
+
+The following pod labels are mapped to OTLP resource attributes:
+
+| Label | Default | OTLP Attribute |
+|---|---|---|
+| `infra.scalr.io/app` | — | `app` |
+| `infra.scalr.io/env` | — | `deployment.environment.name` |
+| `infra.scalr.io/service` | `scalr-agent` | `service.name` |
+
+#### Datadog Tag Autodiscovery
+
+The agent supports [Datadog Tag Autodiscovery](https://docs.datadoghq.com/containers/kubernetes/tag/?tab=datadogoperator#tag-autodiscovery) via the `ad.datadoghq.com/tags` pod annotation. Tags defined in this annotation are parsed as a JSON object and merged into the OTLP resource attributes.
+
+Example:
+
+```yaml
+annotations:
+  ad.datadoghq.com/tags: '{"env":"production","team":"backend"}'
+```
+
+When the annotation is present on task pods, it is automatically extended with account and workspace context:
+
+```yaml
+annotations:
+  ad.datadoghq.com/tags: '{"env":"production","team":"backend","account_name":"mainiacp","account_id":"acc-svrcncgh453bi8g","workspace_name":"main","workspace_id":"ws-v0p5qsps90tv7tvuc"}'
+```
+
 ## Custom Resource Definitions
 
 This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
@@ -601,7 +640,7 @@ For issues not covered above:
 |-----|------|---------|-------------|
 | rbac.clusterRules | list | `[{"apiGroups":["scalr.io"],"resources":["agenttasktemplates"],"verbs":["get","list","watch"]}]` | Cluster-wide RBAC rules (applied via ClusterRole bound in the release namespace). |
 | rbac.create | bool | `true` | Create the namespaced Role/RoleBinding and cluster-scope RoleBinding. |
-| rbac.rules | list | `[{"apiGroups":[""],"resources":["pods"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]},{"apiGroups":[""],"resources":["pods/exec"],"verbs":["get","create"]},{"apiGroups":[""],"resources":["pods/status"],"verbs":["get","patch","update"]},{"apiGroups":["apps"],"resources":["deployments"],"verbs":["get","list","watch"]},{"apiGroups":["batch"],"resources":["jobs"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":["batch"],"resources":["jobs/status"],"verbs":["get","patch","update"]}]` | Namespaced RBAC rules granted to the controller ServiceAccount. |
+| rbac.rules | list | `[{"apiGroups":[""],"resources":["pods"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]},{"apiGroups":[""],"resources":["pods/exec"],"verbs":["get","create"]},{"apiGroups":[""],"resources":["pods/status"],"verbs":["get","patch","update"]},{"apiGroups":["apps"],"resources":["deployments"],"verbs":["get","list","watch"]},{"apiGroups":["batch"],"resources":["jobs"],"verbs":["get","list","watch","create","delete","deletecollection","patch","update"]},{"apiGroups":["batch"],"resources":["jobs/status"],"verbs":["get","patch","update"]},{"apiGroups":[""],"resources":["events"],"verbs":["list"]}]` | Namespaced RBAC rules granted to the controller ServiceAccount. |
 
 ### Service account
 

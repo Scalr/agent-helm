@@ -149,6 +149,8 @@ spec:
           resources:
             {{- toYaml .Values.agent.resources | nindent 12 }}
           volumeMounts:
+            - name: podinfo
+              mountPath: /etc/podinfo
             - name: data-dir
               mountPath: {{ .Values.agent.dataDir | quote }}
             - name: cache-dir
@@ -194,5 +196,14 @@ spec:
         # It is more robust to mount a dedicated volume.
         - name: tmp-dir
           emptyDir: {}
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+              - path: "annotations"
+                fieldRef:
+                  fieldPath: metadata.annotations
         {{- include "agent-job.caCertVolume" . | nindent 8 }}
       terminationGracePeriodSeconds: {{ .Values.agent.terminationGracePeriodSeconds }}
