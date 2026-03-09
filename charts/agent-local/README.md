@@ -211,6 +211,8 @@ Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
 ## Termination
 
+Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to perform a graceful shutdown of the underlying OpenTofu/Terraform workload or push a status update to the Scalr platform, and can lead to undefined behavior — ranging from degraded performance and Scalr Run processing delays to agent capacity issues, stuck runs, or even OpenTofu/Terraform state loss.
+
 The agent termination behavior is controlled by `agent.shutdownMode` Helm option.
 The value can be `graceful` (default), `drain`, or `force`.
 
@@ -238,6 +240,27 @@ The `terminationGracePeriodSeconds` must be at least 120 seconds for `drain` mod
 In `force` mode, the agent stops the consumer, sends a `SIGKILL` signal to all active Terraform/OpenTofu processes, and allows 10 seconds for all tasks to terminate before exiting.
 
 The `terminationGracePeriodSeconds` must be at least 10 seconds for `force` mode.
+
+### Pod Eviction
+
+To reduce the risk of Pod eviction for active Scalr agents, the default configuration applies the following annotations for common autoscalers such as Cluster Autoscaler, GKE Autopilot, and Karpenter:
+
+```yaml
+cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+karpenter.sh/do-not-evict: "true"
+karpenter.sh/do-not-disrupt: "true"
+autopilot.gke.io/priority: "high"
+```
+
+Monitor node resource pressure and eviction events to ensure stable operation.
+
+### Scalr Run Out-of-Memory Termination
+
+The agent container executes Scalr Run workloads and processes end-user IaC configuration and code, resulting in highly variable memory utilization and an elevated risk of exceeding the memory limit and triggering an OOM kill.
+
+When a agent container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process with no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
+
+Monitor your run's resource usage and configure resource requests and limits accordingly to mitigate the risk of unexpected termination.
 
 ## Troubleshooting
 

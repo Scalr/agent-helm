@@ -18,7 +18,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
 - [Performance Optimization](#performance-optimization)
-- [Agent Termination](#agent-termination)
+- [Termination](#termination)
 - [HTTP Proxy](#http-proxy)
 - [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Volumes](#volumes)
@@ -179,7 +179,7 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 
 A major performance bottleneck in any IaC pipeline is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-volume-persistence).
 
-## Agent Termination
+## Termination
 
 Both the controller (long-lived service) and worker (short-lived, one per run) agents maintain a registration and liveness indicator within the Scalr Agent Pool throughout their entire runtime. When an agent stops, it deregisters itself from the Scalr platform as part of its shutdown procedure after receiving a SIGTERM signal.
 
