@@ -20,10 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `list` permission for `events` to allow the controller to include debug information for failed task pods.
 
-### Breaking Changes
-
-- Reserved `SCALR_URL` and all `SCALR_AGENT_*` keys in `agent.extraEnv`, `agent.controller.extraEnv`, `task.worker.extraEnv`, and `task.runner.extraEnv`. Using any of these keys now raises an error at render time.
-
 ## [v0.5.71]
 
 ### Updated
