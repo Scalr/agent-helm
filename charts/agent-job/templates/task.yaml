@@ -77,6 +77,7 @@ spec:
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- range $key, $value := .Values.task.runner.extraEnv }}
+              {{- include "agent-job.assertNotReservedEnvVar" $key }}
               - name: {{ $key }}
                 value: {{ $value | quote }}
               {{- end }}
@@ -172,6 +173,12 @@ spec:
                 value: {{ .Values.task.terminationGracePeriodSeconds | quote }}
               - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
                 value: "false"
+              - name: SCALR_AGENT_MEMORY_MONITOR_ENABLED
+                value: "1"
+              - name: SCALR_AGENT_MEMORY_MONITOR_WARN_PERCENT
+                value: {{ .Values.task.runner.memoryWarnPercent | quote }}
+              - name: SCALR_AGENT_MEMORY_MONITOR_SOFT_LIMIT_PERCENT
+                value: {{ .Values.task.runner.memorySoftLimitPercent | quote }}
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if .Values.agent.providerCache.enabled  }}
@@ -206,10 +213,12 @@ spec:
               {{- end }}
               {{- end }}
               {{- range $key, $value := .Values.agent.extraEnv }}
+              {{- include "agent-job.assertNotReservedEnvVar" $key }}
               - name: {{ $key }}
                 value: {{ $value | quote }}
               {{- end }}
               {{- range $key, $value := .Values.task.worker.extraEnv }}
+              {{- include "agent-job.assertNotReservedEnvVar" $key }}
               - name: {{ $key }}
                 value: {{ $value | quote }}
               {{- end }}

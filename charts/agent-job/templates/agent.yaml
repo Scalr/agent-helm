@@ -114,6 +114,12 @@ spec:
               value: {{ .Values.task.startupTimeoutSeconds | quote }}
             - name: SCALR_AGENT_STATE_PERSISTENCE_ENABLED
               value: "false"
+            - name: SCALR_AGENT_MEMORY_MONITOR_ENABLED
+              value: "1"
+            - name: SCALR_AGENT_MEMORY_MONITOR_WARN_PERCENT
+              value: {{ .Values.task.runner.memoryWarnPercent | quote }}
+            - name: SCALR_AGENT_MEMORY_MONITOR_SOFT_LIMIT_PERCENT
+              value: {{ .Values.task.runner.memorySoftLimitPercent | quote }}
             {{- $telemetry := .Values.otel -}}
             {{- if and $telemetry.enabled $telemetry.endpoint }}
             - name: SCALR_AGENT_OTLP_ENDPOINT
@@ -130,10 +136,14 @@ spec:
             {{- include "agent-job.proxyEnv" . | nindent 12 }}
             {{- include "agent-job.caCertEnv" . | nindent 12 }}
             {{- range $key, $value := .Values.agent.extraEnv }}
+            {{- include "agent-job.assertNotReservedEnvVar" $key }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
             {{- with .Values.agent.controller.extraEnv }}
+            {{- range . }}
+            {{- include "agent-job.assertNotReservedEnvVar" .name }}
+            {{- end }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- with .Values.agent.controller.extraEnvFrom }}
