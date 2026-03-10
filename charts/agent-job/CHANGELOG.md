@@ -9,15 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
-
 ### Added
 
+- Added `task.runner.memorySoftLimitPercent` — memory soft limit as a percentage of the hard limit (`task.runner.resources.limits.memory`). The workload is gracefully terminated by the agent when memory usage exceeds this value, allowing OpenTofu/Terraform to push state before the hard limit is reached. Default: `80`.
+- Added `task.runner.memoryWarnPercent` — memory warning threshold as a percentage of the soft limit (`task.runner.memorySoftLimitPercent`). A warning is logged to the run console when memory usage exceeds this value. Default: `90`.
 - Pod labels and annotations are now mounted to `/etc/podinfo` in the agent worker and agent controller containers via the Downward API.
 - Added Kubernetes resource attributes autodiscovery. Pod labels (`infra.scalr.io/app`, `infra.scalr.io/env`, `infra.scalr.io/service`) and Datadog annotations (`ad.datadoghq.com/tags`) are now automatically mapped to OTLP resource attributes.
 
 ### Changes
 
 - Added `list` permission for `events` to allow the controller to include debug information for failed task pods.
+
+### Breaking Changes
+
+- Reserved `SCALR_URL` and all `SCALR_AGENT_*` keys in `agent.extraEnv`, `agent.controller.extraEnv`, `task.worker.extraEnv`, and `task.runner.extraEnv`. Using any of these keys now raises an error at render time.
 
 ## [v0.5.71]
 
