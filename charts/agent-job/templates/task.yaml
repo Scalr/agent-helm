@@ -77,6 +77,7 @@ spec:
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- range $key, $value := .Values.task.runner.extraEnv }}
+              {{- include "agent-job.assertNotReservedEnvVar" $key }}
               - name: {{ $key }}
                 value: {{ $value | quote }}
               {{- end }}
@@ -212,10 +213,12 @@ spec:
               {{- end }}
               {{- end }}
               {{- range $key, $value := .Values.agent.extraEnv }}
+              {{- include "agent-job.assertNotReservedEnvVar" $key }}
               - name: {{ $key }}
                 value: {{ $value | quote }}
               {{- end }}
               {{- range $key, $value := .Values.task.worker.extraEnv }}
+              {{- include "agent-job.assertNotReservedEnvVar" $key }}
               - name: {{ $key }}
                 value: {{ $value | quote }}
               {{- end }}

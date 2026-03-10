@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.72]
+
+### Updated
+
+- Bumping chart version to v0.5.72 for scalr-agent v0.63.1
+
 ### Added
 
 - Added `task.runner.memorySoftLimitPercent` — memory soft limit as a percentage of the hard limit (`task.runner.resources.limits.memory`). The workload is gracefully terminated by the agent when memory usage exceeds this value, allowing OpenTofu/Terraform to push state before the hard limit is reached. Default: `80`.

@@ -163,6 +163,22 @@ Generate CA certificate volume
 {{- end -}}
 
 {{/*
+Fail if an env var name is reserved (SCALR_URL or any SCALR_AGENT_* key).
+Usage: {{ include "agent-job.assertNotReservedEnvVar" $key }}
+*/}}
+{{- define "agent-job.assertNotReservedEnvVar" -}}
+{{- if or (eq . "SCALR_URL") (hasPrefix "SCALR_AGENT_" .) -}}
+{{- $hints := dict
+  "SCALR_AGENT_DEBUG" "Use the 'agent.debug' Helm value instead."
+-}}
+{{- $hint := get $hints . -}}
+{{- $msg := printf "extraEnv key '%s' is reserved. Keys matching 'SCALR_URL' or prefixed with 'SCALR_AGENT_' are controlled by the Helm chart." . -}}
+{{- if $hint -}}{{- $msg = printf "%s\nHint: %s" $msg $hint -}}{{- end -}}
+{{- fail (printf "%s\n\nCheck available Helm variables at https://github.com/Scalr/agent-helm/tree/master/charts/agent-job or open an issue to request a new one." $msg) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Build image string with registry and namespace handling.
 
 Automatically uses .Values.global.imageRegistry and .Values.global.imageNamespace from context.
