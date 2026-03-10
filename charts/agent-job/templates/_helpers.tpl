@@ -168,7 +168,13 @@ Usage: {{ include "agent-job.assertNotReservedEnvVar" $key }}
 */}}
 {{- define "agent-job.assertNotReservedEnvVar" -}}
 {{- if or (eq . "SCALR_URL") (hasPrefix "SCALR_AGENT_" .) -}}
-{{- fail (printf "extraEnv key '%s' is reserved. Keys matching 'SCALR_URL' or prefixed with 'SCALR_AGENT_' are controlled by the Helm chart.\n\nCheck available Helm variables at https://github.com/Scalr/agent-helm/tree/master/charts/agent-job or open an issue to request a new one." .) -}}
+{{- $hints := dict
+  "SCALR_AGENT_DEBUG" "Use the 'agent.debug' Helm value instead."
+-}}
+{{- $hint := get $hints . -}}
+{{- $msg := printf "extraEnv key '%s' is reserved. Keys matching 'SCALR_URL' or prefixed with 'SCALR_AGENT_' are controlled by the Helm chart." . -}}
+{{- if $hint -}}{{- $msg = printf "%s\nHint: %s" $msg $hint -}}{{- end -}}
+{{- fail (printf "%s\n\nCheck available Helm variables at https://github.com/Scalr/agent-helm/tree/master/charts/agent-job or open an issue to request a new one." $msg) -}}
 {{- end -}}
 {{- end -}}
 
