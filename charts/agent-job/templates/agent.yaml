@@ -120,6 +120,8 @@ spec:
               value: {{ .Values.task.runner.memoryWarnPercent | quote }}
             - name: SCALR_AGENT_MEMORY_MONITOR_SOFT_LIMIT_PERCENT
               value: {{ .Values.task.runner.memorySoftLimitPercent | quote }}
+            - name: SCALR_AGENT_SENTRY_DSN
+              value: {{ .Values.agent.sentryDsn | quote }}
             {{- $telemetry := .Values.otel -}}
             {{- if and $telemetry.enabled $telemetry.endpoint }}
             - name: SCALR_AGENT_OTLP_ENDPOINT

@@ -235,6 +235,10 @@ agent:
   # @section -- Agent
   logFormat: "json"
 
+  # -- Sentry DSN for error tracking. Leave empty to disable.
+  # @section -- Agent
+  sentryDsn: ""
+
   # -- Additional environment variables for agent controller and worker containers.
   # @section -- Agent
   extraEnv: {}
@@ -336,6 +340,12 @@ agent:
     # -- Provider cache soft limit. Must be tuned according to cache directory size.
     # @section -- Agent
     sizeLimit: 40Gi
+    # -- Maximum number of threads used for provider installations. This value is global for
+    # the Scalr service and applies across all concurrent runs. Increasing it will increase
+    # resource consumption and may improve provider installation speed, but the effect depends
+    # on individual setups.
+    # @section -- Agent
+    concurrency: 10
 
   # @section -- Agent
   moduleCache:
@@ -345,6 +355,12 @@ agent:
     # -- Module cache soft limit. Must be tuned according to cache directory size.
     # @section -- Agent
     sizeLimit: 40Gi
+    # -- Maximum number of threads used for module cache operations (initialization and caching).
+    # This value is global for the Scalr service and applies across all concurrent runs.
+    # Increasing it will increase resource consumption and may improve module cache speed,
+    # but the effect depends on individual setups.
+    # @section -- Agent
+    concurrency: 10
 
   # -- Grace period in seconds before forcibly terminating the controller container.
   # @section -- Agent

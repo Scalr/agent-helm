@@ -455,6 +455,17 @@ annotations:
   ad.datadoghq.com/tags: '{"env":"production","team":"backend","account_name":"mainiacp","account_id":"acc-svrcncgh453bi8g","workspace_name":"main","workspace_id":"ws-v0p5qsps90tv7tvuc"}'
 ```
 
+### Sentry Error Tracking
+
+To enable error reporting to [Sentry](https://sentry.io/), configure the DSN for both the agent controller and task pods:
+
+```yaml
+agent:
+  sentryDsn: "https://<key>@<org>.ingest.sentry.io/<project>"
+```
+
+Leave `sentryDsn` empty (the default) to disable Sentry integration.
+
 ## Custom Resource Definitions
 
 This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
@@ -535,6 +546,7 @@ For issues not covered above:
 | agent.image.tag | string | `""` | Image tag. Defaults to the chart appVersion if not specified. |
 | agent.labels | object | `{}` | Additional labels for the Deployment (workload object). |
 | agent.logFormat | string | `"json"` | The log formatter. Options: plain, dev or json. Defaults to json. |
+| agent.moduleCache.concurrency | int | `10` | Maximum number of threads used for module cache operations (initialization and caching). This value is global for the Scalr service and applies across all concurrent runs. Increasing it will increase resource consumption and may improve module cache speed, but the effect depends on individual setups. |
 | agent.moduleCache.enabled | bool | `false` | Enable module caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. |
 | agent.moduleCache.sizeLimit | string | `"40Gi"` | Module cache soft limit. Must be tuned according to cache directory size. |
 | agent.nodeSelector | object | `{}` | Node selector for assigning the controller pod to specific nodes. Example: `--set agent.nodeSelector."node-type"="agent-controller"` |
@@ -545,10 +557,12 @@ For issues not covered above:
 | agent.podDisruptionBudget.minAvailable | int | `1` | Minimum number of controller pods that must be available. Either minAvailable or maxUnavailable must be set, not both. |
 | agent.podLabels | object | `{}` | Controller-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
 | agent.podSecurityContext | object | `{}` | Controller-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys). |
+| agent.providerCache.concurrency | int | `10` | Maximum number of threads used for provider installations. This value is global for the Scalr service and applies across all concurrent runs. Increasing it will increase resource consumption and may improve provider installation speed, but the effect depends on individual setups. |
 | agent.providerCache.enabled | bool | `false` | Enable provider caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. |
 | agent.providerCache.sizeLimit | string | `"40Gi"` | Provider cache soft limit. Must be tuned according to cache directory size. |
 | agent.replicaCount | int | `1` | Number of agent controller replicas. |
 | agent.resources | object | `{"requests":{"cpu":"100m","memory":"256Mi"}}` | Resource requests and limits for the agent controller container. |
+| agent.sentryDsn | string | `""` | Sentry DSN for error tracking. Leave empty to disable. |
 | agent.terminationGracePeriodSeconds | int | `180` | Grace period in seconds before forcibly terminating the controller container. |
 | agent.token | string | `""` | The agent pool token for authentication. |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. |
