@@ -213,6 +213,8 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`) on clusters with a fixed number of nodes.
 - Use [buffer pods](docs/buffer-pods.md) on clusters with autoscaling enabled - buffer pods keep nodes warm to eliminate cluster autoscaler cold-start delays and pre-cache images at the same time.
 
+You can configure [OTLP monitoring](#metrics-and-observability) and use the [scalr_agent.core.kubernetes_job_startup_latency_seconds](https://docs.scalr.io/docs/metrics#scalr_agentcorekubernetes_job_startup_latency_seconds) metric to track run startup time. You may observe spikes during node scaling, but good average values range from 3 to 5 seconds.
+
 ### Use Persistent Cache
 
 A major performance bottleneck in any IaC pipeline is the time spent re-downloading binaries, providers, and modules during each run. To optimize this, we recommend enabling [Cache Directory Persistence](#cache-volume-persistence).
