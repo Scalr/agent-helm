@@ -15,7 +15,6 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
-- [Planned Changes](#planned-changes)
 - [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
 - [High Availability](#high-availability)
@@ -25,11 +24,12 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Volumes](#volumes)
 - [Security](#security)
+- [Network Requirements](#network-requirements)
 - [Job History Management](#job-history-management)
 - [Metrics and Observability](#metrics-and-observability)
-- [Network Requirements](#network-requirements)
-- [Custom Resource Definitions](#custom-resource-definitions)
 - [RBAC](#rbac)
+- [Custom Resource Definitions](#custom-resource-definitions)
+- [Planned Changes](#planned-changes)
 - [Troubleshooting and Support](#troubleshooting-and-support)
 
 ## Prerequisites
@@ -111,16 +111,6 @@ Each new agent release triggers a new chart release with an updated `appVersion`
 
 > [!WARNING]
 > Overriding `appVersion` to a version other than the one shipped with the chart is not recommended. Releases are tested and coordinated with a specific agent version, and mismatched combinations may include breaking changes between application and infrastructure code.
-
-## Planned Changes
-
-This section outlines planned architecture changes that may be relevant for long-term chart maintenance.
-
-### Update Minimum Requirements to Kubernetes 1.36 Once GA
-
-Update the minimum required Kubernetes version to 1.36, which includes the stable [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature and containerd 2.2+ with [subPath](https://github.com/containerd/containerd/pull/11578) support for ImageVolume.
-In Kubernetes 1.35 (current minimal required version), ImageVolume is in Beta status but enabled by default, and we consider it ready for limited usage.
-This chart relies on ImageVolume to provision application components via OCI registry and plans to use this feature more heavily in the future.
 
 ## Agent Task Naming
 
@@ -536,6 +526,16 @@ agent:
 
 Leave `sentryDsn` empty (the default) to disable Sentry integration.
 
+## RBAC
+
+By default the chart provisions:
+
+- **ServiceAccount** used by the controller and task pods
+- **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
+- **ClusterRole/ClusterRoleBinding** granting read access to `AgentTaskTemplate` resources (`agenttasktemplates.scalr.io`)
+
+Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
+
 ## Custom Resource Definitions
 
 This chart bundles the `agenttasktemplates.scalr.io` CRD and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods.
@@ -548,15 +548,15 @@ Verify installation:
 kubectl get crd agenttasktemplates.scalr.io
 ```
 
-## RBAC
+## Planned Changes
 
-By default the chart provisions:
+This section outlines planned architecture changes that may be relevant for long-term chart maintenance.
 
-- **ServiceAccount** used by the controller and task pods
-- **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
-- **ClusterRole/ClusterRoleBinding** granting read access to `AgentTaskTemplate` resources (`agenttasktemplates.scalr.io`)
+### Update Minimum Requirements to Kubernetes 1.36 Once GA
 
-Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
+Update the minimum required Kubernetes version to 1.36, which includes the stable [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature and containerd 2.2+ with [subPath](https://github.com/containerd/containerd/pull/11578) support for ImageVolume.
+In Kubernetes 1.35 (current minimal required version), ImageVolume is in Beta status but enabled by default, and we consider it ready for limited usage.
+This chart relies on ImageVolume to provision application components via OCI registry and plans to use this feature more heavily in the future.
 
 ## Troubleshooting and Support
 
