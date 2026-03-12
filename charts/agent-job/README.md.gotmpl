@@ -14,6 +14,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Planned Changes](#planned-changes)
 - [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
+- [High Availability](#high-availability)
 - [Performance Optimization](#performance-optimization)
 - [Termination](#termination)
 - [HTTP Proxy](#http-proxy)
@@ -162,6 +163,42 @@ helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} \
   --set task.runner.image.tag="v1.2.3"
 ```
 
+## High Availability
+
+This section describes strategies for hardening the deployment for high availability.
+
+### Multiple Controller Replicas
+
+By default the chart runs a single controller replica (`agent.replicaCount: 1`). Increasing the replica count distributes the run scheduling load and ensures the agent pool remains available during voluntary disruptions such as node upgrades or pod restarts.
+
+```shell
+helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
+  --set agent.replicaCount=2
+```
+
+When `agent.replicaCount > 1`, the chart automatically creates a `PodDisruptionBudget` (controlled by `agent.podDisruptionBudget`) that keeps at least one controller available during voluntary disruptions.
+
+### Separate Controllers and Task Pods
+
+It is recommended to run controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting controllers.
+
+Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool:
+
+```yaml
+agent:
+  nodeSelector:
+    role: main
+task:
+  nodeSelector:
+    role: scalr-agent-runs
+```
+
+With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive.
+
+### Deploy Multiple Installations Within a Scalr Agent Pool
+
+You can connect multiple `agent-job` Helm releases to the same Scalr agent pool, each targeting a different node pool or availability zone. This allows the pool to scale horizontally across infrastructure boundaries without a single point of failure.
+
 ## Performance Optimization
 
 The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
@@ -171,9 +208,10 @@ The following additional configurations are recommended to optimize Scalr Run st
 This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
 
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
-- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
 - [Build](#custom-runner-images) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`) on clusters with a fixed number of nodes.
+- Use [buffer pods](docs/buffer-pods.md) on clusters with autoscaling enabled — buffer pods keep nodes warm to eliminate cluster autoscaler cold-start delays and pre-cache images at the same time.
 
 ### Use Persistent Cache
 
