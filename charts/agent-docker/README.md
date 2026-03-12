@@ -7,14 +7,14 @@ where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar conta
 Run phases are isolated into docker containers.
 
 > [!WARNING]
-> This chart is planned for deprecation. Use [`agent-local`](/charts/agent-local) instead.
+> This chart is planned for deprecation. Use [`agent-local`](../agent-local) instead.
 
 ## Overview
 
 This chart uses the Scalr Agent with the `docker` driver and a Docker-in-Docker sidecar container.
 Originally built to run the Docker-based Agent on Kubernetes due to the lack of native Kubernetes support.
 It has been retained due to adoption challenges with the native agent-k8s chart, we recommend using the newer
-[agent-local](../charts/agent-local) chart for new installations instead of agent-docker.
+[agent-local](../agent-local) chart for new installations instead of agent-docker.
 
 This Kubernetes deployment does not scale across multiple replicas. As a result, the compute capacity
 managed by each agent is limited to a single node. You can run multiple separate Deployments within

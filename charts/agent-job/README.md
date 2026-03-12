@@ -8,9 +8,6 @@ in its own Kubernetes Job.
 
 See the [official documentation](https://docs.scalr.io/docs/agent-pools) for more information about Scalr Agents.
 
-> [!WARNING]
-> This chart is in Beta, and implementation details are subject to change.
-
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -36,7 +33,8 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 
 - Kubernetes 1.35+
 - Helm 3.0+
-- ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
+- Cluster-admin permissions (or a role with `customresourcedefinitions` create/update at cluster scope) to install the bundled [CRD](#custom-resource-definitions)
+- Optional: [ReadWriteMany](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes) volume for [Cache Volume Persistence](#cache-volume-persistence)
 
 ## Installation
 
@@ -468,9 +466,11 @@ Leave `sentryDsn` empty (the default) to disable Sentry integration.
 
 ## Custom Resource Definitions
 
-This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
+This chart bundles the `agenttasktemplates.scalr.io` CRD and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods.
 
-**Verify installation:**
+Installing the CRD requires cluster-admin permissions or a role with `customresourcedefinitions` create/update at cluster scope. The identity running `helm install` must have these permissions.
+
+Verify installation:
 
 ```shell
 kubectl get crd agenttasktemplates.scalr.io
@@ -487,6 +487,27 @@ By default the chart provisions:
 Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
 
 ## Troubleshooting and Support
+
+### CRD Installation Fails: Insufficient Permissions
+
+If `helm install` fails with an error like:
+
+```
+Error: failed to install CRD crds/agenttasktemplate.yaml: 1 error occurred:
+    * customresourcedefinitions.apiextensions.k8s.io is forbidden: User "..." cannot create resource
+      "customresourcedefinitions" in API group "apiextensions.k8s.io" at the cluster scope
+```
+
+The identity running `helm install` does not have cluster-admin permissions. This chart installs the [CRD](#custom-resource-definitions) on first install, which requires cluster-scoped `customresourcedefinitions` create/update access.
+
+**Fix:** Run `helm install` with a cluster-admin account (or an IAM role/user bound to `cluster-admin`). On EKS, this typically means using the IAM entity that created the cluster or one explicitly granted access via `aws-auth` / EKS access entries:
+
+```shell
+# Verify the current identity has sufficient permissions
+kubectl auth can-i create customresourcedefinitions --all-namespaces
+```
+
+If the output is `yes`, proceed with the install. If `no`, switch to a cluster-admin context before running `helm install`.
 
 ### Debug Logging
 
@@ -512,11 +533,8 @@ kubectl logs -n <namespace> <task-pod-name> --all-containers
 
 ### Getting Support
 
-For issues not covered above:
-
-1. Enable [debug logging](#debug-logging)
-2. [Collect logs](#collecting-logs) from the incident timeframe
-3. Open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31)
+For issues not covered above, or if you need additional assistance, open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting#creating-a-support-ticket on how to gather the right information to speed up issue resolution.
 
 ## Maintainers
 

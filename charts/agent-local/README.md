@@ -154,7 +154,7 @@ This chart deploys a set of static agent workers that process runs sequentially 
 
 This chart is suitable when deploying separate agent deployments (agent pools) for each RBAC perimeter (e.g., Scalr Environment). For example, you can ensure each team in your organization works on individual agent pools without having access to each other's resources.
 
-If you want to manage a single agent deployment across different teams within your organization, consider using the [`agent-job`](/charts/agent-job) chart.
+If you want to manage a single agent deployment across different teams within your organization, consider using the [`agent-job`](../agent-job) chart.
 
 ### Agent Security Context
 
