@@ -11,11 +11,13 @@ Deploys a static number of agents and executes runs in shared agent pods.
 - [Installation](#installation)
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
+- [Versioning Policy](#versioning-policy)
 - [Configuration](#configuration)
 - [Customizing Environment](#customizing-environment)
 - [Volumes](#volumes)
 - [Security](#security)
 - [Metrics and Observability](#metrics-and-observability)
+- [Network Requirements](#network-requirements)
 - [Termination](#termination)
 - [Troubleshooting](#troubleshooting)
 
@@ -67,6 +69,18 @@ The concurrency of each agent instance is limited to 1. To scale concurrency, th
 <p align="center">
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
+
+## Versioning Policy
+
+This chart deploys the [Scalr Agent](https://docs.scalr.io/docs/agent-pools) using the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image. The agent supports multiple runtimes beyond Kubernetes and is versioned independently from this chart.
+
+Each new agent release triggers a new chart release with an updated `appVersion`. The two changelogs cover different scopes:
+
+- [Scalr Agent changelog](https://docs.scalr.io/docs/changelog) — application-level changes and new Scalr platform functionality
+- [CHANGELOG.md](CHANGELOG.md) — chart-level changes: Kubernetes resources, values, and defaults
+
+> [!WARNING]
+> Overriding `appVersion` to a version other than the one shipped with the chart is not recommended. Releases are tested and coordinated with a specific agent version, and mismatched combinations may include breaking changes between application and infrastructure code.
 
 ## Configuration
 
@@ -261,6 +275,21 @@ The agent container executes Scalr Run workloads and processes end-user IaC conf
 When a agent container exceeds its memory limit, Kubernetes sends SIGKILL directly to the process with no opportunity to clean up. For OpenTofu/Terraform workloads, this can result in state loss or corruption if the process is killed before it can push state.
 
 Monitor your run's resource usage and configure resource requests and limits accordingly to mitigate the risk of unexpected termination.
+
+## Network Requirements
+
+The agent requires outbound HTTPS access to the following endpoints:
+
+| Hostname                              | Port | Purpose                                                                                                                                                              |
+| ------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| scalr.io                              | 443  | Polling for new tasks, posting status updates and logs, downloading IaC configuration versions, private modules, and software binary releases |
+| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) and [scalr/runner](https://hub.docker.com/r/scalr/runner) images                                    |
+| registry.opentofu.org                 | 443  | Downloading public providers and modules from the OpenTofu Registry                                                                                                  |
+| registry.terraform.io                 | 443  | Downloading public providers and modules from the Terraform Registry                                                                                                 |
+
+Ensure the agent can also reach any services required by your OpenTofu/Terraform configurations or hook scripts, such as cloud provider APIs, VCS providers, or custom software distribution endpoints.
+
+If you use custom module or provider registries, or Docker registry mirrors, additional network access rules may be required.
 
 ## Troubleshooting
 
