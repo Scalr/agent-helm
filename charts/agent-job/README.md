@@ -408,14 +408,14 @@ This section describes the security model of the chart, covering how the agent a
 
 The agent authenticates with the Scalr platform using a token hierarchy with progressively narrower scopes — each token is a JWT and carries only the permissions required for its specific role:
 
-1. Agent Pool Token — a long-lived JWT configured via the `agent.token` Helm value (exposed as `SCALR_AGENT_TOKEN`). It identifies the agent to the Scalr platform and is used only during initial registration and startup.
-2. Agent Session Token — a short-lived token issued by the Scalr API in exchange for the Agent Pool Token after successful registration. It is held in memory only (never written to disk) and used for task acquisition and status updates during the lifetime of the agent controller and agent workers.
-3. Agent Task Token — a scoped token included in each task payload by the Scalr platform, valid only for that specific task execution. Used by the agent worker for task-specific API calls, downloading the configuration version, and streaming logs. Exists only for the lifetime of the task.
-4. Scalr Run Token — a token exposed to the run environment as `SCALR_TOKEN` shell variable inside an agent runner container (i.e. available to OpenTofu/Terraform and provisioner scripts). It is scoped to the minimum permissions required for a run: `workspaces:read`, `module-versions:read`, and `state-versions:create` within a context of run's workspace.
+1. Agent Pool Token — a long-lived token configured via the `agent.token` Helm value (passed to agent services as `SCALR_AGENT_TOKEN`). It identifies the agent to the Scalr platform and is used only during initial registration and startup.
+2. Agent Session Token — a token issued by the Scalr API in exchange for the Agent Pool Token after successful registration. Held in memory only and used for task acquisition and status updates during the lifetime of the agent controller and agent workers.
+3. Agent Task Token — a token included in each task payload by the Scalr platform, valid only for that specific task execution. Used by the agent worker for task-specific API calls, downloading the configuration version, and streaming logs.
+4. Scalr Run Token — a token exposed to the run environment as the `SCALR_TOKEN` environment variable (available to OpenTofu/Terraform and provisioner scripts). Scoped to the minimum permissions required for a run: `workspaces:read`, `module-versions:read`, and `state-versions:create` within the context of the run's workspace. Exists only for the lifetime of the task.
 
 Communication with the Scalr platform uses HTTPS exclusively, making all traffic transparent for proxying and monitoring by agent operators.
 
-The agent establishes an outbound connection to the Scalr relay service (`relay.<scalr-url>`) — an HTTP long-polling channel used for Scalr-to-agent messaging. The agent authenticates via `Authorization: Bearer <token>` headers. The platform pushes task assignments and control commands (e.g. cancel) through this relay. All connections are outbound — the platform never initiates inbound connections to the agent.
+The agent establishes an outbound connection to the Scalr relay service (`relay.<scalr-url>`) — an HTTP long-polling channel used for Scalr-to-agent messaging. The agent authenticates via `Authorization: Bearer <token>` headers. The platform pushes messages about available tasks and cancellation signals through this relay. All connections are outbound — the platform never initiates inbound connections to the agent.
 
 All tokens are passed to containers via Kubernetes Secrets and mounted as environment variables — they are never embedded in plaintext in Pod specs, ConfigMaps, or chart values.
 
