@@ -415,7 +415,7 @@ The agent authenticates with the Scalr platform using a token hierarchy with pro
 
 Communication with the Scalr platform uses HTTPS exclusively, making all traffic transparent for proxying and monitoring by agent operators.
 
-The agent establishes an outbound connection to the Scalr relay service (`relay.<scalr-url>`) — an HTTP long-polling channel used for Scalr-to-agent messaging. The agent authenticates via `Authorization: Bearer <token>` headers. The platform pushes messages about available tasks and cancellation signals through this relay. All connections are outbound — the platform never initiates inbound connections to the agent.
+The agent establishes an outbound connection to the Scalr relay service (`relay.<scalr-url>`) — an HTTP long-polling channel used for Scalr-to-agent messaging. The agent authenticates via `Authorization: Bearer <token>` headers. The platform pushes messages about available tasks and cancellation signals through this relay. All connections are outbound — the Scalr platform never initiates inbound connections to the agent, and the agent never exposes any TCP ports.
 
 All tokens are passed to containers via Kubernetes Secrets and mounted as environment variables — they are never embedded in plaintext in Pod specs, ConfigMaps, or chart values.
 
