@@ -7,7 +7,7 @@ where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar conta
 Run phases are isolated into docker containers.
 
 > [!WARNING]
-> This chart is planned for deprecation. Use [`agent-local`](../agent-local) instead.
+> This chart will be deprecated and will stop receiving updates after March 31, 2026. Please consider to use [`agent-local`](../agent-local) instead.
 
 ## Overview
 

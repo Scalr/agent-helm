@@ -109,24 +109,26 @@ This chart relies on ImageVolume to provision application components via OCI reg
 
 When the agent controller spawns a Kubernetes Job for a Scalr Run, the Job is named using the pattern:
 
-```
+```shell
 <basename>-<run-id>-<stage>
 ```
 
 Where:
+
 - **basename**: Configurable prefix derived from the chart's fullname (defaults to `scalr-agent`). Override with `task.job.basename`.
 - **run-id**: Unique identifier assigned by the Scalr platform (e.g., `run-v0p500fu3s9ban8s8`).
 - **stage**: The execution stage (e.g., `plan`, `apply`, `policy`, etc).
 
-The basename has a 32-character limit. If it exceeds this, it will be omitted.
+If the final Job name after concatenation exceeds 63 characters (the Kubernetes Job name limit), the basename prefix will be omitted.
 
-**Examples:**
+Examples:
 
 | Release Name | `task.job.basename` | Resulting Job Name |
 |--------------|---------------------|-------------------|
 | scalr-agent | (empty) | scalr-agent-run-abcd1234-plan |
 | prod-agent | (empty) | prod-agent-run-abcd1234-apply |
 | scalr-agent | my-jobs | my-jobs-run-abcd1234-policy |
+| scalr-agent | my-extra-long-....-basename | run-abcd1234-policy |
 
 To customize the basename:
 
