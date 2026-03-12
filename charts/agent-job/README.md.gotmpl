@@ -452,6 +452,17 @@ annotations:
   ad.datadoghq.com/tags: '{"env":"production","team":"backend","account_name":"mainiacp","account_id":"acc-svrcncgh453bi8g","workspace_name":"main","workspace_id":"ws-v0p5qsps90tv7tvuc"}'
 ```
 
+### Sentry Error Tracking
+
+To enable error reporting to [Sentry](https://sentry.io/), configure the DSN for both the agent controller and task pods:
+
+```yaml
+agent:
+  sentryDsn: "https://<key>@<org>.ingest.sentry.io/<project>"
+```
+
+Leave `sentryDsn` empty (the default) to disable Sentry integration.
+
 ## Custom Resource Definitions
 
 This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
