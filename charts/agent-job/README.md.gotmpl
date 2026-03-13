@@ -420,7 +420,7 @@ The Scalr platform pushes messages about available tasks and cancellation signal
 Communication with the Scalr platform uses HTTPS exclusively, making all traffic transparent for proxying and monitoring by agent operators.
 All connections are outbound — the Scalr platform never initiates inbound connections to the agent, and the agent never exposes any TCP ports.
 
-If an Agent Pool Token is revoked (e.g. from the Scalr Agent Pool tokens page), all associated Agent Session Tokens are revoked. Subsequent API calls return `401`, which causes the agents to shut down immediately.
+If an Agent Pool Token is revoked (e.g. from the Scalr Agent Pool tokens page), all associated Agent Session Tokens are revoked. Subsequent API calls return `401`, which causes the agents to shut down.
 
 ### Multi-tenant Isolation
 
