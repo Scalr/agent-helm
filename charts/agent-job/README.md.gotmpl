@@ -416,7 +416,9 @@ The agent establishes an outbound connection to the Scalr relay service (`relay.
 
 All tokens are passed to containers via Kubernetes Secrets and mounted as environment variables — they are never embedded in plaintext in Pod specs, ConfigMaps, or chart values.
 
-If a token is revoked or returns a `401`, the agent shuts down immediately.
+If an Agent Pool Token is revoked (e.g. from the Scalr Agent Pool tokens page), all associated Agent Session Tokens are revoked. Subsequent API calls return `401`, which causes the agents to shut down immediately.
+
+The Agent Task Token and Scalr Run Token are tied to the lifecycle of the run task and are revoked automatically when the task ends.
 
 ### Multi-tenant Isolation
 
