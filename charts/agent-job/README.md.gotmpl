@@ -277,10 +277,16 @@ global:
     enabled: true
     httpProxy: "http://proxy.example.com:8080"
     httpsProxy: "http://proxy.example.com:8080"
-    noProxy: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    noProxy: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.169.254"
 ```
 
 The `noProxy` setting should include Kubernetes internal domains to avoid routing cluster traffic through the proxy.
+
+**NetworkPolicy and proxy port**
+
+When `task.allowMetadataService` is false (the default), the chart creates a NetworkPolicy for task pods that allows DNS (port 53) and egress to the internet while blocking the VM metadata service. That policy does not allow egress to arbitrary ports (such as a proxy). If you use an HTTP proxy (e.g. on port 3128 or 8080), task pods must be allowed to reach it.
+
+Create a **separate** NetworkPolicy that allows egress from task pods to the proxy (by port and, if you want, by pod or namespace selector). Do not edit the policy created by the chart. Chart upgrades or redeploys can overwrite that policy; keeping proxy egress in your own policy keeps it under your control and avoids it being reverted.
 
 ## Custom Certificate Authorities
 
