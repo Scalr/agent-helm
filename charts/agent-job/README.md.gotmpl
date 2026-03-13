@@ -5,35 +5,35 @@
 
 See the [official documentation](https://docs.scalr.io/docs/agent-pools) for more information about Scalr Agents.
 
-> [!WARNING]
-> This chart is in Beta, and implementation details are subject to change.
-
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
-- [Planned Changes](#planned-changes)
+- [Versioning Policy](#versioning-policy)
 - [Agent Task Naming](#agent-task-naming)
 - [Custom Runner Images](#custom-runner-images)
+- [High Availability](#high-availability)
 - [Performance Optimization](#performance-optimization)
 - [Termination](#termination)
 - [HTTP Proxy](#http-proxy)
 - [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Volumes](#volumes)
 - [Security](#security)
+- [Network Requirements](#network-requirements)
 - [Job History Management](#job-history-management)
 - [Metrics and Observability](#metrics-and-observability)
-- [Custom Resource Definitions](#custom-resource-definitions)
 - [RBAC](#rbac)
+- [Custom Resource Definitions](#custom-resource-definitions)
+- [Planned Changes](#planned-changes)
 - [Troubleshooting and Support](#troubleshooting-and-support)
 
 ## Prerequisites
 
 - Kubernetes 1.35+
 - Helm 3.0+
-- ReadWriteMany volumes for [Cache Volume Persistence](#cache-volume-persistence) (optional)
+- Optional: [ReadWriteMany](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes) volume for [Cache Volume Persistence](#cache-volume-persistence)
 
 ## Installation
 
@@ -97,38 +97,42 @@ See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/
   <img src="assets/deploy-diagram.drawio.svg" />
 </p>
 
-## Planned Changes
+## Versioning Policy
 
-This section outlines planned architecture changes that may be relevant for long-term chart maintenance.
+This chart deploys the [Scalr Agent](https://docs.scalr.io/docs/agent-pools) using the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image. The agent supports multiple runtimes beyond Kubernetes and is versioned independently from this chart.
 
-### Update Minimum Requirements to Kubernetes 1.36 Once GA
+Each new agent release triggers a new chart release with an updated `appVersion`. The two changelogs cover different scopes:
 
-Update the minimum required Kubernetes version to 1.36, which includes the stable [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature and containerd 2.2+ with [subPath](https://github.com/containerd/containerd/pull/11578) support for ImageVolume.
-In Kubernetes 1.35 (current minimal required version), ImageVolume is in Beta status but enabled by default, and we consider it ready for limited usage.
-This chart relies on ImageVolume to provision application components via OCI registry and plans to use this feature more heavily in the future.
+- [Scalr Agent changelog](https://docs.scalr.io/docs/changelog) — application-level changes and new Scalr platform functionality
+- [CHANGELOG.md](CHANGELOG.md) — chart-level changes: Kubernetes resources, values, and defaults
+
+> [!WARNING]
+> Overriding `appVersion` to a version other than the one shipped with the chart is not recommended. Releases are tested and coordinated with a specific agent version, and mismatched combinations may include breaking changes between application and infrastructure code.
 
 ## Agent Task Naming
 
 When the agent controller spawns a Kubernetes Job for a Scalr Run, the Job is named using the pattern:
 
-```
+```shell
 <basename>-<run-id>-<stage>
 ```
 
 Where:
+
 - **basename**: Configurable prefix derived from the chart's fullname (defaults to `scalr-agent`). Override with `task.job.basename`.
 - **run-id**: Unique identifier assigned by the Scalr platform (e.g., `run-v0p500fu3s9ban8s8`).
 - **stage**: The execution stage (e.g., `plan`, `apply`, `policy`, etc).
 
-The basename has a 32-character limit. If it exceeds this, it will be omitted.
+If the final Job name after concatenation exceeds 63 characters (the Kubernetes Job name limit), the basename prefix will be omitted.
 
-**Examples:**
+Examples:
 
 | Release Name | `task.job.basename` | Resulting Job Name |
 |--------------|---------------------|-------------------|
 | scalr-agent | (empty) | scalr-agent-run-abcd1234-plan |
 | prod-agent | (empty) | prod-agent-run-abcd1234-apply |
 | scalr-agent | my-jobs | my-jobs-run-abcd1234-policy |
+| scalr-agent | my-extra-long-....-basename | run-abcd1234-policy |
 
 To customize the basename:
 
@@ -162,6 +166,44 @@ helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} \
   --set task.runner.image.tag="v1.2.3"
 ```
 
+## High Availability
+
+This section describes strategies for hardening the deployment for high availability.
+
+### Multiple Controller Replicas
+
+By default the chart runs a single controller replica (`agent.replicaCount: 1`). Increasing the replica count distributes the run scheduling load and ensures the agent pool remains available during voluntary disruptions such as node upgrades or pod restarts.
+
+```shell
+helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
+  --set agent.replicaCount=2
+```
+
+When `agent.replicaCount > 1`, the chart automatically creates a `PodDisruptionBudget` (controlled by `agent.podDisruptionBudget`) that keeps at least one controller available during voluntary disruptions.
+
+### Separate Controllers and Task Pods
+
+It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting controllers which is responsible for scheduling incoming runs.
+
+Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool:
+
+```yaml
+agent:
+  nodeSelector:
+    role: main
+task:
+  nodeSelector:
+    role: scalr-agent-runs
+```
+
+With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive.
+
+### Deploy Multiple Installations Within a Scalr Agent Pool
+
+You can connect multiple `agent-job` Helm releases to the same Scalr agent pool, each targeting a different node pool or availability zone.
+
+This allows the pool to scale horizontally across infrastructure boundaries without a single point of failure.
+
 ## Performance Optimization
 
 The following additional configurations are recommended to optimize Scalr Run startup time and overall chart performance.
@@ -171,9 +213,12 @@ The following additional configurations are recommended to optimize Scalr Run st
 This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for low Scalr Run startup latency. Common bottlenecks that may introduce latency include slow image pull times on cold nodes. To optimize this, you can:
 
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
-- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`).
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
 - [Build](#custom-runner-images) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
+- Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`) on clusters with a fixed number of nodes.
+- Use [buffer pods](docs/buffer-pods.md) on clusters with autoscaling enabled - buffer pods keep nodes warm to eliminate cluster autoscaler cold-start delays and pre-cache images at the same time.
+
+You can configure [OTLP monitoring](#metrics-and-observability) and use the [scalr_agent.core.kubernetes_job_startup_latency_seconds](https://docs.scalr.io/docs/metrics#scalr_agentcorekubernetes_job_startup_latency_seconds) metric to track run startup time. You may observe spikes during node scaling, but good average values range from 3 to 5 seconds.
 
 ### Use Persistent Cache
 
@@ -232,10 +277,16 @@ global:
     enabled: true
     httpProxy: "http://proxy.example.com:8080"
     httpsProxy: "http://proxy.example.com:8080"
-    noProxy: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    noProxy: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.169.254"
 ```
 
 The `noProxy` setting should include Kubernetes internal domains to avoid routing cluster traffic through the proxy.
+
+**NetworkPolicy and proxy port**
+
+When `task.allowMetadataService` is false (the default), the chart creates a NetworkPolicy for task pods that allows DNS (port 53) and egress to the internet while blocking the VM metadata service. That policy does not allow egress to arbitrary ports (such as a proxy). If you use an HTTP proxy (e.g. on port 3128 or 8080), task pods must be allowed to reach it.
+
+Create a **separate** NetworkPolicy that allows egress from task pods to the proxy (by port and, if you want, by pod or namespace selector). Do not edit the policy created by the chart. Chart upgrades or redeploys can overwrite that policy; keeping proxy egress in your own policy keeps it under your control and avoids it being reverted.
 
 ## Custom Certificate Authorities
 
@@ -354,6 +405,24 @@ Optionally, you can configure a PVC using `persistence.data.enabled` and `persis
 
 ## Security
 
+This section describes the security model of the chart, covering how the agent authenticates with the Scalr platform, how run workloads are isolated, and how access to cloud credentials is controlled.
+
+### Authentication and Authorization
+
+The agent authenticates with the Scalr platform using a token hierarchy with progressively narrower scopes — each token is a JWT and carries only the permissions required for its specific role:
+
+1. Agent Pool Token — a long-lived token configured via the `agent.token` Helm value (passed to agent services as `SCALR_AGENT_TOKEN`). It identifies the agent to the Scalr platform and is used only during initial registration and startup.
+2. Agent Task Token — a token generated by the Scalr platform during task acquisition for the agent worker, valid only for that specific task execution. Used for task-specific API calls, downloading the configuration version, and streaming logs. Scoped to the run's workspace. Exists only for the lifetime of the task.
+3. Scalr Run Token — a token generated by the Scalr platform during task acquisition for the runner container, valid only for that specific task execution. Passed to the run environment as the `SCALR_TOKEN` environment variable for the OpenTofu/Terraform remote state backend. Scoped to the minimum permissions required for a run: `workspaces:read`, `workspaces:lock`, `module-versions:read`, `state-versions:read`, and `state-versions:create` within the context of the run's workspace. Exists only for the lifetime of the task.
+
+All API calls authenticate via `Authorization: Bearer <token>` headers. All tokens are passed to containers via Kubernetes Secrets and mounted as environment variables — they are never embedded in plaintext in Pod specs, ConfigMaps, or chart values.
+
+Communication with the Scalr platform uses HTTPS exclusively, making all traffic transparent for proxying and monitoring by agent operators. All connections are outbound — the Scalr platform never initiates inbound connections to the agent, and the agent never exposes any TCP ports.
+
+In addition to regular HTTP API calls, the agent establishes an outbound connection to the Scalr relay service (`relay.<scalr-url>`) — an HTTP long-polling channel used for Scalr-to-agent messaging. The Scalr platform pushes messages about available tasks and cancellation signals through this relay.
+
+If an Agent Pool Token is revoked (e.g. from the Scalr Agent Pool tokens page), subsequent API calls return `401`, which causes the agents using it to shut down.
+
 ### Multi-tenant Isolation
 
 This chart provides strong isolation for multi-tenant environments by deploying each run in a separate container with restricted filesystem access.
@@ -394,6 +463,21 @@ Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Test
 | AWS EKS | Calico | ✅ |
 | GKE | Dataplane V1 (Calico) | ❌ |
 | GKE | [Dataplane V2](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/dataplane-v2) (Cilium/eBPF) | ✅ |
+
+## Network Requirements
+
+The agent requires outbound HTTPS access to the following endpoints:
+
+| Hostname                              | Port | Purpose                                                                                                                                                              |
+| ------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| scalr.io                              | 443  | Polling for new tasks, posting status updates and logs, downloading IaC configuration versions, private modules, and software binary releases |
+| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) and [scalr/runner](https://hub.docker.com/r/scalr/runner) images                                    |
+| registry.opentofu.org                 | 443  | Downloading public providers and modules from the OpenTofu Registry                                                                                                  |
+| registry.terraform.io                 | 443  | Downloading public providers and modules from the Terraform Registry                                                                                                 |
+
+Ensure the agent can also reach any services required by your OpenTofu/Terraform configurations or hook scripts, such as cloud provider APIs, VCS providers, or custom software distribution endpoints.
+
+If you use custom module or provider registries, or Docker registry mirrors, additional network access rules may be required.
 
 ## Job History Management
 
@@ -463,16 +547,6 @@ agent:
 
 Leave `sentryDsn` empty (the default) to disable Sentry integration.
 
-## Custom Resource Definitions
-
-This chart bundles the **AgentTaskTemplate CRD** (`agenttasktemplates.scalr.io`) and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods, so no separate manual step is required in most environments.
-
-**Verify installation:**
-
-```shell
-kubectl get crd agenttasktemplates.scalr.io
-```
-
 ## RBAC
 
 By default the chart provisions:
@@ -483,7 +557,50 @@ By default the chart provisions:
 
 Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
 
+## Custom Resource Definitions
+
+This chart bundles the `agenttasktemplates.scalr.io` CRD and installs or upgrades it automatically via Helm. The CRD defines the job template that the controller uses to create task pods.
+
+Installing the CRD requires cluster-admin permissions or a role with `customresourcedefinitions` create/update at cluster scope. The identity running `helm install` must have these permissions.
+
+Verify installation:
+
+```shell
+kubectl get crd agenttasktemplates.scalr.io
+```
+
+## Planned Changes
+
+This section outlines planned architecture changes that may be relevant for long-term chart maintenance.
+
+### Update Minimum Requirements to Kubernetes 1.36 Once GA
+
+Update the minimum required Kubernetes version to 1.36, which includes the stable [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature and containerd 2.2+ with [subPath](https://github.com/containerd/containerd/pull/11578) support for ImageVolume.
+In Kubernetes 1.35 (current minimal required version), ImageVolume is in Beta status but enabled by default, and we consider it ready for limited usage.
+This chart relies on ImageVolume to provision application components via OCI registry and plans to use this feature more heavily in the future.
+
 ## Troubleshooting and Support
+
+### CRD Installation Fails: Insufficient Permissions
+
+If `helm install` fails with an error like:
+
+```
+Error: failed to install CRD crds/agenttasktemplate.yaml: 1 error occurred:
+    * customresourcedefinitions.apiextensions.k8s.io is forbidden: User "..." cannot create resource
+      "customresourcedefinitions" in API group "apiextensions.k8s.io" at the cluster scope
+```
+
+The identity running `helm install` does not have cluster-admin permissions. This chart installs the [CRD](#custom-resource-definitions) on first install, which requires cluster-scoped `customresourcedefinitions` create/update access.
+
+**Fix:** Run `helm install` with a cluster-admin account (or an IAM role/user bound to `cluster-admin`). On EKS, this typically means using the IAM entity that created the cluster or one explicitly granted access via `aws-auth` / EKS access entries:
+
+```shell
+# Verify the current identity has sufficient permissions
+kubectl auth can-i create customresourcedefinitions --all-namespaces
+```
+
+If the output is `yes`, proceed with the install. If `no`, switch to a cluster-admin context before running `helm install`.
 
 ### Debug Logging
 
@@ -509,11 +626,8 @@ kubectl logs -n <namespace> <task-pod-name> --all-containers
 
 ### Getting Support
 
-For issues not covered above:
-
-1. Enable [debug logging](#debug-logging)
-2. [Collect logs](#collecting-logs) from the incident timeframe
-3. Open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31)
+For issues not covered above, or if you need additional assistance, open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
+For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting#creating-a-support-ticket on how to gather the right information to speed up issue resolution.
 
 {{ template "chart.maintainersSection" . }}
 

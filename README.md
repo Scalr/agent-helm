@@ -26,7 +26,8 @@ You can then run `helm search repo scalr-agent-helm` to see the charts.
 This repository contains multiple charts for different deployment types and use cases.
 
 - [agent-local](./charts/agent-local) – Deploys a static number of agents and executes runs in shared agent pods. **This is the recommended default option for Run agent pools** and only option for VCS agent pool.
-- [agent-k8s](./charts/agent-k8s) – Deploys an agent controller with a set of agent workers and executes runs in isolated pods. Suitable for environments with strict multi-tenancy requirements. Requires more complex configuration and a separate node pool.
+- [agent-job](./charts/agent-job) – Deploys an agent controller and executes runs in isolated stateless jobs. Suitable for environments with strict multi-tenancy requirements.
+- [agent-k8s](./charts/agent-k8s) – Deploys an agent controller with a set of statefull agent workers and executes runs in isolated pods. Suitable for environments with strict multi-tenancy requirements. Requires more complex configuration and a separate node pool.
 
 ## Development
 
