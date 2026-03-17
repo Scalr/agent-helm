@@ -458,11 +458,15 @@ This feature relies on egress NetworkPolicy enforcement, which requires a compat
 
 Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Tested configurations:
 
-| Cluster | CNI | IMDS Blocked |
-|---------|-----|:------------:|
-| AWS EKS | Calico | ✅ |
-| GKE | Dataplane V1 (Calico) | ❌ |
-| GKE | [Dataplane V2](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/dataplane-v2) (Cilium/eBPF) | ✅ |
+
+| Cluster   | CNI / network setup                                                                 | IMDS blocked |
+|-----------|--------------------------------------------------------------------------------------|:------------:|
+| AWS EKS   | Amazon VPC CNI (data plane) + Calico for network policy only (tigera-operator with `cni.type: AmazonVPC`) | ✅ |
+| GKE       | Dataplane V1 (Calico)                                                               | ❌ |
+| GKE       | [Dataplane V2](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/dataplane-v2) (Cilium/eBPF) | ✅ |
+| Azure AKS | Azure CNI (network plugin) + Cilium (network data-plane)                          | ✅ |
+
+**Note (EKS):** Pod networking is provided by Amazon VPC CNI. Calico is used only as the network policy engine (no Calico data plane); the VPC CNI is patched so Calico can enforce policy (e.g. `ANNOTATE_POD_IP=true` on the aws-node DaemonSet)
 
 ## Network Requirements
 
