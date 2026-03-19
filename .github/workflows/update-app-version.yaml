@@ -45,3 +45,32 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: release-charts.yaml
+
+  notify:
+    name: Notify About Agent Helm Release
+    needs: [update-app-version]
+    if: failure()
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    steps:
+      - name: Release Failed
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "The Agent Helm Update App Version has been Failed",
+              "attachments": [
+                {
+                  "color": "b52c2a",
+                  "fields": [
+                    {
+                      "title": "Job URL",
+                      "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                      "short": false
+                    }
+                  ]
+                }
+              ]
+            }

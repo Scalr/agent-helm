@@ -49,6 +49,7 @@ function updateCHANGELOG (chart, chartNewVersion) {
 async function pushChanges () {
   await exec.exec('git fetch')
   await exec.exec('git checkout master')
+  await helmDocs()
   await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
   await exec.exec('git add charts')
@@ -67,7 +68,6 @@ async function run () {
       const chartNewVersion = updateCharts(chart)
       updateCHANGELOG(chart, chartNewVersion)
     })
-    await helmDocs()
     await pushChanges()
   } catch (err) {
     return core.setFailed(`Error: ${err}`)
