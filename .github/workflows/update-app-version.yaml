@@ -51,6 +51,7 @@ jobs:
     needs: [update-app-version]
     if: failure()
     runs-on: ubuntu-latest
+    permissions: {}
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
