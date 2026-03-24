@@ -180,6 +180,8 @@ spec:
                 value: {{ .Values.task.runner.memorySoftLimitPercent | quote }}
               - name: SCALR_AGENT_SENTRY_DSN
                 value: {{ .Values.agent.sentryDsn | quote }}
+              - name: SCALR_AGENT_PROVIDER_CACHE_DROP_KERNEL_PAGES
+                value: "false"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if .Values.agent.providerCache.enabled  }}
