@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added mTLS client certificate configuration (`agent.tls.clientCertSecret`, `agent.tls.clientCert`, `agent.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Note: mTLS is an upcoming Enterprise feature.
+
 ## [v0.5.72]
 
 ### Updated

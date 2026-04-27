@@ -184,6 +184,12 @@ spec:
                 value: "false"
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
+              {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
+              - name: SCALR_AGENT_TLS_CERT_FILE
+                value: "/etc/scalr-agent/ssl/tls.crt"
+              - name: SCALR_AGENT_TLS_KEY_FILE
+                value: "/etc/scalr-agent/ssl/tls.key"
+              {{- end }}
               {{- if .Values.agent.providerCache.enabled  }}
               - name: SCALR_AGENT_PROVIDER_CACHE_ENABLED
                 value: "true"
@@ -245,6 +251,11 @@ spec:
               - name: tmp-dir
                 mountPath: /tmp
               {{- include "agent-job.caCertVolumeMount" . | nindent 14 }}
+              {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
+              - name: client-cert
+                mountPath: /etc/scalr-agent/ssl
+                readOnly: true
+              {{- end }}
               {{- with .Values.task.worker.extraVolumeMounts }}
               {{- toYaml . | nindent 14 }}
               {{- end }}
@@ -310,6 +321,16 @@ spec:
             - name: tmp-dir
               emptyDir: {}
             {{- include "agent-job.caCertVolume" . | nindent 12 }}
+            {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
+            - name: client-cert
+              secret:
+                secretName: {{ .Values.global.tls.clientCertSecret.name | default (printf "%s-client-cert" (include "agent-job.fullname" .)) }}
+                items:
+                  - key: {{ .Values.global.tls.clientCertSecret.certKey }}
+                    path: tls.crt
+                  - key: {{ .Values.global.tls.clientCertSecret.keyKey }}
+                    path: tls.key
+            {{- end }}
             {{- with .Values.task.extraVolumes }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

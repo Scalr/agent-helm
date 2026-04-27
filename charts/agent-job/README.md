@@ -22,6 +22,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Termination](#termination)
 - [HTTP Proxy](#http-proxy)
 - [Custom Certificate Authorities](#custom-certificate-authorities)
+- [Mutual TLS (mTLS)](#mutual-tls-mtls)
 - [Volumes](#volumes)
 - [Security](#security)
 - [Network Requirements](#network-requirements)
@@ -334,6 +335,68 @@ kubectl create secret generic my-ca-bundle \
 
 If both `caBundleSecret.name` and `caBundle` are set, `caBundleSecret` takes precedence.
 
+## Mutual TLS (mTLS)
+
+> [!IMPORTANT]
+> mTLS is an upcoming Enterprise feature.
+
+When mTLS is enabled on an agent pool, the agent must present a client certificate during the TLS handshake to prove its identity to Scalr. This is separate from the [Custom Certificate Authorities](#custom-certificate-authorities) configuration, which controls CA trust for outbound connections.
+
+The bootstrap certificate and private key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. The configuration applies to the controller and worker containers; the runner container is not affected.
+
+> [!NOTE]
+> The mTLS client certificate is the bootstrap credential for pool enrollment. Generate the keypair locally and submit the CSR to Scalr via the `sign-csr` API endpoint. The private key never leaves the operator host. See the [Scalr mTLS documentation](https://docs.scalr.io/docs/agent-pools) for the full CSR process.
+
+You can provide the client certificate in two ways:
+
+**Option 1: Reference existing secret**
+
+Works with both `kubernetes.io/tls` and `Opaque` secret types. A `kubernetes.io/tls` secret uses `tls.crt` and `tls.key` keys by default, so no extra configuration is needed.
+
+```yaml
+global:
+  tls:
+    clientCertSecret:
+      name: "scalr-agent-mtls"
+```
+
+To create the secret:
+
+```shell
+kubectl create secret tls scalr-agent-mtls \
+  --cert=/path/to/scalr-agent.crt \
+  --key=/path/to/scalr-agent.key \
+  -n scalr-agent
+```
+
+For an Opaque secret with non-standard keys, specify the key names:
+
+```yaml
+global:
+  tls:
+    clientCertSecret:
+      name: "my-mtls-secret"
+      certKey: "client.crt"
+      keyKey: "client.key"
+```
+
+**Option 2: Inline PEM values**
+
+```yaml
+global:
+  tls:
+    clientCert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+    clientKey: |
+      -----BEGIN EC PRIVATE KEY-----
+      MHQCAQEEIIr...
+      -----END EC PRIVATE KEY-----
+```
+
+If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCertSecret` takes precedence.
+
 ## Volumes
 
 Two volumes are always attached to run Pods:
@@ -505,7 +568,7 @@ otel:
   tracesEnabled: false  # Optional: enable distributed tracing
 ```
 
-See [all configuration options](#opentelemetry).
+See [all configuration options](#values).
 
 Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 

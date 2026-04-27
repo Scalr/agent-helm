@@ -13,6 +13,7 @@ Deploys a static number of agents and executes runs in shared agent pods.
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Configuration](#configuration)
+- [Mutual TLS (mTLS)](#mutual-tls-mtls)
 - [Customizing Environment](#customizing-environment)
 - [Volumes](#volumes)
 - [Security](#security)
@@ -93,6 +94,68 @@ $ helm install ...
 ```
 
 See all available configuration options - https://docs.scalr.io/docs/configuration
+
+## Mutual TLS (mTLS)
+
+> [!IMPORTANT]
+> mTLS is an upcoming Enterprise feature.
+
+When mTLS is enabled on an agent pool, the agent must present a client certificate during the TLS handshake to prove its identity to Scalr.
+
+The bootstrap certificate and private key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`.
+
+> [!NOTE]
+> The mTLS client certificate is the bootstrap credential for pool enrollment. Generate the keypair locally and submit the CSR to Scalr via the `sign-csr` API endpoint. The private key never leaves the operator host. See the [Scalr mTLS documentation](https://docs.scalr.io/docs/agent-pools) for the full CSR process.
+
+You can provide the client certificate in two ways:
+
+**Option 1: Reference existing secret**
+
+Works with both `kubernetes.io/tls` and `Opaque` secret types. A `kubernetes.io/tls` secret uses `tls.crt` and `tls.key` keys by default, so no extra configuration is needed.
+
+```yaml
+agent:
+  tls:
+    clientCertSecret:
+      name: "scalr-agent-mtls"
+```
+
+To create the secret:
+
+```shell
+kubectl create secret tls scalr-agent-mtls \
+  --cert=/path/to/scalr-agent.crt \
+  --key=/path/to/scalr-agent.key \
+  -n scalr-agent
+```
+
+For an Opaque secret with non-standard keys, specify the key names:
+
+```yaml
+agent:
+  tls:
+    clientCertSecret:
+      name: "my-mtls-secret"
+      certKey: "client.crt"
+      keyKey: "client.key"
+```
+
+**Option 2: Inline PEM values**
+
+```yaml
+agent:
+  tls:
+    clientCert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+    clientKey: |
+      -----BEGIN EC PRIVATE KEY-----
+      MHQCAQEEIIr...
+      -----END EC PRIVATE KEY-----
+```
+
+If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCertSecret` takes precedence.
 
 ## Customizing Environment
 
