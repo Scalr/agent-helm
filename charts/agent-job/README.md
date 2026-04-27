@@ -1,6 +1,6 @@
 # agent-job
 
-![Version: 0.5.74](https://img.shields.io/badge/Version-0.5.74-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.65.0](https://img.shields.io/badge/AppVersion-0.65.0-informational?style=flat-square)
+![Version: 0.5.75](https://img.shields.io/badge/Version-0.5.75-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.65.1](https://img.shields.io/badge/AppVersion-0.65.1-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 It uses a job-based model, where each Scalr Run is isolated
