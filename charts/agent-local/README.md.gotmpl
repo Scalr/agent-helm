@@ -98,7 +98,7 @@ See all available configuration options - https://docs.scalr.io/docs/configurati
 > [!IMPORTANT]
 > mTLS is an upcoming Enterprise feature.
 
-When mTLS is enabled on an agent pool, the agent must present a client certificate during the TLS handshake to prove its identity to Scalr.
+Mutual TLS (mTLS) adds transport-layer identity verification on top of the existing JWT authentication. With standard TLS only the server is verified; mTLS requires the agent to also present a client certificate during the TLS handshake, proving to Scalr that the request originates from a legitimate agent host. This means a stolen JWT alone is no longer sufficient — the attacker also needs the pool private key, which stays on operator-managed infrastructure.
 
 The bootstrap certificate and private key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`.
 
