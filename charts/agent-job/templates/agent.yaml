@@ -45,7 +45,7 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "agent-job.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
-      {{- $controllerPodSecurityContext := merge (deepCopy (default (dict) .Values.global.podSecurityContext)) (default (dict) .Values.agent.podSecurityContext) }}
+      {{- $controllerPodSecurityContext := merge (deepCopy (default (dict) .Values.agent.podSecurityContext)) (default (dict) .Values.global.podSecurityContext) }}
       {{- if not (empty $controllerPodSecurityContext) }}
       securityContext:
         {{- toYaml $controllerPodSecurityContext | nindent 8 }}

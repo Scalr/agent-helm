@@ -58,7 +58,7 @@ spec:
           {{- end }}
           serviceAccountName: {{ include "agent-job.serviceAccountName" . }}
           automountServiceAccountToken: false
-          {{- $taskPodSecurityContext := merge (deepCopy (default (dict) .Values.global.podSecurityContext)) (default (dict) .Values.task.podSecurityContext) }}
+          {{- $taskPodSecurityContext := merge (deepCopy (default (dict) .Values.task.podSecurityContext)) (default (dict) .Values.global.podSecurityContext) }}
           {{- if not (empty $taskPodSecurityContext) }}
           securityContext:
             {{- toYaml $taskPodSecurityContext | nindent 12 }}
