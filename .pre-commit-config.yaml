@@ -26,7 +26,7 @@ repos:
         exclude: "^(charts/agent-k8s/templates|charts/agent-docker/templates|charts/agent-local/templates|charts/agent-job/templates)"
       - id: check-added-large-files
   - repo: https://github.com/lycheeverse/lychee.git
-    rev: lychee-v0.23.0
+    rev: lychee-v0.24.1
     hooks:
       - id: lychee
         args: ["--no-progress", ".", "--offline", "--include-fragments",  "--extensions", "md"]

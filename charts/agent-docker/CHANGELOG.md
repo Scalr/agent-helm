@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Deprecated
+
+- This chart is deprecated and no longer published. Use [`agent-local`](../agent-local) instead.
+
 ## [v0.5.75]
 
 ### Updated
