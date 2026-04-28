@@ -9,6 +9,3 @@ deprecated: true
 version: 0.5.75
 appVersion: 0.65.1
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
-maintainers:
-  - name: scalr
-    email: packages@scalr.com
