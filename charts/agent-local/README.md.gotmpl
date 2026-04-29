@@ -11,6 +11,7 @@
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Configuration](#configuration)
+- [Mutual TLS (mTLS)](#mutual-tls-mtls)
 - [Customizing Environment](#customizing-environment)
 - [Volumes](#volumes)
 - [Security](#security)
@@ -91,6 +92,83 @@ $ helm install ...
 ```
 
 See all available configuration options - https://docs.scalr.io/docs/configuration
+
+## Mutual TLS (mTLS)
+
+> [!IMPORTANT]
+> mTLS is an upcoming Enterprise feature.
+> See the [Scalr mTLS documentation](https://docs.scalr.io/docs/mtls) for details.
+
+Mutual TLS (mTLS) adds transport-layer identity verification on top of the existing JWT authentication. With standard TLS only the server is verified; mTLS requires the agent to also present a client certificate during the TLS handshake, proving to Scalr that the request originates from a legitimate agent host. This means a stolen JWT alone is no longer sufficient — the attacker also needs the pool private key, which stays on operator-managed infrastructure.
+
+The bootstrap certificate and private key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`.
+
+To obtain an mTLS certificate, generate an EC P-256 private key and CSR (Certificate Signing Request):
+
+```shell
+openssl ecparam -genkey -name prime256v1 -noout -out scalr-agent.key
+openssl req -new -key scalr-agent.key -out scalr-agent.csr -subj "/CN=agent-pool"
+```
+
+Then submit the CSR via the Agent Pool UI when registering a new agent, or via the **Certificates** tab on the Agent Pool page. Scalr signs the CSR and returns a certificate. The private key never leaves the operator host.
+
+Once you have both the private key and the signed certificate, configure the chart using one of the following options:
+
+**Option 1: Reference existing secret**
+
+Works with both `kubernetes.io/tls` and `Opaque` secret types. A `kubernetes.io/tls` secret uses `tls.crt` and `tls.key` keys by default:
+
+```yaml
+agent:
+  tls:
+    clientCertSecret:
+      name: "scalr-agent-mtls"
+```
+
+To create the secret:
+
+```shell
+kubectl create secret tls scalr-agent-mtls \
+  --cert=/path/to/scalr-agent.crt \
+  --key=/path/to/scalr-agent.key \
+  -n scalr-agent
+```
+
+For an Opaque secret with non-standard keys, specify the key names:
+
+```yaml
+agent:
+  tls:
+    clientCertSecret:
+      name: "my-mtls-secret"
+      certKey: "client.crt"
+      keyKey: "client.key"
+```
+
+**Option 2: Inline PEM values from files**
+
+```shell
+helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
+  --set-file agent.tls.clientCert=/path/to/scalr-agent.crt \
+  --set-file agent.tls.clientKey=/path/to/scalr-agent.key
+```
+
+Or in a values file:
+
+```yaml
+agent:
+  tls:
+    clientCert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+    clientKey: |
+      -----BEGIN EC PRIVATE KEY-----
+      MHQCAQEEIIr...
+      -----END EC PRIVATE KEY-----
+```
+
+If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCertSecret` takes precedence.
 
 ## Customizing Environment
 

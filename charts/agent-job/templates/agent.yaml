@@ -45,7 +45,7 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "agent-job.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
-      {{- $controllerPodSecurityContext := merge (deepCopy (default (dict) .Values.global.podSecurityContext)) (default (dict) .Values.agent.podSecurityContext) }}
+      {{- $controllerPodSecurityContext := merge (deepCopy (default (dict) .Values.agent.podSecurityContext)) (default (dict) .Values.global.podSecurityContext) }}
       {{- if not (empty $controllerPodSecurityContext) }}
       securityContext:
         {{- toYaml $controllerPodSecurityContext | nindent 8 }}
@@ -137,6 +137,12 @@ spec:
             {{- end }}
             {{- include "agent-job.proxyEnv" . | nindent 12 }}
             {{- include "agent-job.caCertEnv" . | nindent 12 }}
+            {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
+            - name: SCALR_AGENT_TLS_CERT_FILE
+              value: "/etc/scalr-agent/ssl/tls.crt"
+            - name: SCALR_AGENT_TLS_KEY_FILE
+              value: "/etc/scalr-agent/ssl/tls.key"
+            {{- end }}
             {{- range $key, $value := .Values.agent.extraEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}
@@ -163,6 +169,11 @@ spec:
             - name: tmp-dir
               mountPath: /tmp
             {{- include "agent-job.caCertVolumeMount" . | nindent 12 }}
+            {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
+            - name: client-cert
+              mountPath: /etc/scalr-agent/ssl
+              readOnly: true
+            {{- end }}
       {{- with .Values.agent.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -208,4 +219,14 @@ spec:
                 fieldRef:
                   fieldPath: metadata.annotations
         {{- include "agent-job.caCertVolume" . | nindent 8 }}
+        {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
+        - name: client-cert
+          secret:
+            secretName: {{ .Values.global.tls.clientCertSecret.name | default (printf "%s-client-cert" (include "agent-job.fullname" .)) }}
+            items:
+              - key: {{ .Values.global.tls.clientCertSecret.certKey }}
+                path: tls.crt
+              - key: {{ .Values.global.tls.clientCertSecret.keyKey }}
+                path: tls.key
+        {{- end }}
       terminationGracePeriodSeconds: {{ .Values.agent.terminationGracePeriodSeconds }}

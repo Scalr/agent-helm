@@ -13,7 +13,15 @@ function getCharts () {
   const files = fs.readdirSync(chartsDir)
   const directories = files.filter((file) => {
     const filePath = path.join(chartsDir, file)
-    return fs.statSync(filePath).isDirectory()
+    if (!fs.statSync(filePath).isDirectory()) return false
+    const chartPath = path.join(filePath, 'Chart.yaml')
+    if (!fs.existsSync(chartPath)) return false
+    const chartData = yaml.load(fs.readFileSync(chartPath, 'utf8'))
+    if (chartData.deprecated) {
+      core.info(`Skipping deprecated chart: ${file}`)
+      return false
+    }
+    return true
   })
   core.debug(`Charts: ${directories}`)
   return directories

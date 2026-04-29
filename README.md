@@ -2,7 +2,6 @@
 
 ![GitHub Release](https://img.shields.io/github/v/release/Scalr/agent-helm?filter=agent-k8s*)
 ![GitHub Release](https://img.shields.io/github/v/release/Scalr/agent-helm?filter=agent-local*)
-![GitHub Release](https://img.shields.io/github/v/release/Scalr/agent-helm?filter=agent-docker*)
 ![Docker Image Version](https://img.shields.io/docker/v/scalr/agent)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Scalr/agent-helm/total)
 
