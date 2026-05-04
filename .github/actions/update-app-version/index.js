@@ -9,7 +9,7 @@ const chartsDir = path.join(process.env.GITHUB_WORKSPACE, 'charts')
 const appVersion = core.getInput('app_version', { required: true })
 core.info(`The appVersion ${appVersion}`)
 
-function getCharts () {
+function getCharts() {
   const files = fs.readdirSync(chartsDir)
   const directories = files.filter((file) => {
     const filePath = path.join(chartsDir, file)
@@ -19,7 +19,7 @@ function getCharts () {
   return directories
 }
 
-function updateCharts (chart) {
+function updateCharts(chart) {
   const chartPath = path.join(chartsDir, chart, 'Chart.yaml')
   const chartData = yaml.load(fs.readFileSync(chartPath, 'utf8'))
 
@@ -31,7 +31,7 @@ function updateCharts (chart) {
   return chartData.version
 }
 
-function updateCHANGELOG (chart, chartNewVersion) {
+function updateCHANGELOG(chart, chartNewVersion) {
   const changelogPath = path.join(chartsDir, chart, 'CHANGELOG.md')
   const newSection = `
 ## [v${chartNewVersion}]
@@ -46,9 +46,7 @@ function updateCHANGELOG (chart, chartNewVersion) {
   fs.writeFileSync(changelogPath, updatedChangelog, 'utf8')
 }
 
-async function pushChanges () {
-  await exec.exec('git fetch')
-  await exec.exec('git checkout master')
+async function pushChanges() {
   await helmDocs()
   await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
@@ -57,12 +55,14 @@ async function pushChanges () {
   await exec.exec('git push -u origin master')
 }
 
-async function helmDocs () {
+async function helmDocs() {
   await exec.exec('helm-docs')
 }
 
-async function run () {
+async function run() {
   try {
+    await exec.exec('git fetch')
+    await exec.exec('git checkout master')
     const charts = getCharts()
     charts.forEach(function (chart) {
       const chartNewVersion = updateCharts(chart)
