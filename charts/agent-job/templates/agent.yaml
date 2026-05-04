@@ -31,6 +31,9 @@ spec:
       {{- end }}
       labels:
         {{- include "agent-job.selectorLabels" . | nindent 8 }}
+        {{- with .Values.global.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         {{- with .Values.global.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

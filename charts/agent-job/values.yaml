@@ -110,7 +110,7 @@ global:
   # -- Global pod labels applied to all pods.
   # @section -- Global
   podLabels: {}
-  # -- Global labels applied to all chart resources (metadata.labels).
+  # -- Global labels applied to all chart resources (metadata.labels), including pods.
   # @section -- Global
   labels: {}
   # -- Global annotations applied to all chart resources (metadata.annotations).

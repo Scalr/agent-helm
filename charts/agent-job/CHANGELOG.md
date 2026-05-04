@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Fixed
+
+- Fixed `helm upgrade` failing with `YAML parse error ... mapping values are not allowed in this context` when `global.labels` was set. The common labels helper was emitting the rendered map on the same line as the preceding label, producing invalid YAML. Thanks to [@PabloPie](https://github.com/PabloPie) for reporting and contributing the fix in [#148](https://github.com/Scalr/agent-helm/pull/148).
+- Fixed `global.labels` not being applied to pods. Labels set via `global.labels` now propagate to both workload `metadata.labels` and the pod template's `spec.template.metadata.labels` for the controller Deployment and task Jobs, matching the behavior users expect from a "global" label setting. Component-specific overrides (`global.podLabels`, `agent.podLabels`, `task.podLabels`) continue to take precedence on key collisions.
+
 ## [v0.5.76]
 
 ### Updated
