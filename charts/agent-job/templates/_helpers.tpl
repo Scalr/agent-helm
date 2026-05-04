@@ -37,7 +37,7 @@ Common labels
 helm.sh/chart: {{ include "agent-job.chart" . }}
 {{ include "agent-job.selectorLabels" . }}
 {{- with .Values.global.labels }}
-{{- toYaml . }}
+{{ toYaml . }}
 {{- end }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
