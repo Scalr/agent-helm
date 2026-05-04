@@ -2,6 +2,6 @@
 .vscode/
 .idea/
 .env
+.envrc
 **/node_modules/
 .*.sh
-.pvc.yaml

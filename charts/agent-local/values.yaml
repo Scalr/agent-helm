@@ -71,6 +71,45 @@ agent:
   # @section -- Agent
   cacheDir: "/var/lib/scalr-agent/cache"
 
+  # -- mTLS client certificate configuration for mutual TLS authentication with Scalr.
+  # Maps to SCALR_AGENT_TLS_CERT_FILE and SCALR_AGENT_TLS_KEY_FILE environment variables.
+  # @section -- Agent.TLS
+  tls:
+    # -- Reference to an existing Kubernetes secret containing the client certificate and private key.
+    # Supports both `kubernetes.io/tls` and `Opaque` secret types. The secret must exist in the same
+    # namespace as the chart installation. If both clientCertSecret.name and clientCert/clientKey
+    # are set, clientCertSecret takes precedence.
+    # @section -- Agent.TLS
+    clientCertSecret:
+      # -- Name of the Kubernetes secret containing the client certificate and key.
+      # Leave empty to use inline clientCert/clientKey or to disable mTLS.
+      # @section -- Agent.TLS
+      name: ""
+      # -- Key within the secret that contains the PEM-encoded client certificate.
+      # @section -- Agent.TLS
+      certKey: "tls.crt"
+      # -- Key within the secret that contains the PEM-encoded private key.
+      # @section -- Agent.TLS
+      keyKey: "tls.key"
+    # -- Inline PEM-encoded client certificate for mTLS. Creates a chart-managed secret.
+    # If both clientCertSecret.name and clientCert are set, clientCertSecret takes precedence.
+    # Example:
+    # clientCert: |
+    #   -----BEGIN CERTIFICATE-----
+    #   MIIDXTCCAkWgAwIBAgIJAKZ...
+    #   -----END CERTIFICATE-----
+    # @section -- Agent.TLS
+    clientCert: ""
+    # -- Inline PEM-encoded private key for mTLS. Creates a chart-managed secret.
+    # Must be provided together with clientCert.
+    # Example:
+    # clientKey: |
+    #   -----BEGIN EC PRIVATE KEY-----
+    #   MHQCAQEEIIr...
+    #   -----END EC PRIVATE KEY-----
+    # @section -- Agent.TLS
+    clientKey: ""
+
 # -- Additional environment variables for Scalr Agent.
 # Use to configure HTTP proxies or other runtime parameters.
 # @section -- Pod Configuration

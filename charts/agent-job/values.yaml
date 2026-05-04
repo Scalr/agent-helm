@@ -195,6 +195,41 @@ global:
     #   -----END CERTIFICATE-----
     # @section -- Global.TLS
     caBundle: ""
+    # -- Reference to an existing Kubernetes secret containing the mTLS client certificate and private key.
+    # Used for mutual TLS authentication between the agent and Scalr. The secret must exist in the same namespace
+    # as the chart installation. Supports both `kubernetes.io/tls` and `Opaque` secret types.
+    # If both clientCertSecret.name and clientCert/clientKey are set, clientCertSecret takes precedence.
+    # Maps to SCALR_AGENT_TLS_CERT_FILE and SCALR_AGENT_TLS_KEY_FILE environment variables.
+    # @section -- Global.TLS
+    clientCertSecret:
+      # -- Name of the Kubernetes secret containing the client certificate and key.
+      # Leave empty to use inline clientCert/clientKey or to disable mTLS.
+      # @section -- Global.TLS
+      name: ""
+      # -- Key within the secret that contains the PEM-encoded client certificate.
+      # @section -- Global.TLS
+      certKey: "tls.crt"
+      # -- Key within the secret that contains the PEM-encoded private key.
+      # @section -- Global.TLS
+      keyKey: "tls.key"
+    # -- Inline PEM-encoded client certificate for mTLS. Creates a chart-managed secret.
+    # If both clientCertSecret.name and clientCert are set, clientCertSecret takes precedence.
+    # Example:
+    # clientCert: |
+    #   -----BEGIN CERTIFICATE-----
+    #   MIIDXTCCAkWgAwIBAgIJAKZ...
+    #   -----END CERTIFICATE-----
+    # @section -- Global.TLS
+    clientCert: ""
+    # -- Inline PEM-encoded private key for mTLS. Creates a chart-managed secret.
+    # Must be provided together with clientCert.
+    # Example:
+    # clientKey: |
+    #   -----BEGIN EC PRIVATE KEY-----
+    #   MHQCAQEEIIr...
+    #   -----END EC PRIVATE KEY-----
+    # @section -- Global.TLS
+    clientKey: ""
 
 # Agent deployment configuration (Kubernetes Deployment) containing the controller container (runs as UID/GID 1000).
 agent:

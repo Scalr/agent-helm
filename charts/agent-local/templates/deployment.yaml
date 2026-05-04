@@ -118,6 +118,12 @@ spec:
                   key: token
                   {{- end }}
                   optional: false
+            {{- if or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) }}
+            - name: SCALR_AGENT_TLS_CERT_FILE
+              value: "/etc/scalr-agent/ssl/tls.crt"
+            - name: SCALR_AGENT_TLS_KEY_FILE
+              value: "/etc/scalr-agent/ssl/tls.key"
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -128,6 +134,11 @@ spec:
               {{- if .Values.persistence.persistentVolumeClaim.subPath }}
               subPath: {{ .Values.persistence.persistentVolumeClaim.subPath }}
               {{- end }}
+            {{- if or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) }}
+            - name: client-cert
+              mountPath: /etc/scalr-agent/ssl
+              readOnly: true
+            {{- end }}
       volumes:
         - name: data-dir
           emptyDir:
@@ -140,6 +151,16 @@ spec:
           emptyDir:
             sizeLimit: {{ .Values.persistence.cache.emptyDir.sizeLimit }}
           {{- end }}
+        {{- if or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) }}
+        - name: client-cert
+          secret:
+            secretName: {{ .Values.agent.tls.clientCertSecret.name | default (printf "%s-client-cert" (include "agent-local.fullname" .)) }}
+            items:
+              - key: {{ .Values.agent.tls.clientCertSecret.certKey }}
+                path: tls.crt
+              - key: {{ .Values.agent.tls.clientCertSecret.keyKey }}
+                path: tls.key
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
