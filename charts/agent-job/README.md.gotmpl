@@ -574,21 +574,18 @@ OpenTelemetry is an extensible, open-source telemetry protocol and platform that
 
 The agent emits OTLP over gRPC (default port `4317`) to an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) that you deploy. The Collector receives the telemetry and forwards it to your observability backend (Datadog, Grafana Cloud, Prometheus + Tempo, etc.) — neither the controller nor the workers push to backends directly.
 
-```mermaid
-flowchart LR
-    A[Agent controller] -- OTLP gRPC --> C[OTel Collector]
-    B[Agent worker Job] -- OTLP gRPC --> C
-    C -- vendor protocol --> D[Observability Backend]
-```
+The endpoint is a `host:port` reachable from both the controller Pod and the task worker Pods, where `host` is the DNS name (or IP) of your Collector — not a fixed value. Common forms:
 
-The endpoint is a `host:port` reachable from both the controller Pod and the task worker Pods. Common values: `otel-collector:4317` (Service in the same namespace), `otel-collector.<ns>.svc.cluster.local:4317` (cross-namespace Service), or an external/vendor gateway.
+- `<collector-service>:4317` — Kubernetes Service in the same namespace (e.g. `my-otel-collector:4317`).
+- `<collector-service>.<namespace>.svc.cluster.local:4317` — Service in a different namespace (e.g. `otel-collector.observability.svc.cluster.local:4317`).
+- An external or vendor gateway hostname (e.g. `otel.example.com:4317`).
 
 Enable telemetry for both the agent controller deployment and the agent worker jobs by configuring an OpenTelemetry collector endpoint:
 
 ```yaml
 otel:
   enabled: true
-  endpoint: "otel-collector:4317"  # gRPC endpoint
+  endpoint: "<otel-collector-host>:4317"  # gRPC endpoint
   metricsEnabled: true
   tracesEnabled: false  # Optional: enable distributed tracing
 ```
