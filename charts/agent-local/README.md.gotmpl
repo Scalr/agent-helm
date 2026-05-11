@@ -227,20 +227,6 @@ extraEnv:
 > [!NOTE]
 > The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are **deprecated** and only kept for backward compatibility. When set, they are mapped to the new `persistence.cache.*` schema and the chart emits a deprecation warning on install/upgrade. Migrate to the per-volume schema above.
 
-### Data Volume Persistence
-
-The data volume defaults to `emptyDir`, which is appropriate for most deployments. To back it with a PVC (e.g. for debugging or sharing workspace data across pod restarts), set:
-
-```yaml
-persistence:
-  data:
-    enabled: true
-    persistentVolumeClaim:
-      storageClassName: ""
-      storage: 4Gi
-      accessMode: ReadWriteOnce
-```
-
 If configured correctly, you should see confirmation in the Scalr Run console that plugins and modules are being used from cache:
 
 ```shell
@@ -249,6 +235,12 @@ Initialized 8 modules in 4.12s (8 used from cache)
 Initializing plugins...
 Initialized 20 plugins in 6.09s (20 used from cache)
 ```
+
+### Data Volume Persistence
+
+The data volume defaults to `emptyDir`, which is appropriate for most deployments.
+
+Optionally, you can configure a PVC using `persistence.data.enabled` and `persistence.data.persistentVolumeClaim` options, similar to the [cache volume configuration](#cache-volume-persistence).
 
 ## Security
 
