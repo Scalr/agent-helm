@@ -630,6 +630,13 @@ If the agent cannot push metrics to the collector, you will see OpenTelemetry wa
 }
 ```
 
+If you see this:
+
+- Ensure the collector endpoint is reachable from both the controller Pod and task worker Pods.
+- Ensure the collector is healthy and accepting OTLP gRPC traffic.
+- Ensure no NetworkPolicy, service mesh, or egress firewall is blocking traffic between the agent and the collector.
+- If using TLS or a vendor gateway, ensure credentials and any required headers are correctly set.
+
 Verify both the agent controller (persistent Deployment) and the agent worker (started per run as a Kubernetes Job).
 
 ### Resource Attributes Autodiscovery

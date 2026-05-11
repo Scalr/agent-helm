@@ -350,6 +350,13 @@ If the agent cannot push metrics to the collector, you will see OpenTelemetry wa
 }
 ```
 
+If you see this:
+
+- Ensure the collector endpoint is reachable from the agent Pod.
+- Ensure the collector is healthy and accepting OTLP gRPC traffic.
+- Ensure no NetworkPolicy, service mesh, or egress firewall is blocking traffic between the agent and the collector.
+- If using TLS or a vendor gateway, ensure credentials and any required headers are correctly set.
+
 ## Termination
 
 Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to perform a graceful shutdown of the underlying OpenTofu/Terraform workload or push a status update to the Scalr platform, and can lead to undefined behavior — ranging from degraded performance and Scalr Run processing delays to agent capacity issues, stuck runs, or even OpenTofu/Terraform state loss.
