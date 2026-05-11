@@ -11,13 +11,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Made the data directory persistence configurable. The `persistence.data` block now supports the same `enabled` / `emptyDir` / `persistentVolumeClaim` structure as `persistence.cache`, allowing the data volume to be backed by a PVC instead of `emptyDir`.
+- Made the data directory persistence configurable. The `persistence.data` block now supports the same `enabled` / `emptyDir` / `persistentVolumeClaim` structure as `persistence.cache`, allowing the data volume to be backed by a PVC instead of `emptyDir`. Example:
+
+  ```yaml
+  persistence:
+    data:
+      enabled: true
+      persistentVolumeClaim:
+        storageClassName: ""        # use cluster default
+        storage: 4Gi
+        accessMode: ReadWriteOnce
+    cache:
+      enabled: true
+      persistentVolumeClaim:
+        storageClassName: "nfs-client"
+        storage: 40Gi
+        accessMode: ReadWriteMany   # share cache across replicas
+  ```
+
 - Persistence schema is now symmetric between `persistence.data` and `persistence.cache`, matching the `agent-job` chart.
 
 ### Deprecated
 
-- The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated in favor of `persistence.cache.enabled` and `persistence.cache.persistentVolumeClaim.*`. The legacy keys still work for now and the chart emits a deprecation warning (via `NOTES.txt`) when they are used. They will be removed in a future release.
-- When the legacy schema is in use, the default cache PVC name remains `<release-fullname>` to avoid orphaning existing PVCs on upgrade. On the new schema the default cache PVC name is `<release-fullname>-cache`, and the new data PVC default name is `<release-fullname>-data`.
+- The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated in favor of `persistence.cache.enabled` and `persistence.cache.persistentVolumeClaim.*`. The legacy keys still work and the chart emits a deprecation warning via `NOTES.txt` when they are used. They will be removed in a future release.
+
+  **Backward compatibility:** existing installations continue to work without any values changes. When the legacy keys are set, the chart maps them onto the cache volume and preserves the legacy default cache PVC name (`<release-fullname>`) to avoid orphaning existing PVCs on upgrade. On the new schema, the default cache PVC name is `<release-fullname>-cache` and the new data PVC default name is `<release-fullname>-data`.
+
+  **Action required (recommended migration):** move legacy values under `persistence.cache.*`. Before:
+
+  ```yaml
+  persistence:
+    enabled: true
+    persistentVolumeClaim:
+      claimName: "my-cache-pvc"
+      storageClassName: "nfs-client"
+      storage: 40Gi
+      accessMode: ReadWriteMany
+  ```
+
+  After:
+
+  ```yaml
+  persistence:
+    cache:
+      enabled: true
+      persistentVolumeClaim:
+        claimName: "my-cache-pvc"
+        storageClassName: "nfs-client"
+        storage: 40Gi
+        accessMode: ReadWriteMany
+  ```
+
+  When you migrate **without specifying `claimName`** and previously relied on the auto-created PVC, note that the default PVC name changes from `<release-fullname>` to `<release-fullname>-cache`. To keep using the existing PVC, set `persistence.cache.persistentVolumeClaim.claimName: "<release-fullname>"` explicitly, or rename/re-bind the underlying PV.
 
 ## [v0.5.73]
 
