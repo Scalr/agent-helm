@@ -182,7 +182,7 @@ Two volumes are always attached to agent Pods:
 
   The data volume stores temporary workspace data needed for processing a run, including run metadata and source code.
 
-  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit.
+  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit. It can also be backed by a PVC via `persistence.data.enabled=true`.
 
   The volume is mounted at `agent.dataDir`, which must be readable, writable, and executable.
 
@@ -190,7 +190,7 @@ Two volumes are always attached to agent Pods:
 
   The cache volume stores software binaries, OpenTofu/Terraform providers and modules.
 
-  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit.
+  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit. It can also be backed by a PVC via `persistence.cache.enabled=true`.
 
   The volume is mounted at `agent.cacheDir`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
 
@@ -210,17 +210,35 @@ Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache) an
 
 ```yaml
 persistence:
-  enabled: true
-  persistentVolumeClaim:
-    # Use existing PVC
-    claimName: "my-cache-pvc"
-    # Or create new PVC (omit claimName)
-    storageClassName: "nfs-client"
-    storage: 40Gi
-    accessMode: ReadWriteMany
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      # Use existing PVC
+      claimName: "my-cache-pvc"
+      # Or create new PVC (omit claimName)
+      storageClassName: "nfs-client"
+      storage: 40Gi
+      accessMode: ReadWriteMany
 extraEnv:
   SCALR_AGENT_PROVIDER_CACHE_ENABLED: "1" # enabled by default
   SCALR_AGENT_MODULE_CACHE_ENABLED: "1" # disabled by default
+```
+
+> [!NOTE]
+> The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are **deprecated** and only kept for backward compatibility. When set, they are mapped to the new `persistence.cache.*` schema and the chart emits a deprecation warning on install/upgrade. Migrate to the per-volume schema above.
+
+### Data Volume Persistence
+
+The data volume defaults to `emptyDir`, which is appropriate for most deployments. To back it with a PVC (e.g. for debugging or sharing workspace data across pod restarts), set:
+
+```yaml
+persistence:
+  data:
+    enabled: true
+    persistentVolumeClaim:
+      storageClassName: ""
+      storage: 4Gi
+      accessMode: ReadWriteOnce
 ```
 
 If configured correctly, you should see confirmation in the Scalr Run console that plugins and modules are being used from cache:

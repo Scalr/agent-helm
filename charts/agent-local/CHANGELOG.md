@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Made the data directory persistence configurable. The `persistence.data` block now supports the same `enabled` / `emptyDir` / `persistentVolumeClaim` structure as `persistence.cache`, allowing the data volume to be backed by a PVC instead of `emptyDir`.
+- Persistence schema is now symmetric between `persistence.data` and `persistence.cache`, matching the `agent-job` chart.
+
+### Deprecated
+
+- The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated in favor of `persistence.cache.enabled` and `persistence.cache.persistentVolumeClaim.*`. The legacy keys still work for now and the chart emits a deprecation warning (via `NOTES.txt`) when they are used. They will be removed in a future release.
+- When the legacy schema is in use, the default cache PVC name remains `<release-fullname>` to avoid orphaning existing PVCs on upgrade. On the new schema the default cache PVC name is `<release-fullname>-cache`, and the new data PVC default name is `<release-fullname>-data`.
+
 ## [v0.5.73]
 
 ### Updated
