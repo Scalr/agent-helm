@@ -298,6 +298,16 @@ The agent can be configured to send telemetry data, including both trace spans a
 
 OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
 
+The agent emits OTLP over gRPC (default port `4317`) to an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) that you deploy. The Collector receives the telemetry and forwards it to your observability backend (Datadog, Grafana Cloud, Prometheus + Tempo, etc.) — the agent does not push to backends directly.
+
+```mermaid
+flowchart LR
+    A[Scalr Agent] -- OTLP gRPC --> B[OTel Collector]
+    B -- vendor protocol --> C[Observability Backend]
+```
+
+The endpoint is a `host:port` reachable from the agent Pod. Common values: `otel-collector:4317` (Service in the same namespace), `otel-collector.<ns>.svc.cluster.local:4317` (cross-namespace Service), or an external/vendor gateway.
+
 Enable telemetry agent by configuring an OpenTelemetry collector endpoint:
 
 ```yaml
