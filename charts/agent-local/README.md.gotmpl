@@ -309,6 +309,37 @@ See [all configuration options](https://docs.scalr.io/docs/configuration#telemet
 
 Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
+### Verify
+
+Once telemetry is configured, the agent emits a confirmation log event at startup:
+
+```json
+{
+  "event": "OpenTelemetry metrics enabled",
+  "level": "info",
+  "logger_name": "tacoagent.telemetry",
+  "timestamp": "2026-05-11 11:21:58.470827",
+  "otlp_endpoint": "<your-otel-endpoint>:4317",
+  "attrs": {
+    "service.name": "agent",
+    "service.version": "1.0.0",
+    "deployment.environment.name": "",
+    "app": "scalr.io"
+  }
+}
+```
+
+If the agent cannot push metrics to the collector, you will see OpenTelemetry warnings and errors in the logs:
+
+```json
+{
+  "event": "Failed to export metrics to <your-otel-endpoint>:4317, error code: StatusCode.INTERNAL",
+  "level": "error",
+  "logger_name": "opentelemetry.exporter.otlp.proto.grpc.exporter",
+  "timestamp": "2026-05-11 10:32:12.292258"
+}
+```
+
 ## Termination
 
 Because agents may be managing an active run stage, it is important to allow them to terminate gracefully rather than being abruptly stopped with SIGKILL, which would leave no opportunity to perform a graceful shutdown of the underlying OpenTofu/Terraform workload or push a status update to the Scalr platform, and can lead to undefined behavior — ranging from degraded performance and Scalr Run processing delays to agent capacity issues, stuck runs, or even OpenTofu/Terraform state loss.
