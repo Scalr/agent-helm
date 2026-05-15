@@ -227,52 +227,106 @@ resources:
 
 # Persistent storage configuration for the Scalr Agent data and cache volumes.
 persistence:
-  # -- Enable persistent storage for cache volume. If false, uses emptyDir (ephemeral storage).
-  # @section -- Persistence
-  enabled: false
-
-  # -- Configuration for persistentVolumeClaim for cache volume (used when persistence.enabled is true).
-  # @section -- Persistence
-  persistentVolumeClaim:
-    # -- Name of an existing PVC. If empty, a new PVC is created dynamically.
-    # @section -- Persistence
-    claimName: ""
-    # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
-    # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
-    # @section -- Persistence
-    storageClassName: ""
-    # -- Storage size for the PVC.
-    # @section -- Persistence
-    storage: 20Gi
-    # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
-    # Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS).
-    # @section -- Persistence
-    accessMode: ReadWriteOnce
-    # -- Optional subPath for mounting a specific subdirectory of the volume.
-    # @section -- Persistence
-    subPath: ""
-
   # -- Data directory storage configuration.
-  # Stores workspace data including configuration versions, modules, and run metadata.
+  # Stores workspace data including configuration versions, modules, and providers.
   # @section -- Persistence
   data:
-    # -- EmptyDir volume configuration.
+    # -- Enable persistent storage for the data directory.
+    # When false, uses emptyDir (ephemeral, recommended for most use cases as each pod gets fresh workspace).
+    # When true, uses PVC (persistent across pod restarts, useful for debugging or sharing data between runs).
+    # @section -- Persistence
+    enabled: false
+
+    # -- EmptyDir volume configuration (used when persistence.data.enabled is false).
     # @section -- Persistence
     emptyDir:
       # -- Size limit for the emptyDir volume.
       # @section -- Persistence
       sizeLimit: 4Gi
 
+    # -- PersistentVolumeClaim configuration (used when persistence.data.enabled is true).
+    # @section -- Persistence
+    persistentVolumeClaim:
+      # -- Name of an existing PVC. If empty, a new PVC named `<release-name>-data` is created.
+      # @section -- Persistence
+      claimName: ""
+      # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
+      # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
+      # @section -- Persistence
+      storageClassName: ""
+      # -- Storage size for the PVC.
+      # @section -- Persistence
+      storage: 4Gi
+      # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
+      # Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS).
+      # @section -- Persistence
+      accessMode: ReadWriteOnce
+      # -- Optional subPath for mounting a specific subdirectory of the volume.
+      # @section -- Persistence
+      subPath: ""
+
   # -- Cache directory storage configuration.
   # Stores OpenTofu/Terraform providers, modules and binaries.
   # @section -- Persistence
   cache:
-    # -- EmptyDir volume configuration (used when persistence.enabled is false).
+    # -- Enable persistent storage for the cache directory.
+    # When false, uses emptyDir (ephemeral, providers and binaries are re-downloaded on each pod start).
+    # When true, uses PVC; with ReadWriteMany the cache is shared across all agent pods.
+    # @section -- Persistence
+    enabled: false
+
+    # -- EmptyDir volume configuration (used when persistence.cache.enabled is false).
     # @section -- Persistence
     emptyDir:
       # -- Size limit for the emptyDir volume.
       # @section -- Persistence
       sizeLimit: 20Gi
+
+    # -- PersistentVolumeClaim configuration (used when persistence.cache.enabled is true).
+    # @section -- Persistence
+    persistentVolumeClaim:
+      # -- Name of an existing PVC. If empty, a new PVC named `<release-name>-cache` is created.
+      # @section -- Persistence
+      claimName: ""
+      # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
+      # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
+      # @section -- Persistence
+      storageClassName: ""
+      # -- Storage size for the PVC.
+      # @section -- Persistence
+      storage: 20Gi
+      # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
+      # Use "ReadWriteMany" to share the cache across multiple agent pods (requires a compatible storage class).
+      # @section -- Persistence
+      accessMode: ReadWriteOnce
+      # -- Optional subPath for mounting a specific subdirectory of the volume.
+      # @section -- Persistence
+      subPath: ""
+
+  # -- DEPRECATED: Use `persistence.cache.enabled` instead. Kept for backward compatibility; will be removed in a future release.
+  # When set to `true`, behaves as `persistence.cache.enabled: true` and emits a deprecation warning.
+  # @section -- Persistence
+  enabled: false
+
+  # -- DEPRECATED: Use `persistence.cache.persistentVolumeClaim` instead. Kept for backward compatibility; will be removed in a future release.
+  # When the legacy `persistence.enabled` (top-level) is `true`, these values are used for the cache PVC and a deprecation warning is emitted.
+  # @section -- Persistence
+  persistentVolumeClaim:
+    # -- DEPRECATED: see `persistence.cache.persistentVolumeClaim.claimName`.
+    # @section -- Persistence
+    claimName: ""
+    # -- DEPRECATED: see `persistence.cache.persistentVolumeClaim.storageClassName`.
+    # @section -- Persistence
+    storageClassName: ""
+    # -- DEPRECATED: see `persistence.cache.persistentVolumeClaim.storage`.
+    # @section -- Persistence
+    storage: 20Gi
+    # -- DEPRECATED: see `persistence.cache.persistentVolumeClaim.accessMode`.
+    # @section -- Persistence
+    accessMode: ReadWriteOnce
+    # -- DEPRECATED: see `persistence.cache.persistentVolumeClaim.subPath`.
+    # @section -- Persistence
+    subPath: ""
 
 # -- Termination grace period (in seconds) for pod shutdown.
 # @section -- Deployment & Scaling

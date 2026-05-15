@@ -182,7 +182,7 @@ Two volumes are always attached to agent Pods:
 
   The data volume stores temporary workspace data needed for processing a run, including run metadata and source code.
 
-  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit.
+  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit. It can also be backed by a PVC via `persistence.data.enabled=true`.
 
   The volume is mounted at `agent.dataDir`, which must be readable, writable, and executable.
 
@@ -190,7 +190,7 @@ Two volumes are always attached to agent Pods:
 
   The cache volume stores software binaries, OpenTofu/Terraform providers and modules.
 
-  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit.
+  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit. It can also be backed by a PVC via `persistence.cache.enabled=true`.
 
   The volume is mounted at `agent.cacheDir`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
 
@@ -210,18 +210,22 @@ Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache) an
 
 ```yaml
 persistence:
-  enabled: true
-  persistentVolumeClaim:
-    # Use existing PVC
-    claimName: "my-cache-pvc"
-    # Or create new PVC (omit claimName)
-    storageClassName: "nfs-client"
-    storage: 40Gi
-    accessMode: ReadWriteMany
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      # Use existing PVC
+      claimName: "my-cache-pvc"
+      # Or create new PVC (omit claimName)
+      storageClassName: "nfs-client"
+      storage: 40Gi
+      accessMode: ReadWriteMany
 extraEnv:
   SCALR_AGENT_PROVIDER_CACHE_ENABLED: "1" # enabled by default
   SCALR_AGENT_MODULE_CACHE_ENABLED: "1" # disabled by default
 ```
+
+> [!NOTE]
+> The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are **deprecated** and only kept for backward compatibility. When set, they are mapped to the new `persistence.cache.*` schema and the chart emits a deprecation warning on install/upgrade. Migrate to the per-volume schema above.
 
 If configured correctly, you should see confirmation in the Scalr Run console that plugins and modules are being used from cache:
 
@@ -231,6 +235,12 @@ Initialized 8 modules in 4.12s (8 used from cache)
 Initializing plugins...
 Initialized 20 plugins in 6.09s (20 used from cache)
 ```
+
+### Data Volume Persistence
+
+The data volume defaults to `emptyDir`, which is appropriate for most deployments.
+
+Optionally, you can configure a PVC using `persistence.data.enabled` and `persistence.data.persistentVolumeClaim` options, similar to the [cache volume configuration](#cache-volume-persistence).
 
 ## Security
 
@@ -286,11 +296,19 @@ The agent can be configured to send telemetry data, including both trace spans a
 
 OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
 
+The agent emits OTLP over gRPC (default port `4317`) to an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) that you deploy. The Collector receives the telemetry and forwards it to your observability backend (Datadog, Grafana Cloud, Prometheus + Tempo, etc.) — the agent does not push to backends directly.
+
+The endpoint is a `host:port` reachable from the agent Pod, where `host` is the DNS name (or IP) of your Collector — not a fixed value. Common forms:
+
+- `<collector-service>:4317` — Kubernetes Service in the same namespace (e.g. `my-otel-collector:4317`).
+- `<collector-service>.<namespace>.svc.cluster.local:4317` — Service in a different namespace (e.g. `otel-collector.observability.svc.cluster.local:4317`).
+- An external or vendor gateway hostname (e.g. `otel.example.com:4317`).
+
 Enable telemetry agent by configuring an OpenTelemetry collector endpoint:
 
 ```yaml
 extraEnv:
-  SCALR_AGENT_OTLP_ENDPOINT: "otel-collector:4317"  # gRPC endpoint
+  SCALR_AGENT_OTLP_ENDPOINT: "<otel-collector-host>:4317"  # gRPC endpoint
   SCALR_AGENT_OTLP_METRICS_ENABLED: "true"
   SCALR_AGENT_OTLP_TRACES_ENABLED: "true"
 ```
@@ -298,6 +316,44 @@ extraEnv:
 See [all configuration options](https://docs.scalr.io/docs/configuration#telemetry).
 
 Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
+
+### Verify
+
+Once telemetry is configured, the agent emits a confirmation log event at startup:
+
+```json
+{
+  "event": "OpenTelemetry metrics enabled",
+  "level": "info",
+  "logger_name": "tacoagent.telemetry",
+  "timestamp": "2026-05-11 11:21:58.470827",
+  "otlp_endpoint": "<your-otel-endpoint>:4317",
+  "attrs": {
+    "service.name": "agent",
+    "service.version": "1.0.0",
+    "deployment.environment.name": "",
+    "app": "scalr.io"
+  }
+}
+```
+
+If the agent cannot push metrics to the collector, you will see OpenTelemetry warnings and errors in the logs:
+
+```json
+{
+  "event": "Failed to export metrics to <your-otel-endpoint>:4317, error code: StatusCode.INTERNAL",
+  "level": "error",
+  "logger_name": "opentelemetry.exporter.otlp.proto.grpc.exporter",
+  "timestamp": "2026-05-11 10:32:12.292258"
+}
+```
+
+If you see this:
+
+- Ensure the collector endpoint is reachable from the agent Pod.
+- Ensure the collector is healthy and accepting OTLP gRPC traffic.
+- Ensure no NetworkPolicy, service mesh, or egress firewall is blocking traffic between the agent and the collector.
+- If using TLS or a vendor gateway, ensure credentials and any required headers are correctly set.
 
 ## Termination
 

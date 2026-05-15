@@ -1,20 +1,47 @@
-{{- if and .Values.persistence.enabled (not .Values.persistence.persistentVolumeClaim.claimName) }}
+{{- if and .Values.persistence.data.enabled (not .Values.persistence.data.persistentVolumeClaim.claimName) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "agent-local.fullname" . }}
+  name: {{ include "agent-local.fullname" . }}-data
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
+    app.kubernetes.io/component: data
 spec:
   accessModes:
-    - {{ .Values.persistence.persistentVolumeClaim.accessMode }}
+    - {{ .Values.persistence.data.persistentVolumeClaim.accessMode }}
   resources:
     requests:
-      storage: {{ .Values.persistence.persistentVolumeClaim.storage }}
-  {{- if .Values.persistence.persistentVolumeClaim.storageClassName }}
-  storageClassName: {{ .Values.persistence.persistentVolumeClaim.storageClassName }}
-  {{- else if eq .Values.persistence.persistentVolumeClaim.storageClassName "-" }}
+      storage: {{ .Values.persistence.data.persistentVolumeClaim.storage }}
+  {{- if .Values.persistence.data.persistentVolumeClaim.storageClassName }}
+  storageClassName: {{ .Values.persistence.data.persistentVolumeClaim.storageClassName }}
+  {{- else if eq .Values.persistence.data.persistentVolumeClaim.storageClassName "-" }}
+  storageClassName: ""
+  {{- end }}
+{{- end }}
+
+{{- $cache := fromYaml (include "agent-local.persistence.cache" .) }}
+{{- if and $cache.enabled (not $cache.claimName) }}
+{{- if .Values.persistence.data.enabled }}
+---
+{{- end }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $cache.defaultClaimName }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-local.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cache
+spec:
+  accessModes:
+    - {{ $cache.accessMode }}
+  resources:
+    requests:
+      storage: {{ $cache.storage }}
+  {{- if $cache.storageClassName }}
+  storageClassName: {{ $cache.storageClassName }}
+  {{- else if eq $cache.storageClassName "-" }}
   storageClassName: ""
   {{- end }}
 {{- end }}
