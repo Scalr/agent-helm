@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.74]
+
+### Updated
+
+- Bumping chart version to v0.5.74 for scalr-agent v1.0.1
+
 ### Added
 
 - Made the data directory persistence configurable. The `persistence.data` block now supports the same `enabled` / `emptyDir` / `persistentVolumeClaim` structure as `persistence.cache`, allowing the data volume to be backed by a PVC instead of `emptyDir`. Example:

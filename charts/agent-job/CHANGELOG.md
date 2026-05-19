@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.5.77]
+
+### Updated
+
+- Bumping chart version to v0.5.77 for scalr-agent v1.0.1
+
 ### Fixed
 
 - Fixed `helm upgrade` failing with `YAML parse error ... mapping values are not allowed in this context` when `global.labels` was set. The common labels helper was emitting the rendered map on the same line as the preceding label, producing invalid YAML. Thanks to [@PabloPie](https://github.com/PabloPie) for reporting and contributing the fix in [#148](https://github.com/Scalr/agent-helm/pull/148).
