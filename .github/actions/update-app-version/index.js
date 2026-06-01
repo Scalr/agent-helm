@@ -60,7 +60,7 @@ async function pushChanges() {
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
   await exec.exec('git add charts')
   await exec.exec(`git commit -m "Sync appVersion: ${appVersion}`)
-  await exec.exec('git push -u origin master')
+  await exec.exec('git push -u origin HEAD')
 }
 
 async function helmDocs() {
@@ -69,8 +69,6 @@ async function helmDocs() {
 
 async function run() {
   try {
-    await exec.exec('git fetch')
-    await exec.exec('git checkout master')
     const charts = getCharts()
     charts.forEach(function (chart) {
       const chartNewVersion = updateCharts(chart)
