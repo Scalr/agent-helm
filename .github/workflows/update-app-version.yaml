@@ -36,6 +36,8 @@ jobs:
         uses: ./.github/actions/update-app-version
         with:
           app_version: ${{inputs.app_version}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Wait for pushed commit to be visible
         shell: bash
@@ -45,7 +47,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: release-charts.yaml
-          ref: ${{ github.ref_name }} 
+          ref: ${{ github.ref_name }}
 
   notify:
     name: Notify About Agent Helm Release
