@@ -45,7 +45,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: release-charts.yaml
-          ref: master
+          ref: ${{ github.ref_name }} 
 
   notify:
     name: Notify About Agent Helm Release
