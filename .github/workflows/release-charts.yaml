@@ -99,13 +99,6 @@ jobs:
           CR_MAKE_RELEASE_LATEST: false
           CR_RELEASE_NOTES_FILE: RELEASE.md
 
-  sync-master:
-    needs: release
-    uses: ./.github/workflows/sync-master.yaml
-    with:
-      release_branch: ${{ github.ref_name }}
-    secrets: inherit
-
   notify:
     name: Notify About Agent Helm Release
     needs: [prepare, release]
