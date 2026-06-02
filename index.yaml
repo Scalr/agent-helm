@@ -2,6 +2,22 @@ apiVersion: v1
 entries:
   agent-docker:
   - apiVersion: v2
+    appVersion: 1.0.4
+    created: "2026-06-02T16:30:16.263977131Z"
+    description: 'A Helm chart for the scalr-agent deployment on the Kubernetes cluster,
+      where runs are executed in [dind](https://hub.docker.com/_/docker) sidecar container.
+      Run phases are isolated into docker containers. '
+    digest: ba33b236a2b0dce7ad385d969ee7017b07c8e76604276cd2f3cf763b53c7ca00
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-docker
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.5.80/agent-docker-0.5.80.tgz
+    version: 0.5.80
+  - apiVersion: v2
     appVersion: 1.0.0
     created: "2026-05-04T11:29:43.886658331Z"
     deprecated: true
@@ -1327,6 +1343,25 @@ entries:
     version: 0.1.0
   agent-job:
   - apiVersion: v2
+    appVersion: 1.0.4
+    created: "2026-06-02T16:30:16.558011213Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      It uses a job-based model, where each Scalr Run is isolated in its own Kubernetes
+      Job. '
+    digest: 69a291544101af6e1607b0ce8233eed828d9d211f45c5db48fe5f74b5b6030af
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-job
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.78/agent-job-0.5.78.tgz
+    version: 0.5.78
+  - apiVersion: v2
     appVersion: 1.0.0
     created: "2026-05-04T11:29:44.083453004Z"
     description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
@@ -1635,6 +1670,22 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.59/agent-job-0.5.59.tgz
     version: 0.5.59
   agent-k8s:
+  - apiVersion: v2
+    appVersion: 1.0.4
+    created: "2026-06-02T16:30:16.827320893Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys an agent controller with a set of agent workers and executes runs in
+      isolated pods. '
+    digest: d7b0f0b2915be0c17ebc72aa4e3433e84045935147f5429483f0bf9053e7835f
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.5.79/agent-k8s-0.5.79.tgz
+    version: 0.5.79
   - apiVersion: v2
     appVersion: 1.0.0
     created: "2026-05-04T11:29:44.383909823Z"
@@ -3047,6 +3098,21 @@ entries:
     version: 0.1.0
   agent-local:
   - apiVersion: v2
+    appVersion: 1.0.4
+    created: "2026-06-02T16:30:17.074617493Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys a static number of agents and executes runs in shared agent pods. '
+    digest: 0e461881fcaec6a92ca30909343fa064e5b4c7b123c6792422b6640b88de71b9
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.75/agent-local-0.5.75.tgz
+    version: 0.5.75
+  - apiVersion: v2
     appVersion: 1.0.0
     created: "2026-05-04T11:29:44.595734222Z"
     description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
@@ -3541,4 +3607,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
     version: 0.5.40
-generated: "2026-05-04T11:29:44.596408675Z"
+generated: "2026-06-02T16:30:17.075247703Z"
