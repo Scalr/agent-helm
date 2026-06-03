@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added mTLS client certificate configuration (`agent.tls.clientCertSecret`, `agent.tls.clientCert`, `agent.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Note: mTLS is an upcoming Enterprise feature.
+
 - Made the data directory persistence configurable. The `persistence.data` block now supports the same `enabled` / `emptyDir` / `persistentVolumeClaim` structure as `persistence.cache`, allowing the data volume to be backed by a PVC instead of `emptyDir`. Example:
 
   ```yaml
@@ -30,8 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
 - Persistence schema is now symmetric between `persistence.data` and `persistence.cache`, matching the `agent-job` chart.
-
-- Added mTLS client certificate configuration (`agent.tls.clientCertSecret`, `agent.tls.clientCert`, `agent.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Note: mTLS is an upcoming Enterprise feature.
 
 ### Deprecated
 
