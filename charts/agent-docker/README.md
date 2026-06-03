@@ -41,12 +41,6 @@ the same Kubernetes cluster to increase overall capacity.
 
 **Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker>
 
-## Maintainers
-
-| Name | Email | Url |
-| ---- | ------ | --- |
-| scalr | <packages@scalr.com> |  |
-
 ## Values
 
 | Key | Type | Default | Description |

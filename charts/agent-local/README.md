@@ -13,6 +13,7 @@ Deploys a static number of agents and executes runs in shared agent pods.
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Configuration](#configuration)
+- [Mutual TLS (mTLS)](#mutual-tls-mtls)
 - [Customizing Environment](#customizing-environment)
 - [Volumes](#volumes)
 - [Security](#security)
@@ -94,6 +95,83 @@ $ helm install ...
 
 See all available configuration options - https://docs.scalr.io/docs/configuration
 
+## Mutual TLS (mTLS)
+
+> [!IMPORTANT]
+> mTLS is an upcoming Enterprise feature.
+> See the [Scalr mTLS documentation](https://docs.scalr.io/docs/mtls) for details.
+
+Mutual TLS (mTLS) adds transport-layer identity verification on top of the existing JWT authentication. With standard TLS only the server is verified; mTLS requires the agent to also present a client certificate during the TLS handshake, proving to Scalr that the request originates from a legitimate agent host. This means a stolen JWT alone is no longer sufficient — the attacker also needs the pool private key, which stays on operator-managed infrastructure.
+
+The bootstrap certificate and private key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`.
+
+To obtain an mTLS certificate, generate an EC P-256 private key and CSR (Certificate Signing Request):
+
+```shell
+openssl ecparam -genkey -name prime256v1 -noout -out scalr-agent.key
+openssl req -new -key scalr-agent.key -out scalr-agent.csr -subj "/CN=agent-pool"
+```
+
+Then submit the CSR via the Agent Pool UI when registering a new agent, or via the **Certificates** tab on the Agent Pool page. Scalr signs the CSR and returns a certificate. The private key never leaves the operator host.
+
+Once you have both the private key and the signed certificate, configure the chart using one of the following options:
+
+**Option 1: Reference existing secret**
+
+Works with both `kubernetes.io/tls` and `Opaque` secret types. A `kubernetes.io/tls` secret uses `tls.crt` and `tls.key` keys by default:
+
+```yaml
+agent:
+  tls:
+    clientCertSecret:
+      name: "scalr-agent-mtls"
+```
+
+To create the secret:
+
+```shell
+kubectl create secret tls scalr-agent-mtls \
+  --cert=/path/to/scalr-agent.crt \
+  --key=/path/to/scalr-agent.key \
+  -n scalr-agent
+```
+
+For an Opaque secret with non-standard keys, specify the key names:
+
+```yaml
+agent:
+  tls:
+    clientCertSecret:
+      name: "my-mtls-secret"
+      certKey: "client.crt"
+      keyKey: "client.key"
+```
+
+**Option 2: Inline PEM values from files**
+
+```shell
+helm upgrade --install scalr-agent scalr-agent/agent-local \
+  --set-file agent.tls.clientCert=/path/to/scalr-agent.crt \
+  --set-file agent.tls.clientKey=/path/to/scalr-agent.key
+```
+
+Or in a values file:
+
+```yaml
+agent:
+  tls:
+    clientCert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+    clientKey: |
+      -----BEGIN EC PRIVATE KEY-----
+      MHQCAQEEIIr...
+      -----END EC PRIVATE KEY-----
+```
+
+If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCertSecret` takes precedence.
+
 ## Customizing Environment
 
 This chart uses the local driver to run tasks directly within the container where the agent operates. Therefore, it requires an image that includes both the Scalr Agent service and the additional tooling provided by the [scalr/runner](https://hub.docker.com/r/scalr/runner) image. As a result, this chart uses the [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) image, which combines the minimal Scalr Agent image ([scalr/agent](https://hub.docker.com/r/scalr/agent)) with the extra tools from `scalr/runner`. You can use this image, or `scalr/agent` (as a minimal base for building your own lightweight images), as a starting point for customizing your environment.
@@ -106,7 +184,7 @@ Two volumes are always attached to agent Pods:
 
   The data volume stores temporary workspace data needed for processing a run, including run metadata and source code.
 
-  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit.
+  The default configuration uses ephemeral `emptyDir` storage with a 4GB limit. It can also be backed by a PVC via `persistence.data.enabled=true`.
 
   The volume is mounted at `agent.dataDir`, which must be readable, writable, and executable.
 
@@ -114,7 +192,7 @@ Two volumes are always attached to agent Pods:
 
   The cache volume stores software binaries, OpenTofu/Terraform providers and modules.
 
-  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit.
+  The default configuration uses ephemeral `emptyDir` storage with a 20GB limit. It can also be backed by a PVC via `persistence.cache.enabled=true`.
 
   The volume is mounted at `agent.cacheDir`, which must be readable, writable, and executable for OpenTofu/Terraform plugin execution.
 
@@ -134,18 +212,22 @@ Learn more about [Provider Cache](https://docs.scalr.io/docs/providers-cache) an
 
 ```yaml
 persistence:
-  enabled: true
-  persistentVolumeClaim:
-    # Use existing PVC
-    claimName: "my-cache-pvc"
-    # Or create new PVC (omit claimName)
-    storageClassName: "nfs-client"
-    storage: 40Gi
-    accessMode: ReadWriteMany
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      # Use existing PVC
+      claimName: "my-cache-pvc"
+      # Or create new PVC (omit claimName)
+      storageClassName: "nfs-client"
+      storage: 40Gi
+      accessMode: ReadWriteMany
 extraEnv:
   SCALR_AGENT_PROVIDER_CACHE_ENABLED: "1" # enabled by default
   SCALR_AGENT_MODULE_CACHE_ENABLED: "1" # disabled by default
 ```
+
+> [!NOTE]
+> The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are **deprecated** and only kept for backward compatibility. When set, they are mapped to the new `persistence.cache.*` schema and the chart emits a deprecation warning on install/upgrade. Migrate to the per-volume schema above.
 
 If configured correctly, you should see confirmation in the Scalr Run console that plugins and modules are being used from cache:
 
@@ -155,6 +237,12 @@ Initialized 8 modules in 4.12s (8 used from cache)
 Initializing plugins...
 Initialized 20 plugins in 6.09s (20 used from cache)
 ```
+
+### Data Volume Persistence
+
+The data volume defaults to `emptyDir`, which is appropriate for most deployments.
+
+Optionally, you can configure a PVC using `persistence.data.enabled` and `persistence.data.persistentVolumeClaim` options, similar to the [cache volume configuration](#cache-volume-persistence).
 
 ## Security
 
@@ -210,11 +298,19 @@ The agent can be configured to send telemetry data, including both trace spans a
 
 OpenTelemetry is an extensible, open-source telemetry protocol and platform that enables the Scalr Agent to remain vendor-neutral while producing telemetry data for a wide range of platforms.
 
+The agent emits OTLP over gRPC (default port `4317`) to an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) that you deploy. The Collector receives the telemetry and forwards it to your observability backend (Datadog, Grafana Cloud, Prometheus + Tempo, etc.) — the agent does not push to backends directly.
+
+The endpoint is a `host:port` reachable from the agent Pod, where `host` is the DNS name (or IP) of your Collector — not a fixed value. Common forms:
+
+- `<collector-service>:4317` — Kubernetes Service in the same namespace (e.g. `my-otel-collector:4317`).
+- `<collector-service>.<namespace>.svc.cluster.local:4317` — Service in a different namespace (e.g. `otel-collector.observability.svc.cluster.local:4317`).
+- An external or vendor gateway hostname (e.g. `otel.example.com:4317`).
+
 Enable telemetry agent by configuring an OpenTelemetry collector endpoint:
 
 ```yaml
 extraEnv:
-  SCALR_AGENT_OTLP_ENDPOINT: "otel-collector:4317"  # gRPC endpoint
+  SCALR_AGENT_OTLP_ENDPOINT: "<otel-collector-host>:4317"  # gRPC endpoint
   SCALR_AGENT_OTLP_METRICS_ENABLED: "true"
   SCALR_AGENT_OTLP_TRACES_ENABLED: "true"
 ```
@@ -222,6 +318,44 @@ extraEnv:
 See [all configuration options](https://docs.scalr.io/docs/configuration#telemetry).
 
 Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
+
+### Verify
+
+Once telemetry is configured, the agent emits a confirmation log event at startup:
+
+```json
+{
+  "event": "OpenTelemetry metrics enabled",
+  "level": "info",
+  "logger_name": "tacoagent.telemetry",
+  "timestamp": "2026-05-11 11:21:58.470827",
+  "otlp_endpoint": "<your-otel-endpoint>:4317",
+  "attrs": {
+    "service.name": "agent",
+    "service.version": "1.0.0",
+    "deployment.environment.name": "",
+    "app": "scalr.io"
+  }
+}
+```
+
+If the agent cannot push metrics to the collector, you will see OpenTelemetry warnings and errors in the logs:
+
+```json
+{
+  "event": "Failed to export metrics to <your-otel-endpoint>:4317, error code: StatusCode.INTERNAL",
+  "level": "error",
+  "logger_name": "opentelemetry.exporter.otlp.proto.grpc.exporter",
+  "timestamp": "2026-05-11 10:32:12.292258"
+}
+```
+
+If you see this:
+
+- Ensure the collector endpoint is reachable from the agent Pod.
+- Ensure the collector is healthy and accepting OTLP gRPC traffic.
+- Ensure no NetworkPolicy, service mesh, or egress firewall is blocking traffic between the agent and the collector.
+- If using TLS or a vendor gateway, ensure credentials and any required headers are correctly set.
 
 ## Termination
 
@@ -324,6 +458,13 @@ It's best to pull the logs immediately after an incident, since this command wil
 | agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. @section -- Agent |
 | agent.dataDir | string | `"/var/lib/scalr-agent/data"` | Data directory where the agent stores workspace data (configuration versions, modules, and providers). This directory must be readable, writable, and executable. @section -- Agent |
 | agent.shutdownMode | string | `"graceful"` | The agent termination behaviour. Can be graceful, force or drain. See https://docs.scalr.io/docs/configuration#scalr_agent_worker_on_stop_action @section -- Agent |
+| agent.tls | object | `{"clientCert":"","clientCertSecret":{"certKey":"tls.crt","keyKey":"tls.key","name":""},"clientKey":""}` | mTLS client certificate configuration for mutual TLS authentication with Scalr. Maps to SCALR_AGENT_TLS_CERT_FILE and SCALR_AGENT_TLS_KEY_FILE environment variables. @section -- Agent.TLS |
+| agent.tls.clientCert | string | `""` | Inline PEM-encoded client certificate for mTLS. Creates a chart-managed secret. If both clientCertSecret.name and clientCert are set, clientCertSecret takes precedence. Example: clientCert: |   -----BEGIN CERTIFICATE-----   MIIDXTCCAkWgAwIBAgIJAKZ...   -----END CERTIFICATE----- @section -- Agent.TLS |
+| agent.tls.clientCertSecret | object | `{"certKey":"tls.crt","keyKey":"tls.key","name":""}` | Reference to an existing Kubernetes secret containing the client certificate and private key. Supports both `kubernetes.io/tls` and `Opaque` secret types. The secret must exist in the same namespace as the chart installation. If both clientCertSecret.name and clientCert/clientKey are set, clientCertSecret takes precedence. @section -- Agent.TLS |
+| agent.tls.clientCertSecret.certKey | string | `"tls.crt"` | Key within the secret that contains the PEM-encoded client certificate. @section -- Agent.TLS |
+| agent.tls.clientCertSecret.keyKey | string | `"tls.key"` | Key within the secret that contains the PEM-encoded private key. @section -- Agent.TLS |
+| agent.tls.clientCertSecret.name | string | `""` | Name of the Kubernetes secret containing the client certificate and key. Leave empty to use inline clientCert/clientKey or to disable mTLS. @section -- Agent.TLS |
+| agent.tls.clientKey | string | `""` | Inline PEM-encoded private key for mTLS. Creates a chart-managed secret. Must be provided together with clientCert. Example: clientKey: |   -----BEGIN EC PRIVATE KEY-----   MHQCAQEEIIr...   -----END EC PRIVATE KEY----- @section -- Agent.TLS |
 | agent.token | string | `""` | The agent pool token. @section -- Agent |
 | agent.tokenExistingSecret | object | `{"key":"token","name":""}` | Pre-existing Kubernetes secret for the Scalr Agent token. @section -- Agent |
 | agent.tokenExistingSecret.key | string | `"token"` | Key within the secret that holds the token value. @section -- Agent |
@@ -338,19 +479,33 @@ It's best to pull the logs immediately after an incident, since this command wil
 | imagePullSecrets | list | `[]` | Image pull secret to use for registry authentication. @section -- Image |
 | nameOverride | string | `""` | Override the default resource name prefix for all resources. |
 | nodeSelector | object | `{}` | Node selector for scheduling Scalr Agent pods. @section -- Scheduling & Placement |
-| persistence.cache | object | `{"emptyDir":{"sizeLimit":"20Gi"}}` | Cache directory storage configuration. Stores OpenTofu/Terraform providers, modules and binaries. @section -- Persistence |
-| persistence.cache.emptyDir | object | `{"sizeLimit":"20Gi"}` | EmptyDir volume configuration (used when persistence.enabled is false). @section -- Persistence |
+| persistence.cache | object | `{"emptyDir":{"sizeLimit":"20Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}}` | Cache directory storage configuration. Stores OpenTofu/Terraform providers, modules and binaries. @section -- Persistence |
+| persistence.cache.emptyDir | object | `{"sizeLimit":"20Gi"}` | EmptyDir volume configuration (used when persistence.cache.enabled is false). @section -- Persistence |
 | persistence.cache.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. @section -- Persistence |
-| persistence.data | object | `{"emptyDir":{"sizeLimit":"4Gi"}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. @section -- Persistence |
-| persistence.data.emptyDir | object | `{"sizeLimit":"4Gi"}` | EmptyDir volume configuration. @section -- Persistence |
+| persistence.cache.enabled | bool | `false` | Enable persistent storage for the cache directory. When false, uses emptyDir (ephemeral, providers and binaries are re-downloaded on each pod start). When true, uses PVC; with ReadWriteMany the cache is shared across all agent pods. @section -- Persistence |
+| persistence.cache.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when persistence.cache.enabled is true). @section -- Persistence |
+| persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments. Use "ReadWriteMany" to share the cache across multiple agent pods (requires a compatible storage class). @section -- Persistence |
+| persistence.cache.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-cache` is created. @section -- Persistence |
+| persistence.cache.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. @section -- Persistence |
+| persistence.cache.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. @section -- Persistence |
+| persistence.cache.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. @section -- Persistence |
+| persistence.data | object | `{"emptyDir":{"sizeLimit":"4Gi"},"enabled":false,"persistentVolumeClaim":{"accessMode":"ReadWriteOnce","claimName":"","storage":"4Gi","storageClassName":"","subPath":""}}` | Data directory storage configuration. Stores workspace data including configuration versions, modules, and providers. @section -- Persistence |
+| persistence.data.emptyDir | object | `{"sizeLimit":"4Gi"}` | EmptyDir volume configuration (used when persistence.data.enabled is false). @section -- Persistence |
 | persistence.data.emptyDir.sizeLimit | string | `"4Gi"` | Size limit for the emptyDir volume. @section -- Persistence |
-| persistence.enabled | bool | `false` | Enable persistent storage for cache volume. If false, uses emptyDir (ephemeral storage). @section -- Persistence |
-| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | Configuration for persistentVolumeClaim for cache volume (used when persistence.enabled is true). @section -- Persistence |
-| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments. Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS). @section -- Persistence |
-| persistence.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC is created dynamically. @section -- Persistence |
-| persistence.persistentVolumeClaim.storage | string | `"20Gi"` | Storage size for the PVC. @section -- Persistence |
-| persistence.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. @section -- Persistence |
-| persistence.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. @section -- Persistence |
+| persistence.data.enabled | bool | `false` | Enable persistent storage for the data directory. When false, uses emptyDir (ephemeral, recommended for most use cases as each pod gets fresh workspace). When true, uses PVC (persistent across pod restarts, useful for debugging or sharing data between runs). @section -- Persistence |
+| persistence.data.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"4Gi","storageClassName":"","subPath":""}` | PersistentVolumeClaim configuration (used when persistence.data.enabled is true). @section -- Persistence |
+| persistence.data.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments. Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS). @section -- Persistence |
+| persistence.data.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-data` is created. @section -- Persistence |
+| persistence.data.persistentVolumeClaim.storage | string | `"4Gi"` | Storage size for the PVC. @section -- Persistence |
+| persistence.data.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. @section -- Persistence |
+| persistence.data.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. @section -- Persistence |
+| persistence.enabled | bool | `false` | DEPRECATED: Use `persistence.cache.enabled` instead. Kept for backward compatibility; will be removed in a future release. When set to `true`, behaves as `persistence.cache.enabled: true` and emits a deprecation warning. @section -- Persistence |
+| persistence.persistentVolumeClaim | object | `{"accessMode":"ReadWriteOnce","claimName":"","storage":"20Gi","storageClassName":"","subPath":""}` | DEPRECATED: Use `persistence.cache.persistentVolumeClaim` instead. Kept for backward compatibility; will be removed in a future release. When the legacy `persistence.enabled` (top-level) is `true`, these values are used for the cache PVC and a deprecation warning is emitted. @section -- Persistence |
+| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.accessMode`. @section -- Persistence |
+| persistence.persistentVolumeClaim.claimName | string | `""` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.claimName`. @section -- Persistence |
+| persistence.persistentVolumeClaim.storage | string | `"20Gi"` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.storage`. @section -- Persistence |
+| persistence.persistentVolumeClaim.storageClassName | string | `""` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.storageClassName`. @section -- Persistence |
+| persistence.persistentVolumeClaim.subPath | string | `""` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.subPath`. @section -- Persistence |
 | podAnnotations | object | `{}` | Annotations for Scalr Agent pods (e.g., for monitoring or logging). @section -- Pod Configuration |
 | podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true}` | Security context for Scalr Agent pod. @section -- Security |
 | replicaCount | int | `1` | Number of replicas for the Scalr Agent deployment. Adjust for high availability. @section -- Scheduling & Placement |
