@@ -1,6 +1,6 @@
 # agent-k8s
 
-![Version: 0.5.78](https://img.shields.io/badge/Version-0.5.78-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.3](https://img.shields.io/badge/AppVersion-1.0.3-informational?style=flat-square)
+![Version: 0.5.79](https://img.shields.io/badge/Version-0.5.79-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.4](https://img.shields.io/badge/AppVersion-1.0.4-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Deploys an agent controller with a set of agent workers and executes runs in isolated pods.
