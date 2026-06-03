@@ -9,42 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
-## [v0.5.77]
-
-### Updated
-
-- Bumping chart version to v0.5.77 for scalr-agent v1.0.3
-
-## [v0.5.78]
-
-### Updated
-
-- Bumping chart version to v0.5.78 for scalr-agent v1.0.2
-
-## [v0.5.77]
-
-### Updated
-
-- Bumping chart version to v0.5.77 for scalr-agent v1.0.1
-
-### Fixed
-
-- Fixed `helm upgrade` failing with `YAML parse error ... mapping values are not allowed in this context` when `global.labels` was set. The common labels helper was emitting the rendered map on the same line as the preceding label, producing invalid YAML. Thanks to [@PabloPie](https://github.com/PabloPie) for reporting and contributing the fix in [#148](https://github.com/Scalr/agent-helm/pull/148).
-- Fixed `global.labels` not being applied to pods. Labels set via `global.labels` now propagate to both workload `metadata.labels` and the pod template's `spec.template.metadata.labels` for the controller Deployment and task Jobs, matching the behavior users expect from a "global" label setting. Component-specific overrides (`global.podLabels`, `agent.podLabels`, `task.podLabels`) continue to take precedence on key collisions.
-
-## [v0.5.76]
-
-### Updated
-
-- Bumping chart version to v0.5.76 for scalr-agent v1.0.0
-
 ### Added
 
 - Added mTLS client certificate configuration (`global.tls.clientCertSecret`, `global.tls.clientCert`, `global.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Applied to the controller and worker containers; the runner container is not affected. Note: mTLS is an upcoming Enterprise feature.
 
 ### Fixed
 
+- Fixed `helm upgrade` failing with `YAML parse error ... mapping values are not allowed in this context` when `global.labels` was set. The common labels helper was emitting the rendered map on the same line as the preceding label, producing invalid YAML. Thanks to [@PabloPie](https://github.com/PabloPie) for reporting and contributing the fix in [#148](https://github.com/Scalr/agent-helm/pull/148).
+- Fixed `global.labels` not being applied to pods. Labels set via `global.labels` now propagate to both workload `metadata.labels` and the pod template's `spec.template.metadata.labels` for the controller Deployment and task Jobs, matching the behavior users expect from a "global" label setting. Component-specific overrides (`global.podLabels`, `agent.podLabels`, `task.podLabels`) continue to take precedence on key collisions.
 - Fixed `agent.podSecurityContext` and `task.podSecurityContext` having no effect when overriding values from `global.podSecurityContext`. Component-specific values now correctly take precedence over global defaults.
+
+## [v0.5.77] - YANKED
+
+### Updated
+
+- Released as part of an internal process, superseded by v0.5.78
+
+## [v0.5.76]
+
+### Updated
+
+- Bumping chart version to v0.5.76 for scalr-agent v1.0.0
 
 ## [v0.5.75]
 

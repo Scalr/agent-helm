@@ -9,24 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
-## [v0.5.74]
-
-### Updated
-
-- Bumping chart version to v0.5.74 for scalr-agent v1.0.3
-
-## [v0.5.75]
-
-### Updated
-
-- Bumping chart version to v0.5.75 for scalr-agent v1.0.2
-
-## [v0.5.74]
-
-### Updated
-
-- Bumping chart version to v0.5.74 for scalr-agent v1.0.1
-
 ### Added
 
 - Made the data directory persistence configurable. The `persistence.data` block now supports the same `enabled` / `emptyDir` / `persistentVolumeClaim` structure as `persistence.cache`, allowing the data volume to be backed by a PVC instead of `emptyDir`. Example:
@@ -49,48 +31,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Persistence schema is now symmetric between `persistence.data` and `persistence.cache`, matching the `agent-job` chart.
 
+- Added mTLS client certificate configuration (`agent.tls.clientCertSecret`, `agent.tls.clientCert`, `agent.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Note: mTLS is an upcoming Enterprise feature.
+
 ### Deprecated
 
 - The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated in favor of `persistence.cache.enabled` and `persistence.cache.persistentVolumeClaim.*`. The legacy keys still work and the chart emits a deprecation warning via `NOTES.txt` when they are used. They will be removed in a future release.
 
-  **Backward compatibility:** existing installations continue to work without any values changes. When the legacy keys are set, the chart maps them onto the cache volume and preserves the legacy default cache PVC name (`<release-fullname>`) to avoid orphaning existing PVCs on upgrade. On the new schema, the default cache PVC name is `<release-fullname>-cache` and the new data PVC default name is `<release-fullname>-data`.
+**Backward compatibility:** existing installations continue to work without any values changes. When the legacy keys are set, the chart maps them onto the cache volume and preserves the legacy default cache PVC name (`<release-fullname>`) to avoid orphaning existing PVCs on upgrade. On the new schema, the default cache PVC name is `<release-fullname>-cache` and the new data PVC default name is `<release-fullname>-data`.
 
-  **Action required (recommended migration):** move legacy values under `persistence.cache.*`. Before:
+**Action required (recommended migration):** move legacy values under `persistence.cache.*`. Before:
 
-  ```yaml
-  persistence:
+```yaml
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    claimName: "my-cache-pvc"
+    storageClassName: "nfs-client"
+    storage: 40Gi
+    accessMode: ReadWriteMany
+```
+
+After:
+
+```yaml
+persistence:
+  cache:
     enabled: true
     persistentVolumeClaim:
       claimName: "my-cache-pvc"
       storageClassName: "nfs-client"
       storage: 40Gi
       accessMode: ReadWriteMany
-  ```
+```
 
-  After:
+When you migrate **without specifying `claimName`** and previously relied on the auto-created PVC, note that the default PVC name changes from `<release-fullname>` to `<release-fullname>-cache`. To keep using the existing PVC, set `persistence.cache.persistentVolumeClaim.claimName: "<release-fullname>"` explicitly, or rename/re-bind the underlying PV.
 
-  ```yaml
-  persistence:
-    cache:
-      enabled: true
-      persistentVolumeClaim:
-        claimName: "my-cache-pvc"
-        storageClassName: "nfs-client"
-        storage: 40Gi
-        accessMode: ReadWriteMany
-  ```
+## [v0.5.74] - YANKED
 
-  When you migrate **without specifying `claimName`** and previously relied on the auto-created PVC, note that the default PVC name changes from `<release-fullname>` to `<release-fullname>-cache`. To keep using the existing PVC, set `persistence.cache.persistentVolumeClaim.claimName: "<release-fullname>"` explicitly, or rename/re-bind the underlying PV.
+### Updated
+
+- Released as part of an internal process, superseded by v0.5.75
 
 ## [v0.5.73]
 
 ### Updated
 
 - Bumping chart version to v0.5.73 for scalr-agent v1.0.0
-
-### Added
-
-- Added mTLS client certificate configuration (`agent.tls.clientCertSecret`, `agent.tls.clientCert`, `agent.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Note: mTLS is an upcoming Enterprise feature.
 
 ## [v0.5.72]
 
