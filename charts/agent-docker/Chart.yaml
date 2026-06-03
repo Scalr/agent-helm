@@ -6,6 +6,6 @@ description: |
   Run phases are isolated into docker containers.
 type: application
 deprecated: true
-version: 0.5.79
-appVersion: 1.0.3
+version: 0.5.80
+appVersion: 1.0.4
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-docker
