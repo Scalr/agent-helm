@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: [agent-k8s, agent-docker, agent-job, agent-local]
+        directory: [agent-k8s, agent-job, agent-local]
     defaults:
       run:
         shell: bash
@@ -61,12 +61,6 @@ jobs:
         with:
           name: release-notes-agent-k8s
           path: charts/agent-k8s
-
-      - name: Download agent-docker RELEASE.md
-        uses: actions/download-artifact@v4
-        with:
-          name: release-notes-agent-docker
-          path: charts/agent-docker
 
       - name: Download agent-job RELEASE.md
         uses: actions/download-artifact@v4
