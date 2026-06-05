@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `global.labels` not being applied to pods. Labels set via `global.labels` now propagate to both workload `metadata.labels` and the pod template's `spec.template.metadata.labels` for the controller Deployment and task Jobs, matching the behavior users expect from a "global" label setting. Component-specific overrides (`global.podLabels`, `agent.podLabels`, `task.podLabels`) continue to take precedence on key collisions.
 - Fixed `agent.podSecurityContext` and `task.podSecurityContext` having no effect when overriding values from `global.podSecurityContext`. Component-specific values now correctly take precedence over global defaults.
 
+## [v0.5.79]
+
+### Updated
+
+- Bumping chart version to v0.5.79 for scalr-agent v1.0.5
+
 ## [v0.5.78]
 
 ### Updated
