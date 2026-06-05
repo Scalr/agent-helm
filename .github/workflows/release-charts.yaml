@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: [agent-k8s, agent-docker, agent-job, agent-local]
+        directory: [agent-k8s, agent-job, agent-local]
     defaults:
       run:
         shell: bash
