@@ -9,11 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
-## [v0.5.80]
+## [v0.5.76]
 
 ### Updated
 
-- Bumping chart version to v0.5.80 for scalr-agent v1.0.4
+- Bumping chart version to v0.5.76 for scalr-agent v1.0.0
+
+### Deprecated
+
+- This chart is deprecated and no longer published. Use [`agent-local`](../agent-local) instead.
+
+## [v0.5.75]
+
+### Updated
+
+- Bumping chart version to v0.5.75 for scalr-agent v0.65.1
 
 ## [v0.5.74]
 

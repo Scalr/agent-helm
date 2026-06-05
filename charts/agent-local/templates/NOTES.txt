@@ -1,0 +1,26 @@
+Scalr Agent has been installed.
+
+Release name: {{ .Release.Name }}
+Namespace:    {{ .Release.Namespace }}
+Chart:        {{ .Chart.Name }}-{{ .Chart.Version }} (appVersion {{ .Chart.AppVersion }})
+
+{{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" }}
+
+WARNING: Deprecated persistence configuration detected.
+  The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated
+  and will be removed in a future release. They were honored for this release for backward compatibility.
+
+  Migrate to the per-volume schema:
+
+    persistence:
+      cache:
+        enabled: {{ .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | quote }}
+          storageClassName: {{ .Values.persistence.persistentVolumeClaim.storageClassName | quote }}
+          storage: {{ .Values.persistence.persistentVolumeClaim.storage }}
+          accessMode: {{ .Values.persistence.persistentVolumeClaim.accessMode }}
+          subPath: {{ .Values.persistence.persistentVolumeClaim.subPath | quote }}
+
+  See the chart README for the full schema and the new `persistence.data.*` options.
+{{- end }}
