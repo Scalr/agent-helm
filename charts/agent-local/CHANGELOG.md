@@ -66,6 +66,12 @@ persistence:
 
 When you migrate **without specifying `claimName`** and previously relied on the auto-created PVC, note that the default PVC name changes from `<release-fullname>` to `<release-fullname>-cache`. To keep using the existing PVC, set `persistence.cache.persistentVolumeClaim.claimName: "<release-fullname>"` explicitly, or rename/re-bind the underlying PV.
 
+## [v0.5.76]
+
+### Updated
+
+- Bumping chart version to v0.5.76 for scalr-agent v1.0.5
+
 ## [v0.5.75]
 
 ### Updated
