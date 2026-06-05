@@ -17,13 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.5.74] - YANKED
 
+### Updated
+
 - Released as part of an internal process, superseded by v0.5.75
 
 ## [v0.5.73]
 
+### Updated
+
 - Bumping chart version to v0.5.73 for scalr-agent v1.0.0
 
 ## [v0.5.72]
+
+### Updated
 
 - Bumping chart version to v0.5.72 for scalr-agent v0.65.1
 
