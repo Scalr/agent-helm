@@ -85,6 +85,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
 
+      - name: Inject changelog into Chart.yaml annotations
+        run: |
+          set -euo pipefail
+          for c in agent-k8s agent-job agent-local; do
+            python3 scripts/changelog-to-ah.py "charts/$c"
+          done
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.5.0
         env:
@@ -92,6 +99,26 @@ jobs:
           CR_SKIP_EXISTING: true
           CR_MAKE_RELEASE_LATEST: false
           CR_RELEASE_NOTES_FILE: RELEASE.md
+
+      - name: Publish artifacthub-repo.yml to gh-pages
+        run: |
+          set -euo pipefail
+          if [ ! -f artifacthub-repo.yml ]; then
+            echo "artifacthub-repo.yml not found in repo root, skipping"
+            exit 0
+          fi
+          cp artifacthub-repo.yml /tmp/artifacthub-repo.yml
+          git fetch origin gh-pages
+          git worktree add gh-pages gh-pages
+          cp /tmp/artifacthub-repo.yml gh-pages/artifacthub-repo.yml
+          cd gh-pages
+          if git diff --quiet artifacthub-repo.yml; then
+            echo "artifacthub-repo.yml is already up to date on gh-pages"
+            exit 0
+          fi
+          git add artifacthub-repo.yml
+          git commit -m "Update artifacthub-repo.yml"
+          git push origin gh-pages
 
   notify:
     name: Notify About Agent Helm Release

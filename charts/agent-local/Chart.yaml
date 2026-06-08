@@ -7,6 +7,30 @@ type: application
 version: 0.5.76
 appVersion: 1.0.5
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
+sources:
+  - https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+keywords:
+  - scalr
+  - agent
+  - terraform
+  - opentofu
+  - iac
 maintainers:
   - name: scalr
     email: packages@scalr.com
+annotations:
+  artifacthub.io/displayName: Scalr Agent (Local)
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://docs.scalr.io/docs/self-hosted-agents-pools
+    - name: Scalr
+      url: https://scalr.com
+    - name: Source
+      url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    - name: Changelog
+      url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md
+  artifacthub.io/images: |
+    - name: agent-runner
+      image: scalr/agent-runner:1.0.5

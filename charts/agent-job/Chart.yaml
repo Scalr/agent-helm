@@ -14,3 +14,36 @@ maintainers:
     email: packages@scalr.com
 sources:
   - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+keywords:
+  - scalr
+  - agent
+  - terraform
+  - opentofu
+  - iac
+  - job
+  - multi-tenancy
+annotations:
+  artifacthub.io/displayName: Scalr Agent (Job)
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://docs.scalr.io/docs/self-hosted-agents-pools
+    - name: Scalr
+      url: https://scalr.com
+    - name: Source
+      url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    - name: Changelog
+      url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/CHANGELOG.md
+  artifacthub.io/images: |
+    - name: agent
+      image: scalr/agent:1.0.5
+    - name: runner
+      image: scalr/runner:0.2.0
+  artifacthub.io/crds: |
+    - kind: AgentTaskTemplate
+      version: v1alpha1
+      name: agenttasktemplate
+      displayName: Agent Task Template
+      description: |
+        Defines a template for tasks that the Scalr Agent controller materializes
+        into Kubernetes Jobs for each Scalr Run.
