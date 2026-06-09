@@ -85,11 +85,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
 
-      - name: Inject changelog into Chart.yaml annotations
+      - name: Install Python dependencies
+        run: pip install --user pyyaml
+
+      - name: Inject Artifact Hub annotations into Chart.yaml
         run: |
           set -euo pipefail
           for c in agent-k8s agent-job agent-local; do
             python3 scripts/changelog-to-ah.py "charts/$c"
+            python3 scripts/images-to-ah.py "charts/$c"
           done
 
       - name: Run chart-releaser

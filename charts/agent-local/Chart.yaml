@@ -31,6 +31,3 @@ annotations:
       url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
     - name: Changelog
       url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md
-  artifacthub.io/images: |
-    - name: agent-runner
-      image: scalr/agent-runner:1.0.5

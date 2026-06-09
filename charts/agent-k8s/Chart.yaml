@@ -32,8 +32,3 @@ annotations:
       url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
     - name: Changelog
       url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-k8s/CHANGELOG.md
-  artifacthub.io/images: |
-    - name: agent
-      image: scalr/agent:1.0.5
-    - name: runner
-      image: scalr/runner:0.2.0
