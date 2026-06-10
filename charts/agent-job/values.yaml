@@ -422,6 +422,26 @@ task:
   # @section -- Task
   jobAnnotations: {}
 
+  # -- PodDisruptionBudget configuration for task pods.
+  # Protects in-flight task pods from voluntary disruptions (e.g. node upgrades,
+  # drains) via the Eviction API. With the default `maxUnavailable: 0`, a draining
+  # node waits for a running task to finish on its own before evicting it, instead
+  # of killing it mid-run. Tasks are short-lived, so node upgrades still proceed
+  # through their normal flow (GKE/kubectl drain has its own timeout).
+  # @section -- Task
+  podDisruptionBudget:
+    # -- Enable PodDisruptionBudget for task pods.
+    # @section -- Task
+    enabled: true
+    # -- Minimum number of task pods that must be available.
+    # Either minAvailable or maxUnavailable must be set, not both.
+    # @section -- Task
+    minAvailable: null
+    # -- Maximum number of task pods that can be unavailable.
+    # Either minAvailable or maxUnavailable must be set, not both.
+    # @section -- Task
+    maxUnavailable: 0
+
   # -- Node selector for assigning task job pods to specific nodes.
   # Example: `--set task.nodeSelector."node-type"="agent-worker"`
   # @section -- Task
