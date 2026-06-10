@@ -7,6 +7,28 @@ type: application
 version: 0.5.80
 appVersion: 1.0.5
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
 maintainers:
   - name: scalr
     email: packages@scalr.com
+sources:
+  - https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+keywords:
+  - scalr
+  - agent
+  - terraform
+  - opentofu
+  - iac
+  - multi-tenancy
+annotations:
+  artifacthub.io/displayName: Scalr Agent (Kubernetes)
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://docs.scalr.io/docs/self-hosted-agents-pools
+    - name: Scalr
+      url: https://scalr.com
+    - name: Source
+      url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    - name: Changelog
+      url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-k8s/CHANGELOG.md

@@ -5,3 +5,5 @@
 .envrc
 **/node_modules/
 .*.sh
+__pycache__
+*.pyc
