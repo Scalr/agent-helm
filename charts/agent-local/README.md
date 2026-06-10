@@ -218,7 +218,16 @@ If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCer
 
 ## Customizing Environment
 
-This chart uses the local driver to run tasks directly within the container where the agent operates. Therefore, it requires an image that includes both the Scalr Agent service and the additional tooling provided by the [scalr/runner](https://hub.docker.com/r/scalr/runner) image. As a result, this chart uses the [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) image, which combines the minimal Scalr Agent image ([scalr/agent](https://hub.docker.com/r/scalr/agent)) with the extra tools from `scalr/runner`. You can use this image, or `scalr/agent` (as a minimal base for building your own lightweight images), as a starting point for customizing your environment.
+This chart uses the local driver to run tasks directly within the container where the agent operates. By default it uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and the basic tools needed by most runs (`git`, `curl`, `openssl`, `ca-certificates`, etc.).
+
+If your workflows require cloud-provider CLIs such as `aws`, `gcloud`, `az`, `kubectl`, or `scalr-cli`, switch to the [`scalr/agent-runner`](https://hub.docker.com/r/scalr/agent-runner) image, which is built on top of `scalr/agent` and bundles those extras:
+
+```yaml
+image:
+  repository: scalr/agent-runner
+```
+
+You can also build your own image on top of `scalr/agent` to include only the tools you need.
 
 ## Volumes
 
@@ -461,7 +470,7 @@ The agent requires outbound HTTPS access to the following endpoints:
 | Hostname                              | Port | Purpose                                                                                                                                                              |
 | ------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | scalr.io                              | 443  | Polling for new tasks, posting status updates and logs, downloading IaC configuration versions, private modules, and software binary releases |
-| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) and [scalr/runner](https://hub.docker.com/r/scalr/runner) images                                    |
+| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) image (or [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) if configured)                                    |
 | registry.opentofu.org                 | 443  | Downloading public providers and modules from the OpenTofu Registry                                                                                                  |
 | registry.terraform.io                 | 443  | Downloading public providers and modules from the Terraform Registry                                                                                                 |
 
@@ -562,7 +571,7 @@ It's best to pull the logs immediately after an incident, since this command wil
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. |
-| image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent image. |
+| image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. |
 | image.tag | string | `""` | Image tag. Overrides the default (chart appVersion). Leave empty to use chart default. |
 | imagePullSecrets | list | `[]` | Image pull secret to use for registry authentication. |
 

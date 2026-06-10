@@ -27,7 +27,7 @@ imagePullSecrets:
 image:
   # -- Docker repository for the Scalr Agent image.
   # @section -- Image
-  repository: scalr/agent-runner
+  repository: scalr/agent
   # -- Image pull policy. 'IfNotPresent' is efficient for stable deployments.
   # @section -- Image
   pullPolicy: IfNotPresent

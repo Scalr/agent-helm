@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- **BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`. The `scalr/agent` image ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tools (`git`, `curl`, `openssl`, `ca-certificates`), but does **not** include cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`). If your runs depend on any of these, you must opt back into the previous image explicitly:
+
+  ```yaml
+  image:
+    repository: scalr/agent-runner
+  ```
+
+  Users who do not rely on the bundled cloud CLIs benefit from a smaller default image and reduced attack surface. Custom images built on top of `scalr/agent` are unaffected.
+
 ### Added
 
 - Added custom CA bundle configuration (`agent.tls.caBundleSecret`, `agent.tls.caBundle`) for outbound TLS validation against the Scalr API, VCS providers, and provider registries. The bundle is mounted read-only at `/etc/ssl/certs/scalr-ca-bundle.crt` and exported via `SCALR_AGENT_CA_CERT` and `SSL_CERT_FILE`. Supports both existing Kubernetes secrets and inline PEM values; `caBundleSecret` takes precedence when both are set. `SCALR_AGENT_CA_CERT` and `SSL_CERT_FILE` are now reserved env var names and cannot be overridden via `extraEnv`.
