@@ -23,3 +23,29 @@ spec:
       {{- include "agent-job.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: agent
 {{- end }}
+
+{{- if .Values.task.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "agent-job.fullname" . }}-task
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agent-job.labels" . | nindent 4 }}
+    app.kubernetes.io/component: task
+  {{- with (include "agent-job.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.task.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.task.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if not (kindIs "invalid" .Values.task.podDisruptionBudget.maxUnavailable) }}
+  maxUnavailable: {{ .Values.task.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "agent-job.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: task
+{{- end }}
