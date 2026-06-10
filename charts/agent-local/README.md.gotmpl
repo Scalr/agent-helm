@@ -11,6 +11,7 @@
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Configuration](#configuration)
+- [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Mutual TLS (mTLS)](#mutual-tls-mtls)
 - [Customizing Environment](#customizing-environment)
 - [Volumes](#volumes)
@@ -92,6 +93,49 @@ $ helm install ...
 ```
 
 See all available configuration options - https://docs.scalr.io/docs/configuration
+
+## Custom Certificate Authorities
+
+If your environment uses custom or self-signed certificates, you can configure the CA bundle used by the agent for TLS validation. This configuration sets the **primary CA bundle** for all agent HTTPS connections (to Scalr API, VCS providers, provider registries, etc.).
+
+> [!IMPORTANT]
+> This replaces the system default CA certificates. If you need to trust both custom CAs and public CAs, include the complete certificate chain with both your custom certificates and standard root CAs in the bundle.
+
+You can provide the CA bundle in two ways:
+
+**Option 1: Inline CA bundle**
+
+```yaml
+agent:
+  tls:
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+      -----BEGIN CERTIFICATE-----
+      MIIEFzCCAv+gAwIBAgIUDiCT...
+      -----END CERTIFICATE-----
+```
+
+**Option 2: Reference existing secret**
+
+```yaml
+agent:
+  tls:
+    caBundleSecret:
+      name: "my-ca-bundle"
+      key: "ca-bundle.crt"
+```
+
+To create the secret:
+
+```shell
+kubectl create secret generic my-ca-bundle \
+  --from-file=ca-bundle.crt=/path/to/your/ca-bundle.crt \
+  -n scalr-agent
+```
+
+If both `caBundleSecret.name` and `caBundle` are set, `caBundleSecret` takes precedence.
 
 ## Mutual TLS (mTLS)
 
