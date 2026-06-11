@@ -170,7 +170,7 @@ Alternatively, install run-time tooling on demand via Workspace hooks. This avoi
 
 ## High Availability
 
-This section describes strategies for hardening the deployment for high availability.
+This section describes strategies for hardening the deployment for high availability (HA).
 
 ### Separate Controllers and Task Pods
 
@@ -230,6 +230,11 @@ agent:
         matchLabels:
           app.kubernetes.io/name: agent-job
 ```
+
+`whenUnsatisfiable` controls what happens when the spread constraint cannot be satisfied:
+
+- `ScheduleAnyway` - soft guarantee, pods will co-locate on a single zone/node if no better option exists
+- `DoNotSchedule` - hard guarantee, pods stay Pending until the spread can be satisfied
 
 Use `whenUnsatisfiable: DoNotSchedule` if you require strict spread (pods stay `Pending` rather than co-locating).
 
