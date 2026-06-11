@@ -19,6 +19,7 @@ Create a file named `scalr-agent-cache-filestore.yaml` with the following conten
 
 > [!IMPORTANT]
 > Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` format is `modeInstance/{instance-zone}/{instance-name}/{share-name}`.
+
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -127,7 +128,7 @@ resource "kubernetes_persistent_volume_claim" "agent_cache" {
 
 ## Step 2: Verify the PV and PVC
 
-Check that both resources were created successfully.
+Check that both resources were created successfully. Output columns may vary slightly with your `kubectl` version.
 
 Verify the PersistentVolume:
 
@@ -177,7 +178,7 @@ If either resource shows `Pending` instead of `Bound`, see [Troubleshooting](#tr
 
 ## Step 3: Configure the Scalr Agent Helm Chart
 
-You can configure the agent to use the shared cache in two ways. The commands below use the `scalr-agent` namespace — replace it with your target namespace.
+You can configure the agent to use the shared cache in any of the ways below. The examples show only the cache-related values — combine them with the rest of your agent configuration (such as the agent token and URL), and replace the `scalr-agent` namespace with your target namespace.
 
 If you haven't already, add the Scalr Agent Helm repository:
 
@@ -238,7 +239,7 @@ resource "helm_release" "scalr_agent" {
         cache = {
           enabled = true
           persistentVolumeClaim = {
-            claimName = kubernetes_persistent_volume_claim.agent_cache.metadata[0].name
+            claimName = kubernetes_persistent_volume_claim.agent_cache.metadata[0].name # or "agent-cache-pvc" if the PVC was created with kubectl
           }
         }
       }
@@ -259,7 +260,7 @@ Trigger a run and check the initialization stage output in the Scalr run console
 
 ```text
 Initializing plugins...
-Initialized 20 plugin in 79.39s (1 downloaded)
+Initialized 20 plugins in 79.39s (20 downloaded)
 ```
 
 Once providers are cached, subsequent runs — including runs on other task pods sharing the volume — pick it up from the cache:

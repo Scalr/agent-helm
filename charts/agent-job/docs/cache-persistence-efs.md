@@ -21,7 +21,7 @@ We recommend mounting the cache volume through an [EFS access point](https://doc
 - **POSIX user**: uid/gid `1000` — matching the chart's default pod user
 - **Root directory**: a dedicated path (e.g. `/scalr-agent-cache`) created with owner `1000:1000` and permissions `775`
 
-This matters because the chart's pods run as a non-root user and mount the cache volume with a subPath, so kubelet must create directories at the root of the volume on pod start. Mounting the file system root directly fails when the root directory is not writable by the agent user, or when the file system policy does not grant `elasticfilesystem:ClientRootAccess` (EFS then squashes all clients — including kubelet, which runs as root — to an anonymous user). An access point avoids both problems: EFS maps all file operations to the configured POSIX user and presents a dedicated, correctly-owned root directory.
+The chart's pods run as a non-root user and need to create directories at the root of the volume, so the volume root must be writable by uid `1000` — an access point guarantees this regardless of the file system's permissions or policy (see [Troubleshooting](#troubleshooting) for what fails without one).
 
 Create the access point using the AWS CLI:
 
@@ -70,7 +70,7 @@ resource "aws_efs_access_point" "agent_cache" {
 }
 ```
 
-Note the `AccessPointId` (`fsap-...`) in the output — you will need it for the PersistentVolume in the next step.
+Note the access point ID (`fsap-...`) of the created resource — you will need it for the PersistentVolume in the next step.
 
 > [!IMPORTANT]
 > The root directory path must be a dedicated directory that does not yet exist on the file system (not `/`). The creation ownership and permissions are applied only when EFS creates the directory — for an already-existing path they are silently ignored, leaving a root-owned directory the agent user cannot write to. Access points are immutable, so a misconfigured one must be deleted and re-created.
@@ -81,6 +81,7 @@ Create a file named `scalr-agent-cache-efs.yaml` with the following content:
 
 > [!IMPORTANT]
 > Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` combines your EFS file system ID and the access point ID from Step 1 (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/scalr-agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Troubleshooting](#troubleshooting).
+
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -193,7 +194,7 @@ The mount options above shorten the attribute cache timeouts (`acregmin`/`acregm
 
 ## Step 3: Verify the PV and PVC
 
-Check that both resources were created successfully.
+Check that both resources were created successfully. Output columns may vary slightly with your `kubectl` version.
 
 Verify the PersistentVolume:
 
@@ -243,7 +244,7 @@ If either resource shows `Pending` or the PV shows `Available`/`Released` instea
 
 ## Step 4: Configure the Scalr Agent Helm Chart
 
-You can configure the agent to use the shared cache in two ways. The commands below use the `scalr-agent` namespace — replace it with your target namespace.
+You can configure the agent to use the shared cache in any of the ways below. The examples show only the cache-related values — combine them with the rest of your agent configuration (such as the agent token and URL), and replace the `scalr-agent` namespace with your target namespace.
 
 If you haven't already, add the Scalr Agent Helm repository:
 
@@ -304,7 +305,7 @@ resource "helm_release" "scalr_agent" {
         cache = {
           enabled = true
           persistentVolumeClaim = {
-            claimName = kubernetes_persistent_volume_claim.agent_cache.metadata[0].name
+            claimName = kubernetes_persistent_volume_claim.agent_cache.metadata[0].name # or "agent-cache-pvc" if the PVC was created with kubectl
           }
         }
       }
@@ -325,7 +326,7 @@ Trigger a run and check the initialization stage output in the Scalr run console
 
 ```text
 Initializing plugins...
-Initialized 20 plugin in 79.39s (1 downloaded)
+Initialized 20 plugins in 79.39s (20 downloaded)
 ```
 
 Once providers are cached, subsequent runs — including runs on other task pods sharing the volume — pick it up from the cache:
