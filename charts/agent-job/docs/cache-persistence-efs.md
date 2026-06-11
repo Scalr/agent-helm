@@ -9,7 +9,7 @@ A shared cache allows multiple agent worker pods to access the same cached data,
 ## Prerequisites
 
 - An EKS cluster with the [Amazon EFS CSI driver installed](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html)
-- A provisioned [EFS file system](https://docs.aws.amazon.com/efs/latest/ug/creating-using-create-fs.html) with mount targets in the subnets used by your cluster nodes
+- A provisioned [EFS file system](https://docs.aws.amazon.com/efs/latest/ug/creating-using-create-fs.html) with mount targets in the subnets used by your cluster nodes — note its file system ID (`fs-...`), it is used throughout this guide
 - A security group on the EFS mount targets that allows inbound NFS traffic (TCP port 2049) from the cluster nodes
 - `kubectl` configured to access your cluster
 - Helm 3.x installed
@@ -25,6 +25,12 @@ The chart's pods run as a non-root user and need to create directories at the ro
 
 > [!NOTE]
 > This guide assumes the chart's default `podSecurityContext` settings, which run the agent as user/group `1000:1000`. If you override them, adjust the POSIX user and ownership values in the instructions below to match.
+
+You will need the ID (`fs-...`) of the EFS file system from the [Prerequisites](#prerequisites). It is shown on the **EFS → File systems** page in the AWS Console, or can be listed with the CLI:
+
+```shell
+aws efs describe-file-systems --query 'FileSystems[].{id:FileSystemId,name:Name}'
+```
 
 Create the access point using the AWS CLI:
 
