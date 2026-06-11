@@ -32,7 +32,7 @@ You will need the ID (`fs-...`) of the EFS file system from the [Prerequisites](
 aws efs describe-file-systems --query 'FileSystems[].{id:FileSystemId,name:Name}'
 ```
 
-Create the access point for the Scalr agent cache on your EFS using the AWS CLI:
+Create the access point for the Scalr agent cache on your EFS file system using the AWS CLI:
 
 ```shell
 aws efs create-access-point \
@@ -82,7 +82,7 @@ resource "aws_efs_access_point" "agent_cache" {
 Note the access point ID (`fsap-...`) of the created resource — you will need it for the PersistentVolume in the next step.
 
 > [!IMPORTANT]
-> The root directory path must be a dedicated directory that does not yet exist on the file system (not `/`). The creation ownership and permissions are applied only when EFS creates the directory — for an already-existing path they are silently ignored, leaving a root-owned directory the agent user cannot write to. Access points are immutable, so a misconfigured one must be deleted and re-created.
+> The path must not exist on the EFS filesystem yet. EFS creates it on first use and applies the uid/gid/permissions you set. If the path already exists, those settings are ignored and the directory keeps its original ownership — which is typically root, so the agent can't write to it. If that happens, delete the access point and create a new one; you can't edit it after creation.
 
 ## Step 2: Create the EFS-backed PersistentVolume and PersistentVolumeClaim
 
