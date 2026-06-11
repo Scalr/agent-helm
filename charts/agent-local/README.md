@@ -220,7 +220,7 @@ If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCer
 
 This chart uses the local driver, meaning runs (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) execute directly inside the agent container. The image therefore needs to ship everything those runs depend on.
 
-By default the chart uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`, etc.). It does **not** include cloud-provider CLIs such as `aws`, `gcloud`, `az`, or `kubectl`.
+By default the chart uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`, etc.).
 
 If your workflows require additional software, you have two options:
 

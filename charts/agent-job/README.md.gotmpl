@@ -13,7 +13,6 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Agent Task Naming](#agent-task-naming)
-- [Custom Agent Image](#custom-agent-image)
 - [Custom Runner Image](#custom-runner-image)
 - [High Availability](#high-availability)
 - [Performance Optimization](#performance-optimization)
@@ -142,37 +141,6 @@ To customize the basename:
 helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
   --set task.job.basename="custom-prefix"
 ```
-
-## Custom Agent Image
-
-The controller and worker containers run the Scalr Agent service from the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image. The runner container — where Terraform/OpenTofu, OPA, and shell hooks actually execute — uses a separate image (see [Custom Runner Image](#custom-runner-image)).
-
-If you need to bake extra software (custom certificate bundles, internal CAs, sidecar binaries used by the controller, etc.) into the agent container, build your own image on top of `scalr/agent`. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
-
-- Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
-- Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
-
-Example:
-
-```dockerfile
-FROM scalr/agent:<version>
-USER root
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      curl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-USER 1000
-```
-
-Then point the chart at the resulting image (`agent.image` is shared between the controller and worker containers):
-
-```yaml
-agent:
-  image:
-    repository: registry.example.com/my-scalr-agent
-    tag: "1.0.5"
-```
-
-For tooling that the **run itself** needs (cloud CLIs, language runtimes, custom scripts), customize the runner image instead — see below.
 
 ## Custom Runner Image
 
