@@ -80,22 +80,57 @@ The mount options above shorten the attribute cache timeouts (`acregmin`/`acregm
 
 ## Step 2: Verify the PV and PVC
 
-Check that both resources were created successfully:
+Check that both resources were created successfully.
+
+Verify the PersistentVolume:
 
 ```shell
-# Verify PersistentVolume
 kubectl get pv agent-cache-pv
+```
 
-# Verify PersistentVolumeClaim
+Expected output — `STATUS` must be `Bound` and `CLAIM` must point to your PVC:
+
+```text
+NAME             CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                         STORAGECLASS   REASON   AGE
+agent-cache-pv   1Ti        RWX            Retain           Bound    scalr-agent/agent-cache-pvc                           1m
+```
+
+Verify the PersistentVolumeClaim (replace `scalr-agent` with your target namespace):
+
+```shell
 kubectl get pvc agent-cache-pvc -n scalr-agent
+```
 
-# Check PVC status (should show "Bound")
+Expected output — `STATUS` must be `Bound` and `VOLUME` must be your PV:
+
+```text
+NAME              STATUS   VOLUME           CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+agent-cache-pvc   Bound    agent-cache-pv   1Ti        RWX                           1m
+```
+
+Inspect the PVC details:
+
+```shell
 kubectl describe pvc agent-cache-pvc -n scalr-agent
 ```
 
+Expected output — `Status: Bound` and an empty (`<none>`) events list; any binding problem shows up as warning events here:
+
+```text
+Name:          agent-cache-pvc
+Namespace:     scalr-agent
+StorageClass:
+Status:        Bound
+Volume:        agent-cache-pv
+...
+Events:        <none>
+```
+
+If either resource shows `Pending` or the PV shows `Available`/`Released` instead of `Bound`, see [Troubleshooting](#troubleshooting) below.
+
 ## Step 3: Configure the Scalr Agent Helm Chart
 
-You can configure the agent to use the shared cache in two ways:
+You can configure the agent to use the shared cache in two ways. The commands below use the `scalr-agent` namespace — replace it with your target namespace.
 
 If you haven't already, add the Scalr Agent Helm repository:
 

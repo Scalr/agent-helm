@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: agent-cache-pv
+  annotations:
+    pv.kubernetes.io/provisioned-by: efs.csi.aws.com
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 1Ti  # REPLACE: placeholder value, not enforced by EFS
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  mountOptions:
+    - acregmin=1
+    - acregmax=3
+    - acdirmin=1
+    - acdirmax=3
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-0bb0490d0bcd28467
+  claimRef:
+    name: agent-cache-pvc
+    namespace: sbabak-agent-playground
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-cache-pvc
+  namespace: sbabak-agent-playground
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: agent-cache-pv
+  resources:
+    requests:
+      storage: 1Ti  # REPLACE: must match the PV capacity above
