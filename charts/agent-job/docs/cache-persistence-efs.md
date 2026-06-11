@@ -48,9 +48,9 @@ Or using the AWS Console (**EFS → File systems → your file system → Access
 |---|---|---|
 | Details | Name | `scalr-agent-cache` |
 | Details | Root directory path | `/scalr-agent-cache` |
-| POSIX user *(optional)* | User ID / Group ID | `1000` / `1000` |
-| Root directory creation permissions *(optional)* | Owner user ID / Owner group ID | `1000` / `1000` |
-| Root directory creation permissions *(optional)* | Access point permissions | `0775` |
+| POSIX user | User ID / Group ID | `1000` / `1000` |
+| Root directory creation permissions | Owner user ID / Owner group ID | `1000` / `1000` |
+| Root directory creation permissions | Access point permissions | `0775` |
 
 Note the access point ID (`fsap-...`) of the created resource — you will need it for the PersistentVolume in the next step.
 
