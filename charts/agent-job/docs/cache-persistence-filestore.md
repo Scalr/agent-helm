@@ -114,7 +114,14 @@ Volume:        agent-cache-pv
 Events:        <none>
 ```
 
-If either resource shows `Pending` instead of `Bound`, see [Troubleshooting](#troubleshooting) below.
+Any status other than `Bound` means the volume is not ready to use:
+
+| Status | Resource | What it means | What to do |
+|---|---|---|---|
+| `Pending` | PVC | The claim cannot find a PV to bind to | Check that the PV exists and that its `storageClassName`, `claimRef`, and capacity match the PVC — see [PVC stuck in Pending state](#pvc-stuck-in-pending-state) |
+| `Available` | PV | The PV is not claimed by any PVC | Normally transient (binding takes a few seconds); if it persists, the PVC is missing or its name/namespace does not match the PV's `claimRef` |
+| `Released` | PV | The PVC it was bound to has been deleted, and the PV still references it | Clear the stale reference: `kubectl patch pv agent-cache-pv --type json -p '[{"op": "remove", "path": "/spec/claimRef/uid"}]'` |
+| `Failed` | PV | Automatic reclamation of the volume failed | Inspect the events with `kubectl describe pv agent-cache-pv` |
 
 ## Step 3: Configure the Scalr Agent Helm Chart
 

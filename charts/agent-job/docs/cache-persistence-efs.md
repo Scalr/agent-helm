@@ -21,7 +21,7 @@ We recommend mounting the cache volume through an [EFS access point](https://doc
 - **POSIX user**: uid/gid `1000` — matching the chart's default pod user
 - **Root directory**: a dedicated path (e.g. `/scalr-agent-cache`) created with owner `1000:1000` and permissions `775`
 
-The chart's pods run as a non-root user and need to create directories at the root of the volume, so the volume root must be writable by uid `1000` — an access point guarantees this regardless of the file system's permissions or policy. Without an access point, pods typically fail to start with a "failed to create subPath directory" error — see [Troubleshooting](#troubleshooting).
+The chart's pods run as a non-root user and need to create directories at the root of the volume, so the volume root must be writable by uid `1000` — an access point guarantees this regardless of the file system's permissions or policy. Without an access point, pods typically fail to start with a "failed to create subPath directory" error — see [Troubleshooting](#pod-fails-with-failed-to-create-subpath-directory-for-volumemount-cache-dir).
 
 > [!NOTE]
 > This guide assumes the chart's default `podSecurityContext` settings, which run the agent as user/group `1000:1000`. If you override them, adjust the POSIX user and ownership values in the instructions below to match.
@@ -62,7 +62,7 @@ Note the access point ID (`fsap-...`) of the created resource — you will need 
 Create a file named `scalr-agent-cache-efs.yaml` with the following content:
 
 > [!IMPORTANT]
-> Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` combines your EFS file system ID and the access point ID from Step 1 (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/scalr-agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Troubleshooting](#troubleshooting).
+> Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` combines your EFS file system ID and the access point ID from Step 1 (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/scalr-agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Permission denied errors](#permission-denied-errors-on-the-cache-volume).
 
 > [!NOTE]
 > EFS has no configurable capacity — the file system grows and shrinks automatically, and you pay for the data actually stored. The `storage` values below are placeholders required by the Kubernetes API. The real bound on cache growth is the `agent.providerCache.sizeLimit` setting in Step 4.
@@ -169,7 +169,14 @@ Volume:        agent-cache-pv
 Events:        <none>
 ```
 
-If either resource shows `Pending` or the PV shows `Available`/`Released` instead of `Bound`, see [Troubleshooting](#troubleshooting) below.
+Any status other than `Bound` means the volume is not ready to use:
+
+| Status | Resource | What it means | What to do |
+|---|---|---|---|
+| `Pending` | PVC | The claim cannot find a PV to bind to | Check that the PV exists and that its `storageClassName`, `claimRef`, and capacity match the PVC — see [unbound PVC troubleshooting](#pod-scheduling-fails-with-pod-has-unbound-immediate-persistentvolumeclaims-or-persistentvolumeclaim-not-found) |
+| `Available` | PV | The PV is not claimed by any PVC | Normally transient (binding takes a few seconds); if it persists, the PVC is missing or its name/namespace does not match the PV's `claimRef` |
+| `Released` | PV | The PVC it was bound to has been deleted, and the PV still references it | Clear the stale claim reference so it can rebind — see [unbound PVC troubleshooting](#pod-scheduling-fails-with-pod-has-unbound-immediate-persistentvolumeclaims-or-persistentvolumeclaim-not-found) |
+| `Failed` | PV | Automatic reclamation of the volume failed | Inspect the events with `kubectl describe pv agent-cache-pv` |
 
 ## Step 4: Configure the Scalr Agent Helm Chart
 
