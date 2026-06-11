@@ -35,26 +35,26 @@ metadata:
 spec:
   storageClassName: ""
   capacity:
-    storage: 1Ti
+    storage: 1Ti  # REPLACE: match your Filestore instance capacity
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   csi:
     driver: filestore.csi.storage.gke.io
-    volumeHandle: "modeInstance/{instance-zone}/{instance-name}/{path}"
+    volumeHandle: "modeInstance/{instance-zone}/{instance-name}/{path}"  # REPLACE: your Filestore instance zone, name, and share name
     volumeAttributes:
-      ip: {instance-ip}
-      volume: {path}
+      ip: {instance-ip}  # REPLACE: your Filestore instance IP address
+      volume: {path}  # REPLACE: your Filestore share name
   claimRef:
     name: agent-cache-pvc
-    namespace: scalr-agent
+    namespace: scalr-agent  # REPLACE: your target namespace
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: agent-cache-pvc
-  namespace: scalr-agent
+  namespace: scalr-agent  # REPLACE: your target namespace
 spec:
   accessModes:
     - ReadWriteMany
@@ -62,7 +62,7 @@ spec:
   volumeName: agent-cache-pv
   resources:
     requests:
-      storage: 1Ti
+      storage: 1Ti  # REPLACE: must match the PV capacity above
 ```
 
 Apply the configuration:
