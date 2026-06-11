@@ -4,6 +4,29 @@ Release name: {{ .Release.Name }}
 Namespace:    {{ .Release.Namespace }}
 Chart:        {{ .Chart.Name }}-{{ .Chart.Version }} (appVersion {{ .Chart.AppVersion }})
 
+{{- if .Release.IsUpgrade }}
+{{- $existing := lookup "apps/v1" "Deployment" .Release.Namespace (include "agent-local.fullname" .) }}
+{{- if $existing }}
+{{- $prevImage := "" }}
+{{- range $c := $existing.spec.template.spec.containers }}
+{{- if eq $c.name $.Chart.Name }}{{- $prevImage = $c.image }}{{- end }}
+{{- end }}
+{{- if and (hasPrefix "scalr/agent-runner" $prevImage) (eq .Values.image.repository "scalr/agent") }}
+
+WARNING: Default agent image changed from `scalr/agent-runner` to `scalr/agent`.
+  The minimal `scalr/agent` image does NOT include cloud-provider CLIs
+  (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`) that were bundled in `scalr/agent-runner`.
+
+  If your runs invoke any of these CLIs (via Workspace hooks or modules), either:
+    - pin the previous image:    --set image.repository=scalr/agent-runner
+    - or build a custom image on top of `scalr/agent` with the required tooling
+      and set `image.repository` / `image.tag` accordingly.
+
+  See https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md#v060 for details.
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" }}
 
 WARNING: Deprecated persistence configuration detected.

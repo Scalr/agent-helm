@@ -1,6 +1,6 @@
 # agent-local
 
-![Version: 0.5.76](https://img.shields.io/badge/Version-0.5.76-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.5](https://img.shields.io/badge/AppVersion-1.0.5-informational?style=flat-square)
+![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.5](https://img.shields.io/badge/AppVersion-1.0.5-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Deploys a static number of agents and executes runs in shared agent pods.
@@ -13,8 +13,9 @@ Deploys a static number of agents and executes runs in shared agent pods.
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Configuration](#configuration)
+- [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Mutual TLS (mTLS)](#mutual-tls-mtls)
-- [Customizing Environment](#customizing-environment)
+- [Custom Agent Image](#custom-agent-image)
 - [Volumes](#volumes)
 - [Security](#security)
 - [Metrics and Observability](#metrics-and-observability)
@@ -95,6 +96,49 @@ $ helm install ...
 
 See all available configuration options - https://docs.scalr.io/docs/configuration
 
+## Custom Certificate Authorities
+
+If your environment uses custom or self-signed certificates, you can configure the CA bundle used by the agent for TLS validation. This configuration sets the **primary CA bundle** for all agent HTTPS connections (to Scalr API, VCS providers, provider registries, etc.).
+
+> [!IMPORTANT]
+> This replaces the system default CA certificates. If you need to trust both custom CAs and public CAs, include the complete certificate chain with both your custom certificates and standard root CAs in the bundle.
+
+You can provide the CA bundle in two ways:
+
+**Option 1: Inline CA bundle**
+
+```yaml
+agent:
+  tls:
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+      -----BEGIN CERTIFICATE-----
+      MIIEFzCCAv+gAwIBAgIUDiCT...
+      -----END CERTIFICATE-----
+```
+
+**Option 2: Reference existing secret**
+
+```yaml
+agent:
+  tls:
+    caBundleSecret:
+      name: "my-ca-bundle"
+      key: "ca-bundle.crt"
+```
+
+To create the secret:
+
+```shell
+kubectl create secret generic my-ca-bundle \
+  --from-file=ca-bundle.crt=/path/to/your/ca-bundle.crt \
+  -n scalr-agent
+```
+
+If both `caBundleSecret.name` and `caBundle` are set, `caBundleSecret` takes precedence.
+
 ## Mutual TLS (mTLS)
 
 > [!IMPORTANT]
@@ -172,9 +216,35 @@ agent:
 
 If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCertSecret` takes precedence.
 
-## Customizing Environment
+## Custom Agent Image
 
-This chart uses the local driver to run tasks directly within the container where the agent operates. Therefore, it requires an image that includes both the Scalr Agent service and the additional tooling provided by the [scalr/runner](https://hub.docker.com/r/scalr/runner) image. As a result, this chart uses the [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) image, which combines the minimal Scalr Agent image ([scalr/agent](https://hub.docker.com/r/scalr/agent)) with the extra tools from `scalr/runner`. You can use this image, or `scalr/agent` (as a minimal base for building your own lightweight images), as a starting point for customizing your environment.
+This chart uses the [local driver](https://docs.scalr.io/docs/drivers#local-driver), meaning runs (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) execute directly inside the agent container. The image therefore needs to ship everything those runs depend on.
+
+By default the chart uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`, etc.).
+
+If your workflows require additional software, you can build your own image on top of `scalr/agent` with the extra tools pre-installed. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
+
+- Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
+- Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
+
+Example:
+
+```dockerfile
+FROM scalr/agent:<version>
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    awscli kubectl && \
+    rm -rf /var/lib/apt/lists/*
+USER 1000
+```
+
+Then point the chart at the resulting image:
+
+```yaml
+image:
+repository: registry.example.com/my-scalr-agent
+tag: "1.0.5"
+```
 
 ## Volumes
 
@@ -417,7 +487,7 @@ The agent requires outbound HTTPS access to the following endpoints:
 | Hostname                              | Port | Purpose                                                                                                                                                              |
 | ------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | scalr.io                              | 443  | Polling for new tasks, posting status updates and logs, downloading IaC configuration versions, private modules, and software binary releases |
-| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) and [scalr/runner](https://hub.docker.com/r/scalr/runner) images                                    |
+| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) image (or [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) if configured)                                    |
 | registry.opentofu.org                 | 443  | Downloading public providers and modules from the OpenTofu Registry                                                                                                  |
 | registry.terraform.io                 | 443  | Downloading public providers and modules from the Terraform Registry                                                                                                 |
 
@@ -458,7 +528,11 @@ It's best to pull the logs immediately after an incident, since this command wil
 | agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. @section -- Agent |
 | agent.dataDir | string | `"/var/lib/scalr-agent/data"` | Data directory where the agent stores workspace data (configuration versions, modules, and providers). This directory must be readable, writable, and executable. @section -- Agent |
 | agent.shutdownMode | string | `"graceful"` | The agent termination behaviour. Can be graceful, force or drain. See https://docs.scalr.io/docs/configuration#scalr_agent_worker_on_stop_action @section -- Agent |
-| agent.tls | object | `{"clientCert":"","clientCertSecret":{"certKey":"tls.crt","keyKey":"tls.key","name":""},"clientKey":""}` | mTLS client certificate configuration for mutual TLS authentication with Scalr. Maps to SCALR_AGENT_TLS_CERT_FILE and SCALR_AGENT_TLS_KEY_FILE environment variables. @section -- Agent.TLS |
+| agent.tls | object | `{"caBundle":"","caBundleSecret":{"key":"ca-bundle.crt","name":""},"clientCert":"","clientCertSecret":{"certKey":"tls.crt","keyKey":"tls.key","name":""},"clientKey":""}` | mTLS client certificate configuration for mutual TLS authentication with Scalr. Maps to SCALR_AGENT_TLS_CERT_FILE and SCALR_AGENT_TLS_KEY_FILE environment variables. @section -- Agent.TLS |
+| agent.tls.caBundle | string | `""` | Inline CA bundle content as an alternative to caBundleSecret. Provide the complete CA certificate chain in PEM format. If both caBundleSecret.name and caBundle are set, caBundleSecret takes precedence. Example: caBundle: |   -----BEGIN CERTIFICATE-----   MIIDXTCCAkWgAwIBAgIJAKZ...   -----END CERTIFICATE-----   -----BEGIN CERTIFICATE-----   MIIEFzCCAv+gAwIBAgIUDiCT...   -----END CERTIFICATE----- @section -- Agent.TLS |
+| agent.tls.caBundleSecret | object | `{"key":"ca-bundle.crt","name":""}` | Reference to an existing Kubernetes secret containing a CA bundle. This CA bundle is mounted to the agent pod and used for outbound TLS validation (e.g., Scalr API, VCS, registries). The secret must exist in the same namespace as the chart installation. If both caBundleSecret.name and caBundle are set, caBundleSecret takes precedence. @section -- Agent.TLS |
+| agent.tls.caBundleSecret.key | string | `"ca-bundle.crt"` | Key within the secret that contains the CA bundle file. @section -- Agent.TLS |
+| agent.tls.caBundleSecret.name | string | `""` | Name of the Kubernetes secret containing the CA bundle. Leave empty to use the inline caBundle or system certificates. @section -- Agent.TLS |
 | agent.tls.clientCert | string | `""` | Inline PEM-encoded client certificate for mTLS. Creates a chart-managed secret. If both clientCertSecret.name and clientCert are set, clientCertSecret takes precedence. Example: clientCert: |   -----BEGIN CERTIFICATE-----   MIIDXTCCAkWgAwIBAgIJAKZ...   -----END CERTIFICATE----- @section -- Agent.TLS |
 | agent.tls.clientCertSecret | object | `{"certKey":"tls.crt","keyKey":"tls.key","name":""}` | Reference to an existing Kubernetes secret containing the client certificate and private key. Supports both `kubernetes.io/tls` and `Opaque` secret types. The secret must exist in the same namespace as the chart installation. If both clientCertSecret.name and clientCert/clientKey are set, clientCertSecret takes precedence. @section -- Agent.TLS |
 | agent.tls.clientCertSecret.certKey | string | `"tls.crt"` | Key within the secret that contains the PEM-encoded client certificate. @section -- Agent.TLS |
@@ -472,9 +546,11 @@ It's best to pull the logs immediately after an incident, since this command wil
 | agent.url | string | `""` | The Scalr API endpoint URL. For tokens generated after Scalr version 8.162.0, this value is optional, as the domain can be extracted from the token payload. However, it is recommended to specify the URL explicitly for long-lived services to avoid issues if the account is renamed. @section -- Agent |
 | allowMetadataService | bool | `true` | When set to `true` (default), disables the NetworkPolicy that blocks access to the VM metadata service (`169.254.169.254`) for agent containers. When set to `false`, a NetworkPolicy is created to prevent workloads from accessing cloud credentials or instance metadata. @section -- Security |
 | extraEnv | object | `{}` | Additional environment variables for Scalr Agent. Use to configure HTTP proxies or other runtime parameters. @section -- Pod Configuration |
+| extraVolumeMounts | list | `[]` | Additional volume mounts for the Scalr Agent container. Must reference volumes declared in `extraVolumes` (or other pod-level volumes). @section -- Pod Configuration |
+| extraVolumes | list | `[]` | Additional volumes mounted into the Scalr Agent pod. Use to mount extra secrets, configMaps, or other volumes alongside the chart-managed ones. @section -- Pod Configuration |
 | fullnameOverride | string | `""` | Fully override the resource name for all resources. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. 'IfNotPresent' is efficient for stable deployments. @section -- Image |
-| image.repository | string | `"scalr/agent-runner"` | Docker repository for the Scalr Agent image. @section -- Image |
+| image.repository | string | `"scalr/agent"` | Docker repository for the Scalr Agent image. @section -- Image |
 | image.tag | string | `""` | Image tag. Overrides the default (chart appVersion). Leave empty to use chart default. @section -- Image |
 | imagePullSecrets | list | `[]` | Image pull secret to use for registry authentication. @section -- Image |
 | nameOverride | string | `""` | Override the default resource name prefix for all resources. |

@@ -1,6 +1,6 @@
 # agent-job
 
-![Version: 0.5.79](https://img.shields.io/badge/Version-0.5.79-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.5](https://img.shields.io/badge/AppVersion-1.0.5-informational?style=flat-square)
+![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.5](https://img.shields.io/badge/AppVersion-1.0.5-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 It uses a job-based model, where each Scalr Run is isolated
@@ -16,7 +16,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Agent Task Naming](#agent-task-naming)
-- [Custom Runner Images](#custom-runner-images)
+- [Custom Runner Image](#custom-runner-image)
 - [High Availability](#high-availability)
 - [Performance Optimization](#performance-optimization)
 - [Termination](#termination)
@@ -145,21 +145,17 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
   --set task.job.basename="custom-prefix"
 ```
 
-## Custom Runner Images
+## Custom Runner Image
 
-The chart uses the [scalr/runner](https://hub.docker.com/r/scalr/runner) image by default to provision run environments.
+The chart uses the [`scalr/runner`](https://hub.docker.com/r/scalr/runner) image by default to provision run environments ([source](https://github.com/Scalr/runner)). This is the image that hosts Terraform/OpenTofu, OPA policies, and shell hooks. You can override `task.runner.image.*` to point at a custom runner image.
 
-The image source code: https://github.com/Scalr/runner
-
-You can override `task.runner.image.*` to use a custom runner image.
-
-If you are using a custom runner image, it **must**:
+A custom runner image **must**:
 
 - Include a user with UID/GID `1000`. By default, Scalr images include a `scalr` user with `1000:1000`.
-- Include `/bin/sh`.
+- Include `/bin/sh` and `curl`.
 - Include glibc 2.32 or later.
 
-For OpenTofu/Terraform operations, it is recommended to include basic tools such as `git`, `ssh`, and `curl`, which may be used by the OpenTofu/Terraform CLI when downloading modules from remote Git servers.
+For OpenTofu/Terraform operations, it is recommended to also include `git` and `ssh`, which the CLI may use when downloading modules from remote Git servers.
 
 Example override:
 
@@ -170,9 +166,39 @@ helm upgrade --install scalr-agent scalr-charts/agent-job \
   --set task.runner.image.tag="v1.2.3"
 ```
 
+Alternatively, install run-time tooling on demand via Workspace hooks. This avoids rebuilding the image but adds latency to every run.
+
 ## High Availability
 
-This section describes strategies for hardening the deployment for high availability.
+This section describes strategies for hardening the deployment for high availability (HA).
+
+### Separate Controllers and Task Pods
+
+It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting the controllers that schedule incoming runs.
+
+Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool. The `role` key below is an arbitrary custom label — apply it to your nodes first (`kubectl label nodes <node> role=main`), or substitute a built-in cloud label such as `eks.amazonaws.com/nodegroup`, `cloud.google.com/gke-nodepool`, or `agentpool`.
+
+```yaml
+agent:
+  nodeSelector:
+    role: main
+task:
+  nodeSelector:
+    role: scalr-agent-runs
+```
+
+With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive. For clean scale-to-zero, taint the task nodes (`kubectl taint nodes <node> dedicated=scalr-agent-runs:NoSchedule`) and add a matching toleration under `task.tolerations`, so unrelated workloads can't land there and pin the nodes:
+
+```yaml
+task:
+  nodeSelector:
+    role: scalr-agent-runs
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: scalr-agent-runs
+      effect: NoSchedule
+```
 
 ### Multiple Controller Replicas
 
@@ -185,28 +211,38 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
 
 When `agent.replicaCount > 1`, the chart automatically creates a `PodDisruptionBudget` (controlled by `agent.podDisruptionBudget`) that keeps at least one controller available during voluntary disruptions.
 
-### Separate Controllers and Task Pods
-
-It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting controllers which is responsible for scheduling incoming runs.
-
-Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool:
+For zone-level resilience inside a single cluster, combine `replicaCount` with `agent.topologySpreadConstraints` so replicas land in different availability zones (and on different nodes within a zone). This is the recommended single-cluster HA configuration:
 
 ```yaml
 agent:
-  nodeSelector:
-    role: main
-task:
-  nodeSelector:
-    role: scalr-agent-runs
+  replicaCount: 2
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: agent-job
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: agent-job
 ```
 
-With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive.
+`whenUnsatisfiable` controls what happens when the spread constraint cannot be satisfied:
 
-### Deploy Multiple Installations Within a Scalr Agent Pool
+- `ScheduleAnyway` - soft guarantee, pods will co-locate on a single zone/node if no better option exists
+- `DoNotSchedule` - hard guarantee, pods stay Pending until the spread can be satisfied
 
-You can connect multiple `agent-job` Helm releases to the same Scalr agent pool, each targeting a different node pool or availability zone.
+Use `whenUnsatisfiable: DoNotSchedule` if you require strict spread (pods stay `Pending` rather than co-locating).
 
-This allows the pool to scale horizontally across infrastructure boundaries without a single point of failure.
+### Multi-Cluster HA
+
+For high availability within a single cluster, prefer the single-release configuration above (`replicaCount` + `topologySpreadConstraints` + the auto-created PDB). Running multiple Helm releases inside the same cluster duplicates operational surface (values, rollouts, PVCs, metrics) without buying isolation that a dedicated node pool with taints doesn't already provide.
+
+For multi-cluster or multi-region resilience, install `agent-job` once per cluster against the same Scalr agent pool. Each release carries its own token, PVCs, and upgrade cadence; the Scalr agent pool sees them as additional controllers and load-balances scheduling across all of them. A cluster-level failure or maintenance window then takes out at most one slice of capacity.
 
 ## Performance Optimization
 
@@ -218,7 +254,7 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
-- [Build](#custom-runner-images) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
+- [Build](#custom-runner-image) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`) on clusters with a fixed number of nodes.
 - Use [buffer pods](docs/buffer-pods.md) on clusters with autoscaling enabled - buffer pods keep nodes warm to eliminate cluster autoscaler cold-start delays and pre-cache images at the same time.
 
