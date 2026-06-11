@@ -42,7 +42,7 @@ aws efs create-access-point \
   --tags Key=Name,Value=scalr-agent-cache
 ```
 
-Or using the AWS Console (**EFS → File systems → your file system → Access points → Create access point**). The POSIX user and creation permission sections are marked *optional* in the form, but they are required for this setup — leaving them empty produces an access point that cannot be mounted or written to:
+Or using the AWS Console (**EFS → File systems → your file system → Access points → Create access point**). The POSIX user and creation permission are required for this setup — leaving them empty produces an access point that cannot be mounted or written to:
 
 | Section | Field | Value |
 |---|---|---|
