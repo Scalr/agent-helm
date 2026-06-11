@@ -242,8 +242,8 @@ Then point the chart at the resulting image:
 
 ```yaml
 image:
-repository: registry.example.com/my-scalr-agent
-tag: "1.0.5"
+    repository: registry.example.com/my-scalr-agent
+    tag: "1.0.5"
 ```
 
 ## Volumes

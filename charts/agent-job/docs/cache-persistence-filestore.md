@@ -90,10 +90,17 @@ kubectl describe pvc agent-cache-pvc -n scalr-agent
 
 You can configure the agent to use the shared cache in two ways:
 
+If you haven't already, add the Scalr Agent Helm repository:
+
+```shell
+helm repo add scalr-agent https://scalr.github.io/agent-helm/
+helm repo update
+```
+
 ### Option A: Using Helm CLI flags
 
 ```shell
-helm upgrade --install scalr-agent ./charts/agent-job \
+helm upgrade --install scalr-agent scalr-agent/agent-job \
   --namespace scalr-agent \
   --set persistence.cache.enabled=true \
   --set persistence.cache.persistentVolumeClaim.claimName=agent-cache-pvc \
@@ -122,7 +129,7 @@ agent:
 Install or upgrade the chart:
 
 ```shell
-helm upgrade --install scalr-agent ./charts/agent-job \
+helm upgrade --install scalr-agent scalr-agent/agent-job \
   --namespace scalr-agent \
   --values agent-values.yaml
 ```
