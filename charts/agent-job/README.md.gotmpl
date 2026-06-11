@@ -182,9 +182,9 @@ When `agent.replicaCount > 1`, the chart automatically creates a `PodDisruptionB
 
 ### Separate Controllers and Task Pods
 
-It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting controllers which is responsible for scheduling incoming runs.
+It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting the controllers that schedule incoming runs.
 
-Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool:
+Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool. The `role` key below is an arbitrary custom label — apply it to your nodes first (`kubectl label nodes <node> role=main`), or substitute a built-in cloud label such as `eks.amazonaws.com/nodegroup`, `cloud.google.com/gke-nodepool`, or `agentpool`.
 
 ```yaml
 agent:
@@ -195,13 +195,24 @@ task:
     role: scalr-agent-runs
 ```
 
-With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive.
+With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive. For clean scale-to-zero, taint the task nodes (`kubectl taint nodes <node> dedicated=scalr-agent-runs:NoSchedule`) and add a matching toleration under `task.tolerations`, so unrelated workloads can't land there and pin the nodes:
+
+```yaml
+task:
+  nodeSelector:
+    role: scalr-agent-runs
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: scalr-agent-runs
+      effect: NoSchedule
+```
 
 ### Deploy Multiple Installations Within a Scalr Agent Pool
 
 You can connect multiple `agent-job` Helm releases to the same Scalr agent pool, each targeting a different node pool or availability zone.
 
-This allows the pool to scale horizontally across infrastructure boundaries without a single point of failure.
+This allows the pool to scale horizontally across infrastructure boundaries to spread load and reduce blast radius.
 
 ## Performance Optimization
 
