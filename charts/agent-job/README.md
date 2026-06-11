@@ -172,6 +172,34 @@ Alternatively, install run-time tooling on demand via Workspace hooks. This avoi
 
 This section describes strategies for hardening the deployment for high availability.
 
+### Separate Controllers and Task Pods
+
+It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting the controllers that schedule incoming runs.
+
+Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool. The `role` key below is an arbitrary custom label — apply it to your nodes first (`kubectl label nodes <node> role=main`), or substitute a built-in cloud label such as `eks.amazonaws.com/nodegroup`, `cloud.google.com/gke-nodepool`, or `agentpool`.
+
+```yaml
+agent:
+  nodeSelector:
+    role: main
+task:
+  nodeSelector:
+    role: scalr-agent-runs
+```
+
+With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive. For clean scale-to-zero, taint the task nodes (`kubectl taint nodes <node> dedicated=scalr-agent-runs:NoSchedule`) and add a matching toleration under `task.tolerations`, so unrelated workloads can't land there and pin the nodes:
+
+```yaml
+task:
+  nodeSelector:
+    role: scalr-agent-runs
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: scalr-agent-runs
+      effect: NoSchedule
+```
+
 ### Multiple Controller Replicas
 
 By default the chart runs a single controller replica (`agent.replicaCount: 1`). Increasing the replica count distributes the run scheduling load and ensures the agent pool remains available during voluntary disruptions such as node upgrades or pod restarts.
@@ -204,34 +232,6 @@ agent:
 ```
 
 Use `whenUnsatisfiable: DoNotSchedule` if you require strict spread (pods stay `Pending` rather than co-locating).
-
-### Separate Controllers and Task Pods
-
-It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting the controllers that schedule incoming runs.
-
-Use `agent.nodeSelector` and `task.nodeSelector` to pin each to its own node pool. The `role` key below is an arbitrary custom label — apply it to your nodes first (`kubectl label nodes <node> role=main`), or substitute a built-in cloud label such as `eks.amazonaws.com/nodegroup`, `cloud.google.com/gke-nodepool`, or `agentpool`.
-
-```yaml
-agent:
-  nodeSelector:
-    role: main
-task:
-  nodeSelector:
-    role: scalr-agent-runs
-```
-
-With task pods on a dedicated node pool, you can also scale that pool down to zero during periods of inactivity and let the cluster autoscaler provision nodes on demand when runs arrive. For clean scale-to-zero, taint the task nodes (`kubectl taint nodes <node> dedicated=scalr-agent-runs:NoSchedule`) and add a matching toleration under `task.tolerations`, so unrelated workloads can't land there and pin the nodes:
-
-```yaml
-task:
-  nodeSelector:
-    role: scalr-agent-runs
-  tolerations:
-    - key: dedicated
-      operator: Equal
-      value: scalr-agent-runs
-      effect: NoSchedule
-```
 
 ### Multi-Cluster HA
 
