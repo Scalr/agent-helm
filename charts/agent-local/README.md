@@ -15,7 +15,7 @@ Deploys a static number of agents and executes runs in shared agent pods.
 - [Configuration](#configuration)
 - [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Mutual TLS (mTLS)](#mutual-tls-mtls)
-- [Customizing Environment](#customizing-environment)
+- [Custom Agent Image](#custom-agent-image)
 - [Volumes](#volumes)
 - [Security](#security)
 - [Metrics and Observability](#metrics-and-observability)
@@ -216,18 +216,39 @@ agent:
 
 If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCertSecret` takes precedence.
 
-## Customizing Environment
+## Custom Agent Image
 
-This chart uses the local driver to run tasks directly within the container where the agent operates. By default it uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and the basic tools needed by most runs (`git`, `curl`, `openssl`, `ca-certificates`, etc.).
+This chart uses the local driver, meaning runs (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) execute directly inside the agent container. The image therefore needs to ship everything those runs depend on.
 
-If your workflows require cloud-provider CLIs such as `aws`, `gcloud`, `az`, `kubectl`, or `scalr-cli`, switch to the [`scalr/agent-runner`](https://hub.docker.com/r/scalr/agent-runner) image, which is built on top of `scalr/agent` and bundles those extras:
+By default the chart uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`, etc.). It does **not** include cloud-provider CLIs such as `aws`, `gcloud`, `az`, or `kubectl`.
 
-```yaml
-image:
-  repository: scalr/agent-runner
-```
+If your workflows require additional software, you have two options:
 
-You can also build your own image on top of `scalr/agent` to include only the tools you need.
+- **Build your own image on top of `scalr/agent`** with the extra tools pre-installed. This is the recommended approach for stable, repeatable runs and air-gapped environments. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
+
+  - Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
+  - Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
+
+  Example:
+
+  ```dockerfile
+  FROM scalr/agent:<version>
+  USER root
+  RUN apt-get update && apt-get install -y --no-install-recommends \
+        awscli kubectl && \
+      rm -rf /var/lib/apt/lists/*
+  USER 1000
+  ```
+
+  Then point the chart at the resulting image:
+
+  ```yaml
+  image:
+    repository: registry.example.com/my-scalr-agent
+    tag: "1.0.5"
+  ```
+
+- **Provision tooling at run time via Workspace hooks.** Use pre-run hooks to install or download the binaries each workspace needs. This avoids rebuilding the image but adds latency to every run and may require relaxing the default container security context (see [Security](#security)).
 
 ## Volumes
 

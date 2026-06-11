@@ -11,14 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`. The `scalr/agent` image ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tools (`git`, `curl`, `openssl`, `ca-certificates`), but does **not** include cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`). If your runs depend on any of these, you must opt back into the previous image explicitly:
+- **BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`. The `scalr/agent` image ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tools (`git`, `curl`, `openssl`, `ca-certificates`), but does **not** include cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`). If your runs depend on any of these, either:
 
-  ```yaml
-  image:
-    repository: scalr/agent-runner
-  ```
+  - build a custom image on top of `scalr/agent` with the extra software pre-installed (see the chart's [Custom Agent Image](README.md#custom-agent-image) section and the upstream [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image) — additive changes only, do not modify `ENTRYPOINT`/`CMD`), and point the chart at it via `image.repository` / `image.tag`; or
+  - provision the required tooling at run time via Workspace hooks.
 
-  Users who do not rely on the bundled cloud CLIs benefit from a smaller default image and reduced attack surface. Custom images built on top of `scalr/agent` are unaffected.
+  Users who do not rely on bundled cloud CLIs benefit from a smaller default image and reduced attack surface. Custom images already built on top of `scalr/agent` are unaffected.
 
 ### Added
 

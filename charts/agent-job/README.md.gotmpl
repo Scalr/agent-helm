@@ -13,7 +13,8 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Agent Task Naming](#agent-task-naming)
-- [Custom Runner Images](#custom-runner-images)
+- [Custom Agent Image](#custom-agent-image)
+- [Custom Runner Image](#custom-runner-image)
 - [High Availability](#high-availability)
 - [Performance Optimization](#performance-optimization)
 - [Termination](#termination)
@@ -142,21 +143,48 @@ helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
   --set task.job.basename="custom-prefix"
 ```
 
-## Custom Runner Images
+## Custom Agent Image
 
-The chart uses the [scalr/runner](https://hub.docker.com/r/scalr/runner) image by default to provision run environments.
+The controller and worker containers run the Scalr Agent service from the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image. The runner container — where Terraform/OpenTofu, OPA, and shell hooks actually execute — uses a separate image (see [Custom Runner Image](#custom-runner-image)).
 
-The image source code: https://github.com/Scalr/runner
+If you need to bake extra software (custom certificate bundles, internal CAs, sidecar binaries used by the controller, etc.) into the agent container, build your own image on top of `scalr/agent`. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
 
-You can override `task.runner.image.*` to use a custom runner image.
+- Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
+- Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
 
-If you are using a custom runner image, it **must**:
+Example:
+
+```dockerfile
+FROM scalr/agent:<version>
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+USER 1000
+```
+
+Then point the chart at the resulting image (`agent.image` is shared between the controller and worker containers):
+
+```yaml
+agent:
+  image:
+    repository: registry.example.com/my-scalr-agent
+    tag: "1.0.5"
+```
+
+For tooling that the **run itself** needs (cloud CLIs, language runtimes, custom scripts), customize the runner image instead — see below.
+
+## Custom Runner Image
+
+The chart uses the [`scalr/runner`](https://hub.docker.com/r/scalr/runner) image by default to provision run environments ([source](https://github.com/Scalr/runner)). This is the image that hosts Terraform/OpenTofu, OPA policies, and shell hooks. You can override `task.runner.image.*` to point at a custom runner image.
+
+A custom runner image **must**:
 
 - Include a user with UID/GID `1000`. By default, Scalr images include a `scalr` user with `1000:1000`.
-- Include `/bin/sh`.
+- Include `/bin/sh` and `curl`.
 - Include glibc 2.32 or later.
 
-For OpenTofu/Terraform operations, it is recommended to include basic tools such as `git`, `ssh`, and `curl`, which may be used by the OpenTofu/Terraform CLI when downloading modules from remote Git servers.
+For OpenTofu/Terraform operations, it is recommended to also include `git` and `ssh`, which the CLI may use when downloading modules from remote Git servers.
 
 Example override:
 
@@ -166,6 +194,8 @@ helm upgrade --install scalr-agent scalr-charts/{{ template "chart.name" . }} \
   --set task.runner.image.repository="registry.example.com/custom-runner" \
   --set task.runner.image.tag="v1.2.3"
 ```
+
+Alternatively, install run-time tooling on demand via Workspace hooks. This avoids rebuilding the image but adds latency to every run.
 
 ## High Availability
 
@@ -215,7 +245,7 @@ This chart uses Jobs to launch Scalr Runs, so fast Job launch is critical for lo
 
 - Use image copies in an OCI-compatible registry mirror (Google Container Registry, Amazon Elastic Container Registry, Azure Container Registry, and similar) located in the same region as your node pool. This enables faster pull times and reduces the risk of hitting Docker Hub rate limits.
 - Enable [Image Streaming](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) (GKE only) to improve Job launch time.
-- [Build](#custom-runner-images) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
+- [Build](#custom-runner-image) and use a smaller runner image tailored to your requirements. The default `task.runner.image` includes a wide variety of tools, including cloud CLIs (GCE, AWS, Azure), scripting language interpreters, and more, which makes it a relatively large image and may negatively impact image pull times.
 - Use a [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) to preemptively cache all images used in this chart (`scalr/agent`, `scalr/runner`) on clusters with a fixed number of nodes.
 - Use [buffer pods](docs/buffer-pods.md) on clusters with autoscaling enabled - buffer pods keep nodes warm to eliminate cluster autoscaler cold-start delays and pre-cache images at the same time.
 
