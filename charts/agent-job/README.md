@@ -240,7 +240,7 @@ Use `whenUnsatisfiable: DoNotSchedule` if you require strict spread (pods stay `
 
 ### Multi-Cluster HA
 
-For HA within a single cluster, prefer the single-release configuration above (`replicaCount` + `topologySpreadConstraints` + the auto-created PDB). Running multiple Helm releases inside the same cluster duplicates operational surface (values, rollouts, PVCs, metrics) without buying isolation that a dedicated node pool with taints doesn't already provide.
+For high availability within a single cluster, prefer the single-release configuration above (`replicaCount` + `topologySpreadConstraints` + the auto-created PDB). Running multiple Helm releases inside the same cluster duplicates operational surface (values, rollouts, PVCs, metrics) without buying isolation that a dedicated node pool with taints doesn't already provide.
 
 For multi-cluster or multi-region resilience, install `agent-job` once per cluster against the same Scalr agent pool. Each release carries its own token, PVCs, and upgrade cadence; the Scalr agent pool sees them as additional controllers and load-balances scheduling across all of them. A cluster-level failure or maintenance window then takes out at most one slice of capacity.
 
