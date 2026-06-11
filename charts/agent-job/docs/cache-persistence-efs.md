@@ -32,7 +32,7 @@ You will need the ID (`fs-...`) of the EFS file system from the [Prerequisites](
 aws efs describe-file-systems --query 'FileSystems[].{id:FileSystemId,name:Name}'
 ```
 
-Create the access point using the AWS CLI:
+Create the access point for the Scalr agent cache on your EFS using the AWS CLI:
 
 ```shell
 aws efs create-access-point \
