@@ -66,66 +66,6 @@ Apply the configuration:
 kubectl apply -f agent-cache-filestore.yaml
 ```
 
-Or using Terraform with the `kubernetes` provider:
-
-```hcl
-resource "kubernetes_persistent_volume" "agent_cache" {
-  metadata {
-    name = "agent-cache-pv"
-    annotations = {
-      "pv.kubernetes.io/provisioned-by" = "filestore.csi.storage.gke.io"
-    }
-  }
-
-  spec {
-    storage_class_name               = ""
-    access_modes                     = ["ReadWriteMany"]
-    persistent_volume_reclaim_policy = "Retain"
-    volume_mode                      = "Filesystem"
-
-    capacity = {
-      storage = "1Ti" # REPLACE: match your Filestore instance capacity
-    }
-
-    persistent_volume_source {
-      csi {
-        driver        = "filestore.csi.storage.gke.io"
-        volume_handle = "modeInstance/{instance-zone}/{instance-name}/{path}" # REPLACE: your Filestore instance zone, name, and share name
-
-        volume_attributes = {
-          ip     = "{instance-ip}" # REPLACE: your Filestore instance IP address
-          volume = "{path}"        # REPLACE: your Filestore share name
-        }
-      }
-    }
-
-    claim_ref {
-      name      = "agent-cache-pvc"
-      namespace = "scalr-agent" # REPLACE: your target namespace
-    }
-  }
-}
-
-resource "kubernetes_persistent_volume_claim" "agent_cache" {
-  metadata {
-    name      = "agent-cache-pvc"
-    namespace = "scalr-agent" # REPLACE: your target namespace
-  }
-
-  spec {
-    access_modes       = ["ReadWriteMany"]
-    storage_class_name = ""
-    volume_name        = kubernetes_persistent_volume.agent_cache.metadata[0].name
-
-    resources {
-      requests = {
-        storage = "1Ti" # REPLACE: must match the PV capacity above
-      }
-    }
-  }
-}
-```
-
 ## Step 2: Verify the PV and PVC
 
 Check that both resources were created successfully. Output columns may vary slightly with your `kubectl` version.
@@ -222,36 +162,6 @@ Install or upgrade the chart:
 helm upgrade --install scalr-agent scalr-agent/agent-job \
   --namespace scalr-agent \
   --values agent-values.yaml
-```
-
-### Option C: Using Terraform
-
-```hcl
-resource "helm_release" "scalr_agent" {
-  name       = "scalr-agent"
-  repository = "https://scalr.github.io/agent-helm/"
-  chart      = "agent-job"
-  namespace  = "scalr-agent" # REPLACE: your target namespace
-
-  values = [
-    yamlencode({
-      persistence = {
-        cache = {
-          enabled = true
-          persistentVolumeClaim = {
-            claimName = kubernetes_persistent_volume_claim.agent_cache.metadata[0].name # or "agent-cache-pvc" if the PVC was created with kubectl
-          }
-        }
-      }
-      agent = {
-        providerCache = {
-          enabled   = true
-          sizeLimit = "40Gi" # Adjust based on your needs; must not exceed the PV capacity
-        }
-      }
-    })
-  ]
-}
 ```
 
 ## Step 4: Verify the Cache is Functioning

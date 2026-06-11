@@ -52,33 +52,6 @@ Or using the AWS Console (**EFS → File systems → your file system → Access
 | Root directory creation permissions *(optional)* | Owner user ID / Owner group ID | `1000` / `1000` |
 | Root directory creation permissions *(optional)* | Access point permissions | `0775` |
 
-Or using Terraform:
-
-```hcl
-resource "aws_efs_access_point" "agent_cache" {
-  file_system_id = "{file-system-id}" # REPLACE: your EFS file system ID or resource reference
-
-  posix_user {
-    uid = 1000
-    gid = 1000
-  }
-
-  root_directory {
-    path = "/scalr-agent-cache"
-
-    creation_info {
-      owner_uid   = 1000
-      owner_gid   = 1000
-      permissions = "775"
-    }
-  }
-
-  tags = {
-    Name = "scalr-agent-cache"
-  }
-}
-```
-
 Note the access point ID (`fsap-...`) of the created resource — you will need it for the PersistentVolume in the next step.
 
 > [!IMPORTANT]
@@ -140,62 +113,6 @@ Apply the configuration:
 
 ```shell
 kubectl apply -f scalr-agent-cache-efs.yaml
-```
-
-Or using Terraform with the `kubernetes` provider:
-
-```hcl
-resource "kubernetes_persistent_volume" "agent_cache" {
-  metadata {
-    name = "agent-cache-pv"
-    annotations = {
-      "pv.kubernetes.io/provisioned-by" = "efs.csi.aws.com"
-    }
-  }
-
-  spec {
-    storage_class_name               = ""
-    access_modes                     = ["ReadWriteMany"]
-    persistent_volume_reclaim_policy = "Retain"
-    volume_mode                      = "Filesystem"
-    mount_options                    = ["acregmin=1", "acregmax=3", "acdirmin=1", "acdirmax=3"]
-
-    capacity = {
-      storage = "1Ti" # REPLACE: placeholder value, field is required by k8s, ignored by EFS
-    }
-
-    persistent_volume_source {
-      csi {
-        driver        = "efs.csi.aws.com"
-        volume_handle = "{file-system-id}::${aws_efs_access_point.agent_cache.id}" # REPLACE: your EFS file system ID
-      }
-    }
-
-    claim_ref {
-      name      = "agent-cache-pvc"
-      namespace = "scalr-agent" # REPLACE: your target namespace
-    }
-  }
-}
-
-resource "kubernetes_persistent_volume_claim" "agent_cache" {
-  metadata {
-    name      = "agent-cache-pvc"
-    namespace = "scalr-agent" # REPLACE: your target namespace
-  }
-
-  spec {
-    access_modes       = ["ReadWriteMany"]
-    storage_class_name = ""
-    volume_name        = kubernetes_persistent_volume.agent_cache.metadata[0].name
-
-    resources {
-      requests = {
-        storage = "1Ti" # REPLACE: must match the PV capacity above
-      }
-    }
-  }
-}
 ```
 
 ### About the mount options
@@ -300,36 +217,6 @@ Install or upgrade the chart:
 helm upgrade --install scalr-agent scalr-agent/agent-job \
   --namespace scalr-agent \
   --values agent-values.yaml
-```
-
-### Option C: Using Terraform
-
-```hcl
-resource "helm_release" "scalr_agent" {
-  name       = "scalr-agent"
-  repository = "https://scalr.github.io/agent-helm/"
-  chart      = "agent-job"
-  namespace  = "scalr-agent" # REPLACE: your target namespace
-
-  values = [
-    yamlencode({
-      persistence = {
-        cache = {
-          enabled = true
-          persistentVolumeClaim = {
-            claimName = kubernetes_persistent_volume_claim.agent_cache.metadata[0].name # or "agent-cache-pvc" if the PVC was created with kubectl
-          }
-        }
-      }
-      agent = {
-        providerCache = {
-          enabled   = true
-          sizeLimit = "40Gi" # Soft limit for the cache garbage collection; adjust based on your needs
-        }
-      }
-    })
-  ]
-}
 ```
 
 ## Step 5: Verify the Cache is Functioning
