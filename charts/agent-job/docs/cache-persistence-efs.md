@@ -169,14 +169,14 @@ Volume:        agent-cache-pv
 Events:        <none>
 ```
 
-Any status other than `Bound` means the volume is not ready to use:
+The PV and the PVC each report their own status, and both must be `Bound` before the cache volume can be used. Statuses you may see instead:
 
-| Status | Resource | What it means | What to do |
+| Resource | Status | What it means | What to do |
 |---|---|---|---|
-| `Pending` | PVC | The claim cannot find a PV to bind to | Check that the PV exists and that its `storageClassName`, `claimRef`, and capacity match the PVC — see [unbound PVC troubleshooting](#pod-scheduling-fails-with-pod-has-unbound-immediate-persistentvolumeclaims-or-persistentvolumeclaim-not-found) |
-| `Available` | PV | The PV is not claimed by any PVC | Normally transient (binding takes a few seconds); if it persists, the PVC is missing or its name/namespace does not match the PV's `claimRef` |
-| `Released` | PV | The PVC it was bound to has been deleted, and the PV still references it | Clear the stale claim reference so it can rebind — see [unbound PVC troubleshooting](#pod-scheduling-fails-with-pod-has-unbound-immediate-persistentvolumeclaims-or-persistentvolumeclaim-not-found) |
-| `Failed` | PV | Automatic reclamation of the volume failed | Inspect the events with `kubectl describe pv agent-cache-pv` |
+| PVC | `Pending` | The claim cannot find a PV to bind to | Check that the PV exists and that its `storageClassName`, `claimRef`, and capacity match the PVC — see [unbound PVC troubleshooting](#pod-scheduling-fails-with-pod-has-unbound-immediate-persistentvolumeclaims-or-persistentvolumeclaim-not-found) |
+| PV | `Available` | The PV is not claimed by any PVC | Normally transient (binding takes a few seconds); if it persists, the PVC is missing or its name/namespace does not match the PV's `claimRef` |
+| PV | `Released` | The PVC it was bound to has been deleted, and the PV still references it | Clear the stale claim reference so it can rebind — see [unbound PVC troubleshooting](#pod-scheduling-fails-with-pod-has-unbound-immediate-persistentvolumeclaims-or-persistentvolumeclaim-not-found) |
+| PV | `Failed` | Automatic reclamation of the volume failed | Inspect the events with `kubectl describe pv agent-cache-pv` |
 
 ## Step 4: Configure the Scalr Agent Helm Chart
 
