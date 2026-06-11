@@ -195,7 +195,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
   --set persistence.cache.enabled=true \
   --set persistence.cache.persistentVolumeClaim.claimName=agent-cache-pvc \
   --set agent.providerCache.enabled=true \
-  --set agent.providerCache.sizeLimit=40Gi  # Adjust based on your needs
+  --set agent.providerCache.sizeLimit=40Gi  # Adjust based on your needs; must not exceed the PV capacity
   ...
 ```
 
@@ -213,7 +213,7 @@ persistence:
 agent:
   providerCache:
     enabled: true
-    sizeLimit: 40Gi  # Adjust based on your needs
+    sizeLimit: 40Gi  # Adjust based on your needs; must not exceed the PV capacity
 ```
 
 Install or upgrade the chart:
@@ -246,7 +246,7 @@ resource "helm_release" "scalr_agent" {
       agent = {
         providerCache = {
           enabled   = true
-          sizeLimit = "40Gi" # Adjust based on your needs
+          sizeLimit = "40Gi" # Adjust based on your needs; must not exceed the PV capacity
         }
       }
     })
