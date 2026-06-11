@@ -34,7 +34,7 @@ metadata:
 spec:
   storageClassName: ""
   capacity:
-    storage: 1Ti
+    storage: 1Ti  # REPLACE: placeholder value, not enforced by EFS
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
@@ -46,16 +46,16 @@ spec:
     - acdirmax=3
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-0123456789abcdef0
+    volumeHandle: "{file-system-id}"  # REPLACE: your EFS file system ID, e.g. fs-0123456789abcdef0
   claimRef:
     name: agent-cache-pvc
-    namespace: scalr-agent
+    namespace: scalr-agent  # REPLACE: your target namespace
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: agent-cache-pvc
-  namespace: scalr-agent
+  namespace: scalr-agent  # REPLACE: your target namespace
 spec:
   accessModes:
     - ReadWriteMany
@@ -63,7 +63,7 @@ spec:
   volumeName: agent-cache-pv
   resources:
     requests:
-      storage: 1Ti
+      storage: 1Ti  # REPLACE: must match the PV capacity above
 ```
 
 Apply the configuration:
