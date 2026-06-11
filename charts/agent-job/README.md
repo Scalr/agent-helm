@@ -211,7 +211,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
 
 When `agent.replicaCount > 1`, the chart automatically creates a `PodDisruptionBudget` (controlled by `agent.podDisruptionBudget`) that keeps at least one controller available during voluntary disruptions.
 
-For zone-level resilience inside a single cluster, combine `replicaCount` with `agent.topologySpreadConstraints` so replicas land in different availability zones (and on different nodes within a zone). This is the recommended single-cluster HA configuration — one release, one upgrade path, AZ-resilient:
+For zone-level resilience inside a single cluster, combine `replicaCount` with `agent.topologySpreadConstraints` so replicas land in different availability zones (and on different nodes within a zone). This is the recommended single-cluster HA configuration:
 
 ```yaml
 agent:
