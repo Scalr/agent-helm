@@ -14,13 +14,33 @@ A shared cache allows multiple agent worker pods to access the same cached data,
 - `kubectl` configured to access your cluster
 - Helm 3.x installed
 
-## Step 1: Create the EFS-backed PersistentVolume and PersistentVolumeClaim
+## Step 1: Create an EFS Access Point
+
+We recommend mounting the cache volume through an [EFS access point](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html) rather than the file system root, with the following requirements:
+
+- **POSIX user**: uid/gid `1000` — matching the chart's default pod user
+- **Root directory**: a dedicated path (e.g. `/agent-cache`) created with owner `1000:1000` and permissions `775`
+
+This matters because the chart's pods run as a non-root user and mount the cache volume with a subPath, so kubelet must create directories at the root of the volume on pod start. Mounting the file system root directly fails when the root directory is not writable by the agent user, or when the file system policy does not grant `elasticfilesystem:ClientRootAccess` (EFS then squashes all clients — including kubelet, which runs as root — to an anonymous user). An access point avoids both problems: EFS maps all file operations to the configured POSIX user and presents a dedicated, correctly-owned root directory.
+
+Create the access point:
+
+```shell
+aws efs create-access-point \
+  --file-system-id {file-system-id} \
+  --posix-user Uid=1000,Gid=1000 \
+  --root-directory 'Path=/agent-cache,CreationInfo={OwnerUid=1000,OwnerGid=1000,Permissions=775}'
+```
+
+Note the `AccessPointId` (`fsap-...`) in the output — you will need it for the PersistentVolume in the next step.
+
+## Step 2: Create the EFS-backed PersistentVolume and PersistentVolumeClaim
 
 Create a file named `scalr-agent-cache-efs.yaml` with the following content:
 
 > **Important**: Replace these values with your own:
 >
-> - `volumeHandle`: Your EFS file system ID (e.g. `fs-0123456789abcdef0`). To mount through an [EFS access point](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html), use the format `{file-system-id}::{access-point-id}` (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). To mount a subdirectory, use `{file-system-id}:{path}` (e.g. `fs-0123456789abcdef0:/agent-cache`).
+> - `volumeHandle`: Your EFS file system ID and the access point ID from Step 1, in the format `{file-system-id}::{access-point-id}` (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Troubleshooting](#troubleshooting).
 > - `namespace`: Your target namespace
 > - `storage`: A placeholder value — EFS is elastic, so Kubernetes requires the field but the EFS CSI driver does not enforce it
 >
@@ -46,7 +66,7 @@ spec:
     - acdirmax=3
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: "{file-system-id}"  # REPLACE: your EFS file system ID, e.g. fs-0123456789abcdef0
+    volumeHandle: "{file-system-id}::{access-point-id}"  # REPLACE: your EFS file system and access point IDs from Step 1
   claimRef:
     name: agent-cache-pvc
     namespace: scalr-agent  # REPLACE: your target namespace
@@ -78,7 +98,7 @@ By default, the NFS client caches file and directory attributes for up to 60 sec
 
 The mount options above shorten the attribute cache timeouts (`acregmin`/`acregmax` for files, `acdirmin`/`acdirmax` for directories) to 1–3 seconds so changes made by one pod become visible to others almost immediately. The trade-off is a moderate increase in NFS metadata requests, which is generally negligible for the agent cache workload.
 
-## Step 2: Verify the PV and PVC
+## Step 3: Verify the PV and PVC
 
 Check that both resources were created successfully.
 
@@ -128,7 +148,7 @@ Events:        <none>
 
 If either resource shows `Pending` or the PV shows `Available`/`Released` instead of `Bound`, see [Troubleshooting](#troubleshooting) below.
 
-## Step 3: Configure the Scalr Agent Helm Chart
+## Step 4: Configure the Scalr Agent Helm Chart
 
 You can configure the agent to use the shared cache in two ways. The commands below use the `scalr-agent` namespace — replace it with your target namespace.
 
@@ -147,7 +167,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
   --set persistence.cache.enabled=true \
   --set persistence.cache.persistentVolumeClaim.claimName=agent-cache-pvc \
   --set agent.providerCache.enabled=true \
-  --set agent.providerCache.sizeLimit=40Gi
+  --set agent.providerCache.sizeLimit=40Gi  # Adjust based on your needs
   ...
 ```
 
@@ -222,9 +242,40 @@ This event appears on agent task pods when the cache PVC either does not exist i
 - Check that the mount target security group allows inbound TCP 2049 from the node security group
 - Inspect the EFS CSI node driver logs: `kubectl logs -n kube-system -l app=efs-csi-node -c efs-plugin`
 
+### Pod fails with "failed to create subPath directory for volumeMount cache-dir"
+
+The chart mounts the cache PVC with a `cache/` subPath, so kubelet must create that directory at the root of the EFS volume when the pod starts. The error means this `mkdir` was denied — most commonly because the EFS file system policy does not grant `elasticfilesystem:ClientRootAccess`, which makes EFS squash all clients (including kubelet, which runs as root) to an anonymous user with no write permission on the root directory.
+
+Check the file system policy:
+
+```shell
+aws efs describe-file-system-policy --file-system-id {file-system-id}
+```
+
+If the policy only allows `ClientMount`/`ClientWrite`, the recommended fix is to mount through an [EFS access point](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html) whose POSIX user matches the chart's pod user (uid/gid `1000` by default) and whose root directory is owned by that user:
+
+```shell
+aws efs create-access-point \
+  --file-system-id {file-system-id} \
+  --posix-user Uid=1000,Gid=1000 \
+  --root-directory 'Path=/agent-cache,CreationInfo={OwnerUid=1000,OwnerGid=1000,Permissions=775}'
+```
+
+Then point the PV at the access point and re-create it (the `volumeHandle` field is immutable, so the PV and PVC must be deleted and re-applied):
+
+```yaml
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: "{file-system-id}::{access-point-id}"
+```
+
+With an access point, EFS maps all file operations to the configured POSIX user regardless of the client uid, so both kubelet's subPath directory creation and the agent's writes succeed. The data on the file system is not affected by re-creating the PV/PVC.
+
+Alternatively, grant `elasticfilesystem:ClientRootAccess` in the file system policy — but note this alone lets kubelet create the directory as `root:root`, so the non-root agent process still needs the directory ownership or permissions adjusted to write into it. The access point approach handles both at once.
+
 ### Permission denied errors on the cache volume
 
-- If mounting the file system root, ensure its ownership/permissions allow the agent user to write
+- If mounting the file system root, ensure its ownership/permissions allow the agent user (uid `1000` by default) to write
 - Alternatively, mount through an EFS access point with an appropriate POSIX user and root directory configuration
 
 ## Additional Resources

@@ -140,7 +140,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
   --set persistence.cache.enabled=true \
   --set persistence.cache.persistentVolumeClaim.claimName=agent-cache-pvc \
   --set agent.providerCache.enabled=true \
-  --set agent.providerCache.sizeLimit=40Gi
+  --set agent.providerCache.sizeLimit=40Gi  # Adjust based on your needs
   ...
 ```
 

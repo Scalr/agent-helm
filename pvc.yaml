@@ -19,7 +19,7 @@ spec:
     - acdirmax=3
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-0bb0490d0bcd28467
+    volumeHandle: fs-0bb0490d0bcd28467::fsap-0b7057e5e3fb4998d
   claimRef:
     name: agent-cache-pvc
     namespace: sbabak-agent-playground
