@@ -17,14 +17,8 @@ A shared cache allows multiple agent worker pods to access the same cached data,
 
 Create a file named `scalr-agent-cache-filestore.yaml` with the following content:
 
-> **Important**: Replace these values with your own:
->
-> - `volumeHandle`: Format is `modeInstance/{zone}/{filestore-instance-name}/{share-name}`
-> - `ip`: Your Filestore instance IP address
-> - `volume`: Your Filestore share name
-> - `namespace`: Your target namespace
-> - `storage`: Adjust capacity to match your Filestore instance
->
+> [!IMPORTANT]
+> Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` format is `modeInstance/{instance-zone}/{instance-name}/{share-name}`.
 ```yaml
 apiVersion: v1
 kind: PersistentVolume

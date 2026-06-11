@@ -19,7 +19,7 @@ A shared cache allows multiple agent worker pods to access the same cached data,
 We recommend mounting the cache volume through an [EFS access point](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html) rather than the file system root, with the following requirements:
 
 - **POSIX user**: uid/gid `1000` — matching the chart's default pod user
-- **Root directory**: a dedicated path (e.g. `/agent-cache`) created with owner `1000:1000` and permissions `775`
+- **Root directory**: a dedicated path (e.g. `/scalr-agent-cache`) created with owner `1000:1000` and permissions `775`
 
 This matters because the chart's pods run as a non-root user and mount the cache volume with a subPath, so kubelet must create directories at the root of the volume on pod start. Mounting the file system root directly fails when the root directory is not writable by the agent user, or when the file system policy does not grant `elasticfilesystem:ClientRootAccess` (EFS then squashes all clients — including kubelet, which runs as root — to an anonymous user). An access point avoids both problems: EFS maps all file operations to the configured POSIX user and presents a dedicated, correctly-owned root directory.
 
@@ -29,58 +29,31 @@ Create the access point using the AWS CLI:
 aws efs create-access-point \
   --file-system-id {file-system-id} \
   --posix-user Uid=1000,Gid=1000 \
-  --root-directory 'Path=/agent-cache,CreationInfo={OwnerUid=1000,OwnerGid=1000,Permissions=775}'
+  --root-directory '{"Path":"/scalr-agent-cache","CreationInfo":{"OwnerUid":1000,"OwnerGid":1000,"Permissions":"775"}}' \
+  --tags Key=Name,Value=scalr-agent-cache
 ```
 
 Or using the AWS Console (**EFS → File systems → your file system → Access points → Create access point**). The POSIX user and creation permission sections are marked *optional* in the form, but they are required for this setup — leaving them empty produces an access point that cannot be mounted or written to:
 
 | Section | Field | Value |
 |---|---|---|
-| Details | Root directory path | `/agent-cache` |
+| Details | Name | `scalr-agent-cache` |
+| Details | Root directory path | `/scalr-agent-cache` |
 | POSIX user *(optional)* | User ID / Group ID | `1000` / `1000` |
 | Root directory creation permissions *(optional)* | Owner user ID / Owner group ID | `1000` / `1000` |
 | Root directory creation permissions *(optional)* | Access point permissions | `0775` |
 
 Note the `AccessPointId` (`fsap-...`) in the output — you will need it for the PersistentVolume in the next step.
 
-> **Important**: The root directory `Path` must be a dedicated directory that does not yet exist on the file system (not `/`). `CreationInfo` ownership and permissions are applied only when EFS creates the directory — for an already-existing path they are silently ignored, leaving you with a root-owned directory the agent user cannot write to. Conversely, if the path does not exist and `CreationInfo` is missing, EFS rejects all mounts through the access point with `access denied by server`. Access points are immutable, so a misconfigured one must be deleted and re-created.
-
-Verify the access point before using it:
-
-```shell
-aws efs describe-access-points --access-point-id {access-point-id} \
-  --query 'AccessPoints[0].{state:LifeCycleState,posix:PosixUser,root:RootDirectory}'
-```
-
-Expected output — `state` must be `available`, the POSIX user must be `1000/1000`, and `CreationInfo` must be present (not `null`):
-
-```json
-{
-    "state": "available",
-    "posix": { "Uid": 1000, "Gid": 1000 },
-    "root": {
-        "Path": "/agent-cache",
-        "CreationInfo": { "OwnerUid": 1000, "OwnerGid": 1000, "Permissions": "775" }
-    }
-}
-```
-
-> **Note**: If your shell mangles the `CreationInfo={...}` braces in the shorthand syntax (e.g. fish), pass the root directory as JSON instead:
->
-> ```shell
-> --root-directory '{"Path":"/agent-cache","CreationInfo":{"OwnerUid":1000,"OwnerGid":1000,"Permissions":"775"}}'
-> ```
+> [!IMPORTANT]
+> The root directory path must be a dedicated directory that does not yet exist on the file system (not `/`). The creation ownership and permissions are applied only when EFS creates the directory — for an already-existing path they are silently ignored, leaving a root-owned directory the agent user cannot write to. Access points are immutable, so a misconfigured one must be deleted and re-created.
 
 ## Step 2: Create the EFS-backed PersistentVolume and PersistentVolumeClaim
 
 Create a file named `scalr-agent-cache-efs.yaml` with the following content:
 
-> **Important**: Replace these values with your own:
->
-> - `volumeHandle`: Your EFS file system ID and the access point ID from Step 1, in the format `{file-system-id}::{access-point-id}` (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Troubleshooting](#troubleshooting).
-> - `namespace`: Your target namespace
-> - `storage`: A placeholder value — EFS is elastic, so Kubernetes requires the field but the EFS CSI driver does not enforce it
->
+> [!IMPORTANT]
+> Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` combines your EFS file system ID and the access point ID from Step 1 (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/scalr-agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Troubleshooting](#troubleshooting).
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
