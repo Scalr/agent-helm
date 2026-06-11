@@ -23,7 +23,7 @@ We recommend mounting the cache volume through an [EFS access point](https://doc
 
 This matters because the chart's pods run as a non-root user and mount the cache volume with a subPath, so kubelet must create directories at the root of the volume on pod start. Mounting the file system root directly fails when the root directory is not writable by the agent user, or when the file system policy does not grant `elasticfilesystem:ClientRootAccess` (EFS then squashes all clients — including kubelet, which runs as root — to an anonymous user). An access point avoids both problems: EFS maps all file operations to the configured POSIX user and presents a dedicated, correctly-owned root directory.
 
-Create the access point:
+Create the access point using the AWS CLI:
 
 ```shell
 aws efs create-access-point \
@@ -32,7 +32,44 @@ aws efs create-access-point \
   --root-directory 'Path=/agent-cache,CreationInfo={OwnerUid=1000,OwnerGid=1000,Permissions=775}'
 ```
 
+Or using the AWS Console (**EFS → File systems → your file system → Access points → Create access point**). The POSIX user and creation permission sections are marked *optional* in the form, but they are required for this setup — leaving them empty produces an access point that cannot be mounted or written to:
+
+| Section | Field | Value |
+|---|---|---|
+| Details | Root directory path | `/agent-cache` |
+| POSIX user *(optional)* | User ID / Group ID | `1000` / `1000` |
+| Root directory creation permissions *(optional)* | Owner user ID / Owner group ID | `1000` / `1000` |
+| Root directory creation permissions *(optional)* | Access point permissions | `0775` |
+
 Note the `AccessPointId` (`fsap-...`) in the output — you will need it for the PersistentVolume in the next step.
+
+> **Important**: The root directory `Path` must be a dedicated directory that does not yet exist on the file system (not `/`). `CreationInfo` ownership and permissions are applied only when EFS creates the directory — for an already-existing path they are silently ignored, leaving you with a root-owned directory the agent user cannot write to. Conversely, if the path does not exist and `CreationInfo` is missing, EFS rejects all mounts through the access point with `access denied by server`. Access points are immutable, so a misconfigured one must be deleted and re-created.
+
+Verify the access point before using it:
+
+```shell
+aws efs describe-access-points --access-point-id {access-point-id} \
+  --query 'AccessPoints[0].{state:LifeCycleState,posix:PosixUser,root:RootDirectory}'
+```
+
+Expected output — `state` must be `available`, the POSIX user must be `1000/1000`, and `CreationInfo` must be present (not `null`):
+
+```json
+{
+    "state": "available",
+    "posix": { "Uid": 1000, "Gid": 1000 },
+    "root": {
+        "Path": "/agent-cache",
+        "CreationInfo": { "OwnerUid": 1000, "OwnerGid": 1000, "Permissions": "775" }
+    }
+}
+```
+
+> **Note**: If your shell mangles the `CreationInfo={...}` braces in the shorthand syntax (e.g. fish), pass the root directory as JSON instead:
+>
+> ```shell
+> --root-directory '{"Path":"/agent-cache","CreationInfo":{"OwnerUid":1000,"OwnerGid":1000,"Permissions":"775"}}'
+> ```
 
 ## Step 2: Create the EFS-backed PersistentVolume and PersistentVolumeClaim
 
@@ -244,7 +281,7 @@ This event appears on agent task pods when the cache PVC either does not exist i
 
 ### Pod fails with "failed to create subPath directory for volumeMount cache-dir"
 
-The chart mounts the cache PVC with a `cache/` subPath, so kubelet must create that directory at the root of the EFS volume when the pod starts. The error means this `mkdir` was denied — most commonly because the EFS file system policy does not grant `elasticfilesystem:ClientRootAccess`, which makes EFS squash all clients (including kubelet, which runs as root) to an anonymous user with no write permission on the root directory.
+The chart mounts the cache PVC with a `cache/` subPath, so kubelet must create that directory at the root of the EFS volume when the pod starts. The error means this `mkdir` was denied. It typically appears when the PV mounts the file system root directly (`volumeHandle: fs-...` without an access point) and the root directory is not writable — most commonly because the file system policy does not grant `elasticfilesystem:ClientRootAccess`, which makes EFS squash all clients (including kubelet, which runs as root) to an anonymous user.
 
 Check the file system policy:
 
@@ -252,31 +289,14 @@ Check the file system policy:
 aws efs describe-file-system-policy --file-system-id {file-system-id}
 ```
 
-If the policy only allows `ClientMount`/`ClientWrite`, the recommended fix is to mount through an [EFS access point](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html) whose POSIX user matches the chart's pod user (uid/gid `1000` by default) and whose root directory is owned by that user:
-
-```shell
-aws efs create-access-point \
-  --file-system-id {file-system-id} \
-  --posix-user Uid=1000,Gid=1000 \
-  --root-directory 'Path=/agent-cache,CreationInfo={OwnerUid=1000,OwnerGid=1000,Permissions=775}'
-```
-
-Then point the PV at the access point and re-create it (the `volumeHandle` field is immutable, so the PV and PVC must be deleted and re-applied):
-
-```yaml
-  csi:
-    driver: efs.csi.aws.com
-    volumeHandle: "{file-system-id}::{access-point-id}"
-```
-
-With an access point, EFS maps all file operations to the configured POSIX user regardless of the client uid, so both kubelet's subPath directory creation and the agent's writes succeed. The data on the file system is not affected by re-creating the PV/PVC.
+The recommended fix is to mount through an access point as described in [Step 1](#step-1-create-an-efs-access-point). Update the PV's `volumeHandle` to `{file-system-id}::{access-point-id}` and re-create the PV and PVC (the `volumeHandle` field is immutable, so they must be deleted and re-applied; the data on the file system is unaffected).
 
 Alternatively, grant `elasticfilesystem:ClientRootAccess` in the file system policy — but note this alone lets kubelet create the directory as `root:root`, so the non-root agent process still needs the directory ownership or permissions adjusted to write into it. The access point approach handles both at once.
 
 ### Permission denied errors on the cache volume
 
-- If mounting the file system root, ensure its ownership/permissions allow the agent user (uid `1000` by default) to write
-- Alternatively, mount through an EFS access point with an appropriate POSIX user and root directory configuration
+- Verify the access point's POSIX user and root directory ownership match the setup in [Step 1](#step-1-create-an-efs-access-point)
+- If mounting the file system root or a subdirectory without an access point, ensure its ownership/permissions allow the agent user (uid `1000` by default) to write
 
 ## Additional Resources
 
