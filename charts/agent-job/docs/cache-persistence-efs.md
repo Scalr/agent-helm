@@ -91,6 +91,9 @@ Create a file named `scalr-agent-cache-efs.yaml` with the following content:
 > [!IMPORTANT]
 > Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` combines your EFS file system ID and the access point ID from Step 1 (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/scalr-agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Troubleshooting](#troubleshooting).
 
+> [!NOTE]
+> EFS has no configurable capacity — the file system grows and shrinks automatically, and you pay for the data actually stored. The `storage` values below are placeholders required by the Kubernetes API. The real bound on cache growth is the `agent.providerCache.sizeLimit` setting in Step 4.
+
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -101,7 +104,7 @@ metadata:
 spec:
   storageClassName: ""
   capacity:
-    storage: 1Ti  # REPLACE: placeholder value, not enforced by EFS
+    storage: 1Ti  # REPLACE: placeholder value, field is required by k8s, ignored by EFS
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
@@ -158,7 +161,7 @@ resource "kubernetes_persistent_volume" "agent_cache" {
     mount_options                    = ["acregmin=1", "acregmax=3", "acdirmin=1", "acdirmax=3"]
 
     capacity = {
-      storage = "1Ti" # REPLACE: placeholder value, not enforced by EFS
+      storage = "1Ti" # REPLACE: placeholder value, field is required by k8s, ignored by EFS
     }
 
     persistent_volume_source {
@@ -270,7 +273,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
   --set persistence.cache.enabled=true \
   --set persistence.cache.persistentVolumeClaim.claimName=agent-cache-pvc \
   --set agent.providerCache.enabled=true \
-  --set agent.providerCache.sizeLimit=40Gi  # Adjust based on your needs; must not exceed the PV capacity
+  --set agent.providerCache.sizeLimit=40Gi  # Soft limit for the cache garbage collection; adjust based on your needs
   ...
 ```
 
@@ -288,7 +291,7 @@ persistence:
 agent:
   providerCache:
     enabled: true
-    sizeLimit: 40Gi  # Adjust based on your needs; must not exceed the PV capacity
+    sizeLimit: 40Gi  # Soft limit for the cache garbage collection; adjust based on your needs
 ```
 
 Install or upgrade the chart:
@@ -321,7 +324,7 @@ resource "helm_release" "scalr_agent" {
       agent = {
         providerCache = {
           enabled   = true
-          sizeLimit = "40Gi" # Adjust based on your needs; must not exceed the PV capacity
+          sizeLimit = "40Gi" # Soft limit for the cache garbage collection; adjust based on your needs
         }
       }
     })
