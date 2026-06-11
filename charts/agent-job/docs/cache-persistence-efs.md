@@ -21,7 +21,7 @@ We recommend mounting the cache volume through an [EFS access point](https://doc
 - **POSIX user**: uid/gid `1000` — matching the chart's default pod user
 - **Root directory**: a dedicated path (e.g. `/scalr-agent-cache`) created with owner `1000:1000` and permissions `775`
 
-The chart's pods run as a non-root user and need to create directories at the root of the volume, so the volume root must be writable by uid `1000` — an access point guarantees this regardless of the file system's permissions or policy (see [Troubleshooting](#troubleshooting) for what fails without one).
+The chart's pods run as a non-root user and need to create directories at the root of the volume, so the volume root must be writable by uid `1000` — an access point guarantees this regardless of the file system's permissions or policy. Without an access point, pods typically fail to start with a "failed to create subPath directory" error — see [Troubleshooting](#troubleshooting).
 
 > [!NOTE]
 > This guide assumes the chart's default `podSecurityContext` settings, which run the agent as user/group `1000:1000`. If you override them, adjust the POSIX user and ownership values in the instructions below to match.
