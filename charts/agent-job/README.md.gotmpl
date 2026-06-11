@@ -180,6 +180,28 @@ helm upgrade --install scalr-agent scalr-agent/{{ template "chart.name" . }} \
 
 When `agent.replicaCount > 1`, the chart automatically creates a `PodDisruptionBudget` (controlled by `agent.podDisruptionBudget`) that keeps at least one controller available during voluntary disruptions.
 
+For zone-level resilience inside a single cluster, combine `replicaCount` with `agent.topologySpreadConstraints` so replicas land in different availability zones (and on different nodes within a zone). This is the recommended single-cluster HA configuration — one release, one upgrade path, AZ-resilient:
+
+```yaml
+agent:
+  replicaCount: 2
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: agent-job
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: agent-job
+```
+
+Use `whenUnsatisfiable: DoNotSchedule` if you require strict spread (pods stay `Pending` rather than co-locating).
+
 ### Separate Controllers and Task Pods
 
 It is recommended to run agent controller pods and task job pods on separate node pools. This prevents resource-intensive run workloads from competing with controllers for CPU and memory, which could delay run scheduling or cause controller eviction. It also allows upgrading or resizing the task node pool without interrupting the controllers that schedule incoming runs.
@@ -208,11 +230,11 @@ task:
       effect: NoSchedule
 ```
 
-### Deploy Multiple Installations Within a Scalr Agent Pool
+### Multi-Cluster HA
 
-You can connect multiple `agent-job` Helm releases to the same Scalr agent pool, each targeting a different node pool or availability zone.
+For HA within a single cluster, prefer the single-release configuration above (`replicaCount` + `topologySpreadConstraints` + the auto-created PDB). Running multiple Helm releases inside the same cluster duplicates operational surface (values, rollouts, PVCs, metrics) without buying isolation that a dedicated node pool with taints doesn't already provide.
 
-This allows the pool to scale horizontally across infrastructure boundaries to spread load and reduce blast radius.
+For multi-cluster or multi-region resilience, install `agent-job` once per cluster against the same Scalr agent pool. Each release carries its own token, PVCs, and upgrade cadence; the Scalr agent pool sees them as additional controllers and load-balances scheduling across all of them. A cluster-level failure or maintenance window then takes out at most one slice of capacity.
 
 ## Performance Optimization
 
