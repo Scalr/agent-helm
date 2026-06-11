@@ -222,33 +222,29 @@ This chart uses the local driver, meaning runs (Terraform/OpenTofu operations, O
 
 By default the chart uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`, etc.).
 
-If your workflows require additional software, you have two options:
+If your workflows require additional software, you can build your own image on top of `scalr/agent`** with the extra tools pre-installed. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
 
-- **Build your own image on top of `scalr/agent`** with the extra tools pre-installed. This is the recommended approach for stable, repeatable runs and air-gapped environments. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
+- Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
+- Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
 
-  - Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
-  - Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
+Example:
 
-  Example:
+```dockerfile
+FROM scalr/agent:<version>
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    awscli kubectl && \
+    rm -rf /var/lib/apt/lists/*
+USER 1000
+```
 
-  ```dockerfile
-  FROM scalr/agent:<version>
-  USER root
-  RUN apt-get update && apt-get install -y --no-install-recommends \
-        awscli kubectl && \
-      rm -rf /var/lib/apt/lists/*
-  USER 1000
-  ```
+Then point the chart at the resulting image:
 
-  Then point the chart at the resulting image:
-
-  ```yaml
-  image:
-    repository: registry.example.com/my-scalr-agent
-    tag: "1.0.5"
-  ```
-
-- **Provision tooling at run time via Workspace hooks.** Use pre-run hooks to install or download the binaries each workspace needs. This avoids rebuilding the image but adds latency to every run and may require relaxing the default container security context (see [Security](#security)).
+```yaml
+image:
+repository: registry.example.com/my-scalr-agent
+tag: "1.0.5"
+```
 
 ## Volumes
 
