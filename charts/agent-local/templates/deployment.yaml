@@ -9,6 +9,8 @@
   "SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT"
   "SCALR_AGENT_DATA_DIR"
   "SCALR_AGENT_TOKEN"
+  "SCALR_AGENT_CA_CERT"
+  "SSL_CERT_FILE"
 -}}
 
 apiVersion: apps/v1
@@ -124,6 +126,12 @@ spec:
             - name: SCALR_AGENT_TLS_KEY_FILE
               value: "/etc/scalr-agent/ssl/tls.key"
             {{- end }}
+            {{- if or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle }}
+            - name: SCALR_AGENT_CA_CERT
+              value: "/etc/ssl/certs/scalr-ca-bundle.crt"
+            - name: SSL_CERT_FILE
+              value: "/etc/ssl/certs/scalr-ca-bundle.crt"
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- $cache := fromYaml (include "agent-local.persistence.cache" .) }}
@@ -142,6 +150,15 @@ spec:
             - name: client-cert
               mountPath: /etc/scalr-agent/ssl
               readOnly: true
+            {{- end }}
+            {{- if or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle }}
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs/scalr-ca-bundle.crt
+              subPath: {{ .Values.agent.tls.caBundleSecret.key }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:
         - name: data-dir
@@ -169,6 +186,17 @@ spec:
                 path: tls.crt
               - key: {{ .Values.agent.tls.clientCertSecret.keyKey }}
                 path: tls.key
+        {{- end }}
+        {{- if or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle }}
+        - name: ca-bundle
+          secret:
+            secretName: {{ .Values.agent.tls.caBundleSecret.name | default (printf "%s-ca-bundle" (include "agent-local.fullname" .)) }}
+            items:
+              - key: {{ .Values.agent.tls.caBundleSecret.key }}
+                path: {{ .Values.agent.tls.caBundleSecret.key }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

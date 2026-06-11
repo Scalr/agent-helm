@@ -11,8 +11,9 @@
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
 - [Configuration](#configuration)
+- [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Mutual TLS (mTLS)](#mutual-tls-mtls)
-- [Customizing Environment](#customizing-environment)
+- [Custom Agent Image](#custom-agent-image)
 - [Volumes](#volumes)
 - [Security](#security)
 - [Metrics and Observability](#metrics-and-observability)
@@ -93,6 +94,49 @@ $ helm install ...
 
 See all available configuration options - https://docs.scalr.io/docs/configuration
 
+## Custom Certificate Authorities
+
+If your environment uses custom or self-signed certificates, you can configure the CA bundle used by the agent for TLS validation. This configuration sets the **primary CA bundle** for all agent HTTPS connections (to Scalr API, VCS providers, provider registries, etc.).
+
+> [!IMPORTANT]
+> This replaces the system default CA certificates. If you need to trust both custom CAs and public CAs, include the complete certificate chain with both your custom certificates and standard root CAs in the bundle.
+
+You can provide the CA bundle in two ways:
+
+**Option 1: Inline CA bundle**
+
+```yaml
+agent:
+  tls:
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      MIIDXTCCAkWgAwIBAgIJAKZ...
+      -----END CERTIFICATE-----
+      -----BEGIN CERTIFICATE-----
+      MIIEFzCCAv+gAwIBAgIUDiCT...
+      -----END CERTIFICATE-----
+```
+
+**Option 2: Reference existing secret**
+
+```yaml
+agent:
+  tls:
+    caBundleSecret:
+      name: "my-ca-bundle"
+      key: "ca-bundle.crt"
+```
+
+To create the secret:
+
+```shell
+kubectl create secret generic my-ca-bundle \
+  --from-file=ca-bundle.crt=/path/to/your/ca-bundle.crt \
+  -n scalr-agent
+```
+
+If both `caBundleSecret.name` and `caBundle` are set, `caBundleSecret` takes precedence.
+
 ## Mutual TLS (mTLS)
 
 > [!IMPORTANT]
@@ -170,9 +214,35 @@ agent:
 
 If both `clientCertSecret.name` and `clientCert`/`clientKey` are set, `clientCertSecret` takes precedence.
 
-## Customizing Environment
+## Custom Agent Image
 
-This chart uses the local driver to run tasks directly within the container where the agent operates. Therefore, it requires an image that includes both the Scalr Agent service and the additional tooling provided by the [scalr/runner](https://hub.docker.com/r/scalr/runner) image. As a result, this chart uses the [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) image, which combines the minimal Scalr Agent image ([scalr/agent](https://hub.docker.com/r/scalr/agent)) with the extra tools from `scalr/runner`. You can use this image, or `scalr/agent` (as a minimal base for building your own lightweight images), as a starting point for customizing your environment.
+This chart uses the [local driver](https://docs.scalr.io/docs/drivers#local-driver), meaning runs (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) execute directly inside the agent container. The image therefore needs to ship everything those runs depend on.
+
+By default the chart uses the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which includes the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`, etc.).
+
+If your workflows require additional software, you can build your own image on top of `scalr/agent`** with the extra tools pre-installed. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
+
+- Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
+- Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
+
+Example:
+
+```dockerfile
+FROM scalr/agent:<version>
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    awscli kubectl && \
+    rm -rf /var/lib/apt/lists/*
+USER 1000
+```
+
+Then point the chart at the resulting image:
+
+```yaml
+image:
+repository: registry.example.com/my-scalr-agent
+tag: "1.0.5"
+```
 
 ## Volumes
 
@@ -415,7 +485,7 @@ The agent requires outbound HTTPS access to the following endpoints:
 | Hostname                              | Port | Purpose                                                                                                                                                              |
 | ------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | scalr.io                              | 443  | Polling for new tasks, posting status updates and logs, downloading IaC configuration versions, private modules, and software binary releases |
-| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) and [scalr/runner](https://hub.docker.com/r/scalr/runner) images                                    |
+| docker.io, docker.com, cloudfront.net | 443  | Pulling the [scalr/agent](https://hub.docker.com/r/scalr/agent) image (or [scalr/agent-runner](https://hub.docker.com/r/scalr/agent-runner) if configured)                                    |
 | registry.opentofu.org                 | 443  | Downloading public providers and modules from the OpenTofu Registry                                                                                                  |
 | registry.terraform.io                 | 443  | Downloading public providers and modules from the Terraform Registry                                                                                                 |
 

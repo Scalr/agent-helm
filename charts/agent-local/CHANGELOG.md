@@ -9,7 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- **BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`.
+
+  The chart now defaults to the minimal [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`). It does **not** ship cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`) — those were previously bundled in `scalr/agent-runner`. The motivation is a smaller default image, faster pulls, and a reduced attack surface for the majority of installations that never invoke a cloud CLI from a run.
+
+  Only installations whose runs invoke `aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`, or other tooling that was previously preinstalled in `scalr/agent-runner` are affected. To check, scan your Workspace hooks and Terraform/OpenTofu modules for those binaries. Installations already using a custom `image.repository` are unaffected.
+
+  If affected, pick one:
+
+  - Build a custom image on top of `scalr/agent` with the required tooling preinstalled (see [Custom Agent Image](README.md#custom-agent-image)) and point the chart at it:
+
+    ```yaml
+    image:
+      repository: registry.example.com/my-scalr-agent
+      tag: "1.0.5"
+    ```
+
+  - Or install the required tooling on demand via Workspace pre-run hooks.
+
 ### Added
+
+- Added custom CA bundle configuration (`agent.tls.caBundleSecret`, `agent.tls.caBundle`) for outbound TLS validation against the Scalr API, VCS providers, and provider registries. The bundle is mounted read-only at `/etc/ssl/certs/scalr-ca-bundle.crt` and exported via `SCALR_AGENT_CA_CERT` and `SSL_CERT_FILE`. Supports both existing Kubernetes secrets and inline PEM values; `caBundleSecret` takes precedence when both are set. `SCALR_AGENT_CA_CERT` and `SSL_CERT_FILE` are now reserved env var names and cannot be overridden via `extraEnv`.
+
+- Added `extraVolumes` and `extraVolumeMounts` for mounting additional secrets, configMaps, or other volumes into the agent pod alongside the chart-managed ones.
 
 - Added mTLS client certificate configuration (`agent.tls.clientCertSecret`, `agent.tls.clientCert`, `agent.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Note: mTLS is an upcoming Enterprise feature.
 
