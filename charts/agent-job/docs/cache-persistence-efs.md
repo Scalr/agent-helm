@@ -148,6 +148,39 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
 - Verify the EFS file system ID in `volumeHandle` is correct
 - Ensure the CSI driver is installed: `kubectl get csidrivers`
 
+### Pod scheduling fails with "pod has unbound immediate PersistentVolumeClaims" or "persistentvolumeclaim not found"
+
+This event appears on agent task pods when the cache PVC either does not exist in the pod's namespace or exists but is not bound to the PV.
+
+1. Check that the PVC exists in the same namespace as the agent pods and that its name matches `persistence.cache.persistentVolumeClaim.claimName`:
+
+   ```shell
+   kubectl get pvc -n scalr-agent
+   ```
+
+   PVCs are namespaced — a PVC created in a different namespace is reported as "not found". If the `claimName` value is empty, the chart creates its own PVC named `<release-name>-cache` and expects the cluster to provision it dynamically, which fails without a default RWX storage class.
+
+2. If the PVC exists but is Pending, inspect why it is not binding:
+
+   ```shell
+   kubectl describe pvc agent-cache-pvc -n scalr-agent
+   kubectl get pv agent-cache-pv
+   ```
+
+   Common causes:
+
+   - **`storageClassName` mismatch**: both the PV and PVC must set `storageClassName: ""` for static binding. If the PVC omits the field entirely, the cluster's default StorageClass may try to dynamically provision a new volume instead of binding to your PV.
+   - **`claimRef` mismatch**: the PV's `claimRef.name` and `claimRef.namespace` must exactly match the PVC's name and namespace.
+   - **Capacity mismatch**: the PVC's requested storage must not exceed the PV's declared capacity.
+
+3. If the PV shows `Released` status (for example, after deleting and re-creating the PVC), it still references the old PVC's UID and cannot rebind. Clear the stale reference:
+
+   ```shell
+   kubectl patch pv agent-cache-pv --type json -p '[{"op": "remove", "path": "/spec/claimRef/uid"}]'
+   ```
+
+   The PV returns to `Available` and binds to the new PVC. The data on the EFS file system is unaffected.
+
 ### Pods stuck in ContainerCreating with mount timeouts
 
 - Verify the EFS file system has mount targets in every availability zone where agent pods run
