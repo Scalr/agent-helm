@@ -11,12 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`. The `scalr/agent` image ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tools (`git`, `curl`, `openssl`, `ca-certificates`), but does **not** include cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`). If your runs depend on any of these, either:
+- **BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`.
 
-  - build a custom image on top of `scalr/agent` with the extra software pre-installed (see the chart's [Custom Agent Image](README.md#custom-agent-image) section and the upstream [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image) — additive changes only, do not modify `ENTRYPOINT`/`CMD`), and point the chart at it via `image.repository` / `image.tag`; or
-  - provision the required tooling at run time via Workspace hooks.
+  The chart now defaults to the minimal [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`). It does **not** ship cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`) — those were previously bundled in `scalr/agent-runner`. The motivation is a smaller default image, faster pulls, and a reduced attack surface for the majority of installations that never invoke a cloud CLI from a run.
 
-  Users who do not rely on bundled cloud CLIs benefit from a smaller default image and reduced attack surface. Custom images already built on top of `scalr/agent` are unaffected.
+  Only installations whose runs invoke `aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`, or other tooling that was previously preinstalled in `scalr/agent-runner` are affected. To check, scan your Workspace hooks and Terraform/OpenTofu modules for those binaries. Installations already using a custom `image.repository` are unaffected.
+
+  If affected, pick one:
+
+  - Build a custom image on top of `scalr/agent` with the required tooling preinstalled (see [Custom Agent Image](README.md#custom-agent-image)) and point the chart at it:
+
+    ```yaml
+    image:
+      repository: registry.example.com/my-scalr-agent
+      tag: "1.0.5"
+    ```
+
+  - Or install the required tooling on demand via Workspace pre-run hooks.
 
 ### Added
 
