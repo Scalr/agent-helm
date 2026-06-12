@@ -59,13 +59,7 @@ Note the access point ID (`fsap-...`) of the created resource — you will need 
 
 ## Step 2: Create the EFS-backed PersistentVolume and PersistentVolumeClaim
 
-Create a file named `scalr-agent-cache-efs.yaml` with the following content:
-
-> [!IMPORTANT]
-> Replace the values marked with `# REPLACE` comments with your own. The `volumeHandle` combines your EFS file system ID and the access point ID from Step 1 (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). Mounting the file system root (`fs-0123456789abcdef0` alone) or a subdirectory (`fs-0123456789abcdef0:/scalr-agent-cache`) also works, but requires the target directory to be writable by the agent user — see [Permission denied errors](#permission-denied-errors-on-the-cache-volume).
-
-> [!NOTE]
-> EFS has no configurable capacity — the file system grows and shrinks automatically, and you pay for the data actually stored. The `storage` values below are placeholders required by the Kubernetes API. The real bound on cache growth is the `agent.providerCache.sizeLimit` setting in Step 4.
+Create a file named `scalr-agent-cache-efs.yaml` with the following content, replacing the values marked with `# REPLACE` comments. The `volumeHandle` combines the file system ID and the access point ID from Step 1 (e.g. `fs-0123456789abcdef0::fsap-0123456789abcdef0`). The `storage` values are placeholders required by the Kubernetes API — EFS is elastic and has no configurable capacity; the real bound on cache growth is the `agent.providerCache.sizeLimit` setting in Step 4.
 
 ```yaml
 apiVersion: v1
