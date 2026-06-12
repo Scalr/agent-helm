@@ -32,7 +32,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 
 ## Prerequisites
 
-- Kubernetes 1.35+
+- Kubernetes 1.35+ (both the control plane and all nodes running agent task pods)
 - Helm 3.0+
 - Optional: [ReadWriteMany](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes) volume for [Cache Volume Persistence](#cache-volume-persistence)
 
@@ -772,6 +772,29 @@ kubectl auth can-i create customresourcedefinitions --all-namespaces
 ```
 
 If the output is `yes`, proceed with the install. If `no`, switch to a cluster-admin context before running `helm install`.
+
+### Task Pod Fails with StartError: "/usr/bin/runner/exec-loop: no such file or directory"
+
+Agent task pods fail to start with:
+
+```
+Error: failed to create containerd task: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "/usr/bin/runner/exec-loop": stat /usr/bin/runner/exec-loop: no such file or directory
+```
+
+The runner binaries are delivered to task pods through the Kubernetes [ImageVolume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) feature, which requires Kubernetes 1.35+ (see [Prerequisites](#prerequisites)). On older clusters, or when the `ImageVolume` feature gate is disabled, the volume is mounted empty and the runner container cannot find its entrypoint.
+
+> [!IMPORTANT]
+> The 1.35+ requirement applies to **both the control plane and every node** that runs agent task pods — the ImageVolume mount is performed by the kubelet on the node. Cloud provider UIs typically show the control plane version, while node pools are upgraded separately and often lag behind: a cluster reported as 1.35 may still run 1.34 nodes, which produces exactly this error.
+
+**Fix:** Upgrade the cluster — including all node pools — to Kubernetes 1.35 or later. Check both the control plane and node versions:
+
+```shell
+# Control plane version
+kubectl version
+
+# Node (kubelet) versions and container runtimes
+kubectl get nodes -o wide
+```
 
 ### Debug Logging
 
