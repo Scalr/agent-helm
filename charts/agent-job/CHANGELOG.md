@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- The controller and worker containers now use the image's built-in `ENTRYPOINT`/`CMD` instead of the previously hard-coded `command: ["python", "-m", "tacoagent.cmd"]` in the chart. Optional overrides are available via `agent.controller.command`, `agent.controller.args`, `task.worker.command`, and `task.worker.args`, but default to empty and using the image default is recommended — overriding bypasses the image's tuned startup and may break the container or degrade its performance.
+
+**Note:** incorrectly built custom images with a modified or missing default entrypoint may be affected. If you package custom `scalr/agent` images, ensure the default entrypoint is not stripped or overridden.
+
 ## [v0.6.1]
 
 ### Updated

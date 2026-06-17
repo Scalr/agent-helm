@@ -67,7 +67,7 @@ The agent is a [Kubernetes Deployment](https://kubernetes.io/docs/concepts/workl
 
 The agent controller is responsible for polling incoming tasks from Scalr and launching them as isolated Kubernetes Jobs.
 
-See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/agent.yaml).
+See [agent deployment template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/agent.yaml).
 
 ### Agent Task
 
@@ -76,13 +76,13 @@ Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/worklo
 - **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
 - **worker**: The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
 
-The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
+The task template is defined via a [Custom Resource Definition](#custom-resource-definitions)(CRD). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
 
 The runner and worker containers share a single disk volume, allowing the worker to provision the configuration version, providers, and software binaries required by the runner container.
 
 The number of agent task Jobs depends on the active workload that the Scalr platform delegates to the agent pool to which the agent is connected.
 
-See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/task.yaml).
+See [agent task Job CRD template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/task.yaml).
 
 ### Pros
 
@@ -838,7 +838,9 @@ For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting
 | agent.affinity | object | `{}` | Node affinity for the controller pod. @section -- Agent |
 | agent.annotations | object | `{}` | Additional annotations for the Deployment (workload object). @section -- Agent |
 | agent.cacheDir | string | `"/var/lib/scalr-agent/cache"` | Cache directory where the agent stores provider binaries, plugin cache, and metadata. This directory must be readable, writable, and executable. @section -- Agent |
-| agent.controller | object | `{"extraEnv":[],"extraEnvFrom":[],"securityContext":{}}` | Controller-specific configuration. @section -- Agent |
+| agent.controller | object | `{"args":[],"command":[],"extraEnv":[],"extraEnvFrom":[],"securityContext":{}}` | Controller-specific configuration. @section -- Agent |
+| agent.controller.args | list | `[]` | Override the controller container arguments. Leave empty to use the image's default (recommended). WARNING: same caveats as `command` above — overriding may break the controller or affect performance negatively. @section -- Agent |
+| agent.controller.command | list | `[]` | Override the controller container entrypoint. Leave empty to use the image's default ENTRYPOINT/CMD (recommended). WARNING: only set this if you know exactly what you are doing. Overriding the entrypoint bypasses the image's tuned startup and may break the controller or degrade its performance. The image ships the correct command; keep this empty in normal operation. @section -- Agent |
 | agent.controller.extraEnv | list | `[]` | Additional environment variables for the controller container only. @section -- Agent |
 | agent.controller.extraEnvFrom | list | `[]` | Additional environment variable sources for the controller container. @section -- Agent |
 | agent.controller.securityContext | object | `{}` | Default security context for agent controller container. @section -- Agent |
@@ -981,7 +983,9 @@ For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting
 | task.startupTimeoutSeconds | int | `180` | Maximum time in seconds for the agent worker container to become ready and begin Scalr run execution. If the pod does not start within this period, the controller fails the Scalr run and deletes the job. @section -- Task |
 | task.terminationGracePeriodSeconds | int | `360` | Grace period in seconds before forcibly terminating task job containers. @section -- Task |
 | task.tolerations | list | `[]` | Node tolerations for task job pods. Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core>. Example: `--set task.tolerations[0].key=dedicated,task.tolerations[0].operator=Equal,task.tolerations[0].value=agent-worker,task.tolerations[0].effect=NoSchedule` @section -- Task |
-| task.worker | object | `{"extraEnv":{},"extraVolumeMounts":[],"resources":{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). @section -- Task |
+| task.worker | object | `{"args":[],"command":[],"extraEnv":{},"extraVolumeMounts":[],"resources":{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}},"securityContext":{}}` | Worker container configuration (sidecar that supervises task execution). @section -- Task |
+| task.worker.args | list | `[]` | Override the worker container arguments. Leave empty to use the image's default (recommended). WARNING: same caveats as `command` above — overriding may break the worker or affect performance negatively. @section -- Task |
+| task.worker.command | list | `[]` | Override the worker container entrypoint. Leave empty to use the image's default ENTRYPOINT/CMD (recommended). WARNING: only set this if you know exactly what you are doing. Overriding the entrypoint bypasses the image's tuned startup and may break the worker or degrade its performance. The image ships the correct command; keep this empty in normal operation. @section -- Task |
 | task.worker.extraEnv | object | `{}` | Additional environment variables for the worker container (merged with agent.extraEnv). @section -- Task |
 | task.worker.extraVolumeMounts | list | `[]` | Additional volume mounts for the worker container. @section -- Task |
 | task.worker.resources | object | `{"limits":{"memory":"1024Mi"},"requests":{"cpu":"250m","memory":"256Mi"}}` | Resource requests and limits for the worker container. @section -- Task |
