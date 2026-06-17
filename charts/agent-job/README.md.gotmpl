@@ -64,7 +64,7 @@ The agent is a [Kubernetes Deployment](https://kubernetes.io/docs/concepts/workl
 
 The agent controller is responsible for polling incoming tasks from Scalr and launching them as isolated Kubernetes Jobs.
 
-See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/agent.yaml).
+See [agent deployment template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/agent.yaml).
 
 ### Agent Task
 
@@ -73,13 +73,13 @@ Each agent task is a [Kubernetes Job](https://kubernetes.io/docs/concepts/worklo
 - **runner**: The environment where the run (Terraform/OpenTofu operations, OPA policies, shell hooks, etc.) is executed, based on the [scalr/runner](https://hub.docker.com/r/scalr/runner) image.
 - **worker**: The Scalr Agent process in worker mode, that supervises task execution, using the [scalr/agent](https://hub.docker.com/r/scalr/agent) image.
 
-The task template is defined via a [Custom Resource Definition](#custom-resource-definitions). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
+The task template is defined via a [Custom Resource Definition](#custom-resource-definitions)(CRD). The agent **controller** uses this resource to create Jobs from a template fully managed by this Helm chart. The controller may patch the Job definition to inject dynamic resources, such as labels and annotations with resource IDs (run ID, workspace ID, etc.).
 
 The runner and worker containers share a single disk volume, allowing the worker to provision the configuration version, providers, and software binaries required by the runner container.
 
 The number of agent task Jobs depends on the active workload that the Scalr platform delegates to the agent pool to which the agent is connected.
 
-See [template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/task.yaml).
+See [agent task Job CRD template](https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/templates/task.yaml).
 
 ### Pros
 
