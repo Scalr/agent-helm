@@ -141,7 +141,15 @@ spec:
           - name: worker
             image: {{ include "agent-job.image" (dict "context" . "repository" .Values.agent.image.repository "tag" .Values.agent.image.tag "defaultTag" .Chart.AppVersion) }}
             imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
-            command: ["python", "-m", "tacoagent.cmd"]
+            {{- /* Prefer the image's default entrypoint. Overriding command/args may break the worker or hurt performance. */}}
+            {{- with .Values.task.worker.command }}
+            command:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            {{- with .Values.task.worker.args }}
+            args:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
             {{- with .Values.task.worker.securityContext }}
             securityContext:
               {{- toYaml . | nindent 14 }}

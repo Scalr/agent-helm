@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- The controller and worker containers now use the image's built-in `ENTRYPOINT`/`CMD` instead of the previously hard-coded `command: ["python", "-m", "tacoagent.cmd"]` in the chart. Optional overrides are available via `agent.controller.command`, `agent.controller.args`, `task.worker.command`, and `task.worker.args`, but default to empty and using the image default is recommended — overriding bypasses the image's tuned startup and may break the container or degrade its performance.
+
+**Note:** incorrectly built custom images with a modified or missing default entrypoint may be affected. If you package custom `scalr/agent` images, ensure the default entrypoint is not stripped or overridden.
+
 ### Added
 
 - Added a PodDisruptionBudget for task pods (`task.podDisruptionBudget`), enabled by default with `maxUnavailable: 0`. Previously only the controller had a PDB (selecting `app.kubernetes.io/component: agent`), so task pods were not covered and could be evicted mid-run by the Eviction API during node upgrades/drains — the pod-level `safe-to-evict`/`karpenter` annotations do not protect against that path, only a PDB does. With the new PDB a draining node now waits for the running task to finish on its own before evicting it. Configurable via `task.podDisruptionBudget.enabled`, `minAvailable`, and `maxUnavailable`.

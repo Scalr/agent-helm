@@ -347,6 +347,16 @@ agent:
   # -- Controller-specific configuration.
   # @section -- Agent
   controller:
+    # -- Override the controller container entrypoint. Leave empty to use the image's default ENTRYPOINT/CMD (recommended).
+    # WARNING: only set this if you know exactly what you are doing. Overriding the entrypoint bypasses the image's
+    # tuned startup and may break the controller or degrade its performance. The image ships the correct command;
+    # keep this empty in normal operation.
+    # @section -- Agent
+    command: []
+    # -- Override the controller container arguments. Leave empty to use the image's default (recommended).
+    # WARNING: same caveats as `command` above — overriding may break the controller or affect performance negatively.
+    # @section -- Agent
+    args: []
     # -- Additional environment variables for the controller container only.
     # @section -- Agent
     extraEnv: []
@@ -495,6 +505,16 @@ task:
   # -- Worker container configuration (sidecar that supervises task execution).
   # @section -- Task
   worker:
+    # -- Override the worker container entrypoint. Leave empty to use the image's default ENTRYPOINT/CMD (recommended).
+    # WARNING: only set this if you know exactly what you are doing. Overriding the entrypoint bypasses the image's
+    # tuned startup and may break the worker or degrade its performance. The image ships the correct command;
+    # keep this empty in normal operation.
+    # @section -- Task
+    command: []
+    # -- Override the worker container arguments. Leave empty to use the image's default (recommended).
+    # WARNING: same caveats as `command` above — overriding may break the worker or affect performance negatively.
+    # @section -- Task
+    args: []
     # -- Resource requests and limits for the worker container.
     # @section -- Task
     resources:
