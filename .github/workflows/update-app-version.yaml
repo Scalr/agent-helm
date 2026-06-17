@@ -18,10 +18,11 @@ jobs:
     steps:
       - name: Sudo GitHub Token
         id: generate_token
-        uses: tibdex/github-app-token@32691ba7c9e7063bd457bd8f2a5703138591fa58 # v1.9.0
+        uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
         with:
           app_id: ${{vars.SUDO_GHA_APP_ID}}
-          installation_id: ${{vars.SUDO_GHA_APP_INSTALLATION_ID}}
+          installation_retrieval_mode: id
+          installation_retrieval_payload: ${{vars.SUDO_GHA_APP_INSTALLATION_ID}}
           private_key: ${{secrets.SUDO_GHA_APP_PRIVATE_KEY}}
 
       - name: Checkout
