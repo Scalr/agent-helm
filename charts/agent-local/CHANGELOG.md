@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.1]
+
+### Updated
+
+- Bumping chart version to v0.6.1 for scalr-agent v1.1.0
+
 ### Changed
 
 - **BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`.
