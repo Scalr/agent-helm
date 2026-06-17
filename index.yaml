@@ -1342,6 +1342,76 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-docker-0.1.0/agent-docker-0.1.0.tgz
     version: 0.1.0
   agent-job:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "Bumping chart version to v0.6.1 for scalr-agent v1.1.0"
+        - kind: added
+          description: "Added a PodDisruptionBudget for task pods (`task.podDisruptionBudget`), enabled by default with `maxUnavailable: 0`. Previously only the controller had a PDB (selecting `app.kubernetes.io/component: agent`), so task pods were not covered and could be evicted mid-run by the Eviction API during node upgrades/drains — the pod-level `safe-to-evict`/`karpenter` annotations do not protect against that path, only a PDB does. With the new PDB a draining node now waits for the running task to finish on its own before evicting it. Configurable via `task.podDisruptionBudget.enabled`, `minAvailable`, and `maxUnavailable`."
+        - kind: added
+          description: "Added mTLS client certificate configuration (`global.tls.clientCertSecret`, `global.tls.clientCert`, `global.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Applied to the controller and worker containers; the runner container is not affected. Note: mTLS is an upcoming Enterprise feature."
+        - kind: fixed
+          description: "Fixed `helm upgrade` failing with `YAML parse error ... mapping values are not allowed in this context` when `global.labels` was set. The common labels helper was emitting the rendered map on the same line as the preceding label, producing invalid YAML. Thanks to [@PabloPie](https://github.com/PabloPie) for reporting and contributing the fix in [#148](https://github.com/Scalr/agent-helm/pull/148)."
+          links:
+            - name: "PR #148"
+              url: https://github.com/Scalr/agent-helm/pull/148
+            - name: "@PabloPie"
+              url: https://github.com/PabloPie
+        - kind: fixed
+          description: "Fixed `global.labels` not being applied to pods. Labels set via `global.labels` now propagate to both workload `metadata.labels` and the pod template's `spec.template.metadata.labels` for the controller Deployment and task Jobs, matching the behavior users expect from a \"global\" label setting. Component-specific overrides (`global.podLabels`, `agent.podLabels`, `task.podLabels`) continue to take precedence on key collisions."
+        - kind: fixed
+          description: "Fixed `agent.podSecurityContext` and `task.podSecurityContext` having no effect when overriding values from `global.podSecurityContext`. Component-specific values now correctly take precedence over global defaults."
+      artifacthub.io/crds: |
+        - kind: AgentTaskTemplate
+          version: v1alpha1
+          name: agenttasktemplate
+          displayName: Agent Task Template
+          description: |
+            Defines a template for tasks that the Scalr Agent controller materializes
+            into Kubernetes Jobs for each Scalr Run.
+      artifacthub.io/displayName: Scalr Agent (Job)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.1.0
+        - name: runner
+          image: scalr/runner:0.2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/CHANGELOG.md
+    apiVersion: v2
+    appVersion: 1.1.0
+    created: "2026-06-17T17:41:40.020740153Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      It uses a job-based model, where each Scalr Run is isolated in its own Kubernetes
+      Job. '
+    digest: 16bffe3bec03d15f0cbeed1c73116df938acd40c08d800495e1623c858544721
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - job
+    - multi-tenancy
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-job
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.6.1/agent-job-0.6.1.tgz
+    version: 0.6.1
   - apiVersion: v2
     appVersion: 1.0.5
     created: "2026-06-05T14:29:50.96719663Z"
@@ -1689,6 +1759,52 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.59/agent-job-0.5.59.tgz
     version: 0.5.59
   agent-k8s:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "Bumping chart version to v0.6.1 for scalr-agent v1.1.0"
+      artifacthub.io/displayName: Scalr Agent (Kubernetes)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.1.0
+        - name: runner
+          image: scalr/runner:0.2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-k8s/CHANGELOG.md
+    apiVersion: v2
+    appVersion: 1.1.0
+    created: "2026-06-17T17:41:40.265130416Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys an agent controller with a set of agent workers and executes runs in
+      isolated pods. '
+    digest: d25f99423b27c7b73a853485bd0d4bf4390364dda2000299c157df1801485488
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - multi-tenancy
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.6.1/agent-k8s-0.6.1.tgz
+    version: 0.6.1
   - apiVersion: v2
     appVersion: 1.0.5
     created: "2026-06-05T14:29:51.126751977Z"
@@ -3132,6 +3248,62 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.1.0/agent-k8s-0.1.0.tgz
     version: 0.1.0
   agent-local:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "Bumping chart version to v0.6.1 for scalr-agent v1.1.0"
+        - kind: changed
+          description: "**BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`. The chart now defaults to the minimal [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`). It does **not** ship cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`) — those were previously bundled in `scalr/agent-runner`. The motivation is a smaller default image, faster pulls, and a reduced attack surface for the majority of installations that never invoke a cloud CLI from a run. Only installations whose runs invoke `aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`, or other tooling that was previously preinstalled in `scalr/agent-runner` are affected. To check, scan your Workspace hooks and Terraform/OpenTofu modules for those binaries. Installations already using a custom `image.repository` are unaffected. If affected, pick one: - Build a custom image on top of `scalr/agent` with the required tooling preinstalled (see [Custom Agent Image](README.md#custom-agent-image)) and point the chart at it:"
+        - kind: added
+          description: "Added custom CA bundle configuration (`agent.tls.caBundleSecret`, `agent.tls.caBundle`) for outbound TLS validation against the Scalr API, VCS providers, and provider registries. The bundle is mounted read-only at `/etc/ssl/certs/scalr-ca-bundle.crt` and exported via `SCALR_AGENT_CA_CERT` and `SSL_CERT_FILE`. Supports both existing Kubernetes secrets and inline PEM values; `caBundleSecret` takes precedence when both are set. `SCALR_AGENT_CA_CERT` and `SSL_CERT_FILE` are now reserved env var names and cannot be overridden via `extraEnv`."
+        - kind: added
+          description: "Added `extraVolumes` and `extraVolumeMounts` for mounting additional secrets, configMaps, or other volumes into the agent pod alongside the chart-managed ones."
+        - kind: added
+          description: "Added mTLS client certificate configuration (`agent.tls.clientCertSecret`, `agent.tls.clientCert`, `agent.tls.clientKey`) for mutual TLS authentication between the agent and Scalr. The bootstrap certificate and key are mounted read-only at `/etc/scalr-agent/ssl/` and mapped to `SCALR_AGENT_TLS_CERT_FILE` and `SCALR_AGENT_TLS_KEY_FILE`. Supports both existing Kubernetes secrets (including `kubernetes.io/tls` type) and inline PEM values. Note: mTLS is an upcoming Enterprise feature."
+        - kind: added
+          description: "Made the data directory persistence configurable. The `persistence.data` block now supports the same `enabled` / `emptyDir` / `persistentVolumeClaim` structure as `persistence.cache`, allowing the data volume to be backed by a PVC instead of `emptyDir`. Example:"
+        - kind: added
+          description: "Persistence schema is now symmetric between `persistence.data` and `persistence.cache`, matching the `agent-job` chart."
+        - kind: deprecated
+          description: "The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated in favor of `persistence.cache.enabled` and `persistence.cache.persistentVolumeClaim.*`. The legacy keys still work and the chart emits a deprecation warning via `NOTES.txt` when they are used. They will be removed in a future release."
+      artifacthub.io/displayName: Scalr Agent (Local)
+      artifacthub.io/images: |
+        - name: agent-runner
+          image: scalr/agent:1.1.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md
+    apiVersion: v2
+    appVersion: 1.1.0
+    created: "2026-06-17T17:41:40.526869509Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys a static number of agents and executes runs in shared agent pods. '
+    digest: ea975d970c2153999c050dcde4c554de2dc28499ac3feb7fb8d72175241c571d
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.6.1/agent-local-0.6.1.tgz
+    version: 0.6.1
   - apiVersion: v2
     appVersion: 1.0.5
     created: "2026-06-05T14:29:51.326057275Z"
@@ -3657,4 +3829,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
     version: 0.5.40
-generated: "2026-06-05T14:29:51.326528804Z"
+generated: "2026-06-17T17:41:40.527488972Z"
