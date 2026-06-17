@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note:** incorrectly built custom images with a modified or missing default entrypoint may be affected. If you package custom `scalr/agent` images, ensure the default entrypoint is not stripped or overridden.
 
+## [v0.6.1]
+
+### Updated
+
+- Bumping chart version to v0.6.1 for scalr-agent v1.1.0
+
 ### Added
 
 - Added a PodDisruptionBudget for task pods (`task.podDisruptionBudget`), enabled by default with `maxUnavailable: 0`. Previously only the controller had a PDB (selecting `app.kubernetes.io/component: agent`), so task pods were not covered and could be evicted mid-run by the Eviction API during node upgrades/drains — the pod-level `safe-to-evict`/`karpenter` annotations do not protect against that path, only a PDB does. With the new PDB a draining node now waits for the running task to finish on its own before evicting it. Configurable via `task.podDisruptionBudget.enabled`, `minAvailable`, and `maxUnavailable`.
