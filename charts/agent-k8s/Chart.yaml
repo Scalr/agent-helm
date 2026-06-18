@@ -7,7 +7,7 @@ type: application
 version: 0.6.1
 appVersion: 1.1.0
 home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
-icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.ico
+icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
 maintainers:
   - name: scalr
     email: packages@scalr.com
@@ -23,6 +23,9 @@ keywords:
 annotations:
   artifacthub.io/displayName: Scalr Agent (Kubernetes)
   artifacthub.io/category: integration-delivery
+  artifacthub.io/signKey: |
+    fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+    url: https://scalr.github.io/agent-helm/public-key.asc
   artifacthub.io/links: |
     - name: Documentation
       url: https://docs.scalr.io/docs/self-hosted-agents-pools
