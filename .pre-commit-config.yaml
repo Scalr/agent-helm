@@ -10,7 +10,7 @@ repos:
         pass_filenames: false
         files: ^\.github/actions/
   - repo: https://github.com/gruntwork-io/pre-commit
-    rev: v0.1.28
+    rev: v0.1.30
     hooks:
       - id: helmlint
         files: ^\.charts/
@@ -29,5 +29,13 @@ repos:
     rev: lychee-v0.24.2
     hooks:
       - id: lychee
-        args: ["--no-progress", ".", "--offline", "--include-fragments",  "--extensions", "md"]
+        args:
+          [
+            "--no-progress",
+            ".",
+            "--offline",
+            "--include-fragments",
+            "--extensions",
+            "md",
+          ]
         pass_filenames: false
