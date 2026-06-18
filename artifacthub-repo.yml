@@ -2,4 +2,5 @@ repositoryID: e2b4f51d-d305-49d0-a3de-fdab9d915576
 owners:
   - name: scalr
     email: packages@scalr.com
-ignore: []
+ignore:
+  - name: agent-docker
