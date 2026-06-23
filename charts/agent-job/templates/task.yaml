@@ -107,11 +107,11 @@ spec:
                 subPath: run/tmp
               - name: cache-dir
                 readOnly: true
-                mountPath: /opt/bin
+                mountPath: /opt/binary-cache
                 {{- if .Values.persistence.cache.enabled }}
-                subPath: {{ printf "%s/cache/bin" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+                subPath: {{ printf "%s/cache/binaries" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
-                subPath: "bin"
+                subPath: "binaries"
                 {{- end }}
               - name: cache-dir
                 readOnly: true
