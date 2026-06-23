@@ -407,6 +407,18 @@ agent:
     # @section -- Agent
     concurrency: 10
 
+  # @section -- Agent
+  binaryCache:
+    # -- Binary cache (OpenTofu, Terraform, Terragrunt, OPA, Checkov) soft size limit.
+    # The agent garbage-collects the local binary cache, evicting least-recently-used
+    # binaries once the cache exceeds this limit. The limit is soft: a binary in use by
+    # an active run is never evicted. Must be tuned according to cache directory size.
+    # @section -- Agent
+    sizeLimit: 5Gi
+    # -- Number of days a binary may remain unused before it is removed from the cache.
+    # @section -- Agent
+    thresholdDays: 10
+
   # -- Grace period in seconds before forcibly terminating the controller container.
   # @section -- Agent
   terminationGracePeriodSeconds: 180

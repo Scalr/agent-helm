@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `agent.binaryCache.sizeLimit` (default `5Gi`) and `agent.binaryCache.thresholdDays` (default `10`) to configure garbage collection of the local binary cache (OpenTofu, Terraform, Terragrunt, OPA, Checkov). Binaries unused for more than `thresholdDays` are removed, and least-recently-used binaries are evicted once the cache exceeds `sizeLimit`. The size limit is soft: a binary in use by an active run is never evicted.
+
 ### Changed
+
+- The in-container bind mount for the binary cache moved from `/opt/bin` to `/opt/binary-cache`.
 
 - The controller and worker containers now use the image's built-in `ENTRYPOINT`/`CMD` instead of the previously hard-coded `command: ["python", "-m", "tacoagent.cmd"]` in the chart. Optional overrides are available via `agent.controller.command`, `agent.controller.args`, `task.worker.command`, and `task.worker.args`, but default to empty and using the image default is recommended — overriding bypasses the image's tuned startup and may break the container or degrade its performance.
 
