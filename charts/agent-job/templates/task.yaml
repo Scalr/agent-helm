@@ -105,6 +105,8 @@ spec:
               - name: data-dir
                 mountPath: /tmp
                 subPath: run/tmp
+              # Keep legacy binary cache path for one additional release for backward
+              # compatibility with previous agent release.
               - name: cache-dir
                 readOnly: true
                 mountPath: /opt/bin
@@ -112,6 +114,14 @@ spec:
                 subPath: {{ printf "%s/cache/bin" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "bin"
+                {{- end }}
+              - name: cache-dir
+                readOnly: true
+                mountPath: /opt/binary-cache
+                {{- if .Values.persistence.cache.enabled }}
+                subPath: {{ printf "%s/cache/binaries" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
+                {{- else }}
+                subPath: "binaries"
                 {{- end }}
               - name: cache-dir
                 readOnly: true
@@ -223,6 +233,10 @@ spec:
               - name: SCALR_AGENT_MODULE_CACHE_ENABLED
                 value: "false"
               {{- end }}
+              - name: SCALR_AGENT_BINARY_CACHE_SIZE_LIMIT_MB
+                value: {{ include "agent-job.sizeToMB" .Values.agent.binaryCache.sizeLimit | quote }}
+              - name: SCALR_AGENT_BINARY_CACHE_THRESHOLD_DAYS
+                value: {{ .Values.agent.binaryCache.thresholdDays | quote }}
               {{- $telemetry := .Values.otel -}}
               {{- if and $telemetry.enabled $telemetry.endpoint }}
               - name: SCALR_AGENT_OTLP_ENDPOINT

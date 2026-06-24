@@ -109,6 +109,10 @@ spec:
             - name: SCALR_AGENT_MODULE_CACHE_ENABLED
               value: "false"
             {{- end }}
+            - name: SCALR_AGENT_BINARY_CACHE_SIZE_LIMIT_MB
+              value: {{ include "agent-job.sizeToMB" .Values.agent.binaryCache.sizeLimit | quote }}
+            - name: SCALR_AGENT_BINARY_CACHE_THRESHOLD_DAYS
+              value: {{ .Values.agent.binaryCache.thresholdDays | quote }}
             - name: SCALR_AGENT_DRIVER
               value: "kubernetes-job"
             - name: SCALR_AGENT_KUBERNETES_MODE
