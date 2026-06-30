@@ -39740,7 +39740,7 @@ const chartsDir = path.join(process.env.GITHUB_WORKSPACE, 'charts')
 const appVersion = core.getInput('app_version', { required: true })
 core.info(`The appVersion ${appVersion}`)
 
-function getCharts() {
+function getCharts () {
   const files = fs.readdirSync(chartsDir)
   const directories = files.filter((file) => {
     const filePath = path.join(chartsDir, file)
@@ -39758,12 +39758,12 @@ function getCharts() {
   return directories
 }
 
-async function getLatestReleasedVersion(chart) {
+async function getLatestReleasedVersion (chart) {
   const octokit = github.getOctokit(process.env.GITHUB_TOKEN)
   const tags = await octokit.paginate(octokit.rest.repos.listTags, {
     owner: 'Scalr',
     repo: 'agent-helm',
-    per_page: 100,
+    per_page: 100
   })
   const versions = tags
     .map(t => t.name)
@@ -39774,7 +39774,7 @@ async function getLatestReleasedVersion(chart) {
   return versions[0] || null
 }
 
-async function updateCharts(chart) {
+async function updateCharts (chart) {
   const chartPath = path.join(chartsDir, chart, 'Chart.yaml')
   const chartData = yaml.load(fs.readFileSync(chartPath, 'utf8'))
 
@@ -39791,7 +39791,7 @@ async function updateCharts(chart) {
   return chartData.version
 }
 
-function updateCHANGELOG(chart, chartNewVersion) {
+function updateCHANGELOG (chart, chartNewVersion) {
   const changelogPath = path.join(chartsDir, chart, 'CHANGELOG.md')
   const newSection = `
 ## [v${chartNewVersion}]
@@ -39806,7 +39806,7 @@ function updateCHANGELOG(chart, chartNewVersion) {
   fs.writeFileSync(changelogPath, updatedChangelog, 'utf8')
 }
 
-async function pushChanges() {
+async function pushChanges () {
   await helmDocs()
   await exec.exec('git config user.name "github-actions[bot]"')
   await exec.exec('git config user.email "github-actions[bot]@users.noreply.github.com"')
@@ -39815,11 +39815,11 @@ async function pushChanges() {
   await exec.exec('git push -u origin HEAD')
 }
 
-async function helmDocs() {
+async function helmDocs () {
   await exec.exec('helm-docs')
 }
 
-async function run() {
+async function run () {
   try {
     const charts = getCharts()
     for (const chart of charts) {
