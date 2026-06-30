@@ -33,6 +33,7 @@ rbac:
   # @section -- RBAC
   create: true
   # -- Namespaced RBAC rules granted to the controller ServiceAccount.
+  # @default -- Pods, Jobs, Deployments and Events permissions (see values.yaml)
   # @section -- RBAC
   rules:
     - apiGroups: [""]
@@ -80,6 +81,7 @@ rbac:
       resources: ["events"]
       verbs: ["list"]
   # -- Cluster-wide RBAC rules (applied via ClusterRole bound in the release namespace).
+  # @default -- Read access to scalr.io AgentTaskTemplates (see values.yaml)
   # @section -- RBAC
   clusterRules:
     - apiGroups: ["scalr.io"]
@@ -153,17 +155,20 @@ global:
     # -- Enable injection of HTTP(S) proxy settings into all agent pods.
     # @section -- Global.Proxy
     enabled: false
-    # -- HTTP proxy URL applied to all agent containers (HTTP_PROXY).
+    # -- HTTP proxy URL applied to all agent containers.
     # Example: "http://proxy.example.com:8080"
+    # <br>Exports [`HTTP_PROXY`](https://docs.scalr.io/docs/configuration#http-proxy).
     # @section -- Global.Proxy
     httpProxy: ""
-    # -- HTTPS proxy URL applied to all agent containers (HTTPS_PROXY).
+    # -- HTTPS proxy URL applied to all agent containers.
     # Example: "http://proxy.example.com:8080"
+    # <br>Exports [`HTTPS_PROXY`](https://docs.scalr.io/docs/configuration#http-proxy).
     # @section -- Global.Proxy
     httpsProxy: ""
-    # -- Comma-separated domains/IPs that bypass the proxy (NO_PROXY).
+    # -- Comma-separated list of addresses bypassing proxy routing.
     # Recommended to include Kubernetes internal domains to avoid routing cluster traffic through the proxy.
     # Example: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    # <br>Exports [`NO_PROXY`](https://docs.scalr.io/docs/configuration#http-proxy).
     # @section -- Global.Proxy
     noProxy: ""
   # -- TLS/SSL configuration for custom certificate authorities.
@@ -173,6 +178,7 @@ global:
     # This CA bundle is mounted to all agent pods and used for outbound TLS validation (e.g., Scalr API, VCS, registries).
     # The secret must exist in the same namespace as the chart installation. If both caBundleSecret.name and caBundle
     # are set, caBundleSecret takes precedence.
+    # <br>Exports [`SCALR_AGENT_CA_CERT`](https://docs.scalr.io/docs/configuration#scalr_agent_ca_cert).
     # @section -- Global.TLS
     caBundleSecret:
       # -- Name of the Kubernetes secret containing the CA bundle.
@@ -199,7 +205,7 @@ global:
     # Used for mutual TLS authentication between the agent and Scalr. The secret must exist in the same namespace
     # as the chart installation. Supports both `kubernetes.io/tls` and `Opaque` secret types.
     # If both clientCertSecret.name and clientCert/clientKey are set, clientCertSecret takes precedence.
-    # Maps to SCALR_AGENT_TLS_CERT_FILE and SCALR_AGENT_TLS_KEY_FILE environment variables.
+    # <br>Exports [`SCALR_AGENT_TLS_CERT_FILE`](https://docs.scalr.io/docs/configuration#scalr_agent_tls_cert_file) and [`SCALR_AGENT_TLS_KEY_FILE`](https://docs.scalr.io/docs/configuration#scalr_agent_tls_key_file).
     # @section -- Global.TLS
     clientCertSecret:
       # -- Name of the Kubernetes secret containing the client certificate and key.
@@ -233,10 +239,12 @@ global:
 
 # Agent deployment configuration (Kubernetes Deployment) containing the controller container (runs as UID/GID 1000).
 agent:
-  # -- The Scalr URL to connect the agent to.
+  # -- The Scalr API endpoint the agent connects to. For agent pool tokens generated after Scalr 8.162.0 this value is optional.
+  # <br>Exports [`SCALR_URL`](https://docs.scalr.io/docs/configuration#scalr_url).
   # @section -- Agent
   url: ""
-  # -- The agent pool token for authentication.
+  # -- The agent pool token for accessing the Scalr API.
+  # <br>Exports [`SCALR_AGENT_TOKEN`](https://docs.scalr.io/docs/configuration#scalr_agent_token).
   # @section -- Agent
   token: ""
   # -- Pre-existing Kubernetes secret for the Scalr Agent token.
@@ -262,19 +270,23 @@ agent:
     # @section -- Agent
     pullPolicy: IfNotPresent
 
-  # -- Enable debug logging.
+  # -- Activates debug logging output.
+  # <br>Exports [`SCALR_AGENT_DEBUG`](https://docs.scalr.io/docs/configuration#scalr_agent_debug).
   # @section -- Agent
   debug: "0"
 
   # -- The log formatter. Options: plain, dev or json. Defaults to json.
+  # <br>Exports [`SCALR_AGENT_LOG_FORMAT`](https://docs.scalr.io/docs/configuration#scalr_agent_log_format).
   # @section -- Agent
   logFormat: "json"
 
-  # -- Sentry DSN for error tracking. Leave empty to disable.
+  # -- Sentry DSN for error reporting integration. Leave empty to disable.
+  # <br>Exports [`SCALR_AGENT_SENTRY_DSN`](https://docs.scalr.io/docs/configuration#scalr_agent_sentry_dsn).
   # @section -- Agent
   sentryDsn: ""
 
   # -- Additional environment variables for agent controller and worker containers.
+  # Meant only for rare workarounds — do not use it to configure the agent (see the warning above the values table).
   # @section -- Agent
   extraEnv: {}
 
@@ -358,6 +370,7 @@ agent:
     # @section -- Agent
     args: []
     # -- Additional environment variables for the controller container only.
+    # Meant only for rare workarounds — do not use it to configure the agent (see the warning above the values table).
     # @section -- Agent
     extraEnv: []
     # -- Additional environment variable sources for the controller container.
@@ -369,41 +382,49 @@ agent:
 
   # -- Data directory where the agent stores workspace data (configuration versions, modules, and providers).
   # This directory must be readable, writable, and executable.
+  # <br>Exports [`SCALR_AGENT_DATA_DIR`](https://docs.scalr.io/docs/configuration#scalr_agent_data_dir).
   # @section -- Agent
   dataDir: "/var/lib/scalr-agent/data"
 
   # -- Cache directory where the agent stores provider binaries, plugin cache, and metadata.
   # This directory must be readable, writable, and executable.
+  # <br>Exports [`SCALR_AGENT_CACHE_DIR`](https://docs.scalr.io/docs/configuration#scalr_agent_cache_dir).
   # @section -- Agent
   cacheDir: "/var/lib/scalr-agent/cache"
 
   # @section -- Agent
   providerCache:
     # -- Enable provider caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory.
+    # <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_ENABLED`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_enabled).
     # @section -- Agent
     enabled: false
     # -- Provider cache soft limit. Must be tuned according to cache directory size.
+    # <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_SIZE_LIMIT_MB`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_size_limit_mb).
     # @section -- Agent
     sizeLimit: 40Gi
     # -- Maximum number of threads used for provider installations. This value is global for
     # the Scalr service and applies across all concurrent runs. Increasing it will increase
     # resource consumption and may improve provider installation speed, but the effect depends
     # on individual setups.
+    # <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_CONCURRENCY`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_concurrency).
     # @section -- Agent
     concurrency: 10
 
   # @section -- Agent
   moduleCache:
     # -- Enable module caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory.
+    # <br>Exports [`SCALR_AGENT_MODULE_CACHE_ENABLED`](https://docs.scalr.io/docs/configuration#scalr_agent_module_cache_enabled).
     # @section -- Agent
     enabled: false
     # -- Module cache soft limit. Must be tuned according to cache directory size.
+    # <br>Exports [`SCALR_AGENT_MODULE_CACHE_SIZE_LIMIT_MB`](https://docs.scalr.io/docs/configuration#scalr_agent_module_cache_size_limit_mb).
     # @section -- Agent
     sizeLimit: 40Gi
     # -- Maximum number of threads used for module cache operations (initialization and caching).
     # This value is global for the Scalr service and applies across all concurrent runs.
     # Increasing it will increase resource consumption and may improve module cache speed,
     # but the effect depends on individual setups.
+    # <br>Exports [`SCALR_AGENT_MODULE_CACHE_CONCURRENCY`](https://docs.scalr.io/docs/configuration#scalr_agent_module_cache_concurrency).
     # @section -- Agent
     concurrency: 10
 
@@ -413,13 +434,17 @@ agent:
     # The agent garbage-collects the local binary cache, evicting least-recently-used
     # binaries once the cache exceeds this limit. The limit is soft: a binary in use by
     # an active run is never evicted. Must be tuned according to cache directory size.
+    # <br>Exports `SCALR_AGENT_BINARY_CACHE_SIZE_LIMIT_MB`.
     # @section -- Agent
     sizeLimit: 5Gi
     # -- Number of days a binary may remain unused before it is removed from the cache.
+    # <br>Exports `SCALR_AGENT_BINARY_CACHE_THRESHOLD_DAYS`.
     # @section -- Agent
     thresholdDays: 10
 
   # -- Grace period in seconds before forcibly terminating the controller container.
+  # Sets the controller worker shutdown timeout in seconds for graceful SIGTERM shutdown before SIGKILL.
+  # <br>Exports [`SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`](https://docs.scalr.io/docs/configuration#scalr_agent_worker_grace_shutdown_timeout).
   # @section -- Agent
   terminationGracePeriodSeconds: 180
 
@@ -505,12 +530,15 @@ task:
   sidecars: []
 
   # -- Grace period in seconds before forcibly terminating task job containers.
+  # Sets the worker shutdown timeout in seconds for graceful SIGTERM shutdown before SIGKILL.
+  # <br>Exports [`SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`](https://docs.scalr.io/docs/configuration#scalr_agent_worker_grace_shutdown_timeout).
   # @section -- Task
   terminationGracePeriodSeconds: 360
 
   # -- Maximum time in seconds for the agent worker container to become ready
   # and begin Scalr run execution. If the pod does not start within this period,
   # the controller fails the Scalr run and deletes the job.
+  # <br>Exports `SCALR_AGENT_KUBERNETES_TASK_STARTUP_TIMEOUT_SECONDS`.
   # @section -- Task
   startupTimeoutSeconds: 180
 
@@ -537,6 +565,7 @@ task:
         memory: 1024Mi
 
     # -- Additional environment variables for the worker container (merged with agent.extraEnv).
+    # Meant only for rare workarounds — do not use it to configure the agent (see the warning above the values table).
     # @section -- Task
     extraEnv: {}
 
@@ -583,6 +612,7 @@ task:
     # Have no effect when task.runner.resources.limits.memory is not set.
     # For example, when task.runner.resources.limits.memory is set to 1000Mi and memorySoftLimitPercent is 80%,
     # the workload will be gracefully terminated when memory usage reaches 800Mi.
+    # <br>Exports `SCALR_AGENT_MEMORY_MONITOR_SOFT_LIMIT_PERCENT`.
     # @section -- Task
     memorySoftLimitPercent: 80
 
@@ -591,10 +621,12 @@ task:
     # the workload is at risk of being terminated due to high memory usage. The warning is reported
     # after the run completes.
     # Has no effect when task.runner.memorySoftLimitPercent or task.runner.resources.limits.memory are not set.
+    # <br>Exports `SCALR_AGENT_MEMORY_MONITOR_WARN_PERCENT`.
     # @section -- Task
     memoryWarnPercent: 90
 
     # -- Additional environment variables for the runner container.
+    # Meant only for rare workarounds — do not use it to configure the agent (see the warning above the values table).
     # @section -- Task
     extraEnv: {}
 
@@ -711,11 +743,14 @@ otel:
   # @section -- OpenTelemetry
   enabled: false
   # -- Collect and export metrics.
+  # <br>Exports [`SCALR_AGENT_OTLP_METRICS_ENABLED`](https://docs.scalr.io/docs/configuration#scalr_agent_otlp_metrics_enabled).
   # @section -- OpenTelemetry
   metricsEnabled: true
   # -- Collect and export traces.
+  # <br>Exports [`SCALR_AGENT_OTLP_TRACES_ENABLED`](https://docs.scalr.io/docs/configuration#scalr_agent_otlp_traces_enabled).
   # @section -- OpenTelemetry
   tracesEnabled: false
-  # -- OpenTelemetry collector endpoint.
+  # -- Host:port address of the OpenTelemetry collector gRPC server.
+  # <br>Exports [`SCALR_AGENT_OTLP_ENDPOINT`](https://docs.scalr.io/docs/configuration#scalr_agent_otlp_endpoint).
   # @section -- OpenTelemetry
   endpoint: "http://otel-collector:4317"

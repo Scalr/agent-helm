@@ -1,3 +1,49 @@
+{{- /*
+  Custom markdown values table: keeps GitHub-rendered markdown in descriptions
+  (the "Exports" links and inline code) while rendering long JSON object/list
+  defaults as multiline <pre> blocks so the Default column stays narrow.
+*/ -}}
+{{- define "scalr.defaultCell" -}}
+{{- $val := .Default -}}
+{{- if hasPrefix "`" $val -}}
+{{- $raw := trimAll "`" $val -}}
+{{- if or (hasPrefix "{" $raw) (hasPrefix "[" $raw) -}}
+<pre>{{ $raw | fromJson | toPrettyJson | replace "&" "&amp;" | replace "<" "&lt;" | replace "\n" "<br>" | replace " " "&nbsp;" }}</pre>
+{{- else -}}`{{ $raw }}`{{- end -}}
+{{- else -}}
+{{ $val }}
+{{- end -}}
+{{- end -}}
+
+{{- define "scalr.valuesTableRows" -}}
+{{- range . }}
+| {{ .Key }} | {{ .Type }} | {{ template "scalr.defaultCell" . }} | {{ if .Description }}{{ .Description }}{{ else }}{{ .AutoDescription }}{{ end }} |
+{{- end }}
+{{- end -}}
+
+{{- define "chart.valuesTable" -}}
+{{- if .Sections.Sections -}}
+{{- range .Sections.Sections }}
+### {{ .SectionName }}
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- template "scalr.valuesTableRows" .SectionItems }}
+{{ end }}
+{{- if .Sections.DefaultSection.SectionItems }}
+### {{ .Sections.DefaultSection.SectionName }}
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- template "scalr.valuesTableRows" .Sections.DefaultSection.SectionItems }}
+{{ end }}
+{{- else -}}
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- template "scalr.valuesTableRows" .Values }}
+{{- end -}}
+{{- end -}}
+
 {{ template "chart.header" . }}
 {{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
 
@@ -29,6 +75,8 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Custom Resource Definitions](#custom-resource-definitions)
 - [Planned Changes](#planned-changes)
 - [Troubleshooting and Support](#troubleshooting-and-support)
+- [Configuration](#configuration)
+- [Maintainers](#maintainers)
 
 ## Prerequisites
 
@@ -627,7 +675,7 @@ otel:
   tracesEnabled: false  # Optional: enable distributed tracing
 ```
 
-See [all configuration options](#values).
+See [all configuration options](#configuration).
 
 Learn more about [available metrics](https://docs.scalr.io/docs/metrics).
 
@@ -823,10 +871,23 @@ kubectl logs -n <namespace> <task-pod-name> --all-containers
 For issues not covered above, or if you need additional assistance, open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
 For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting#creating-a-support-ticket on how to gather the right information to speed up issue resolution.
 
-{{ template "chart.maintainersSection" . }}
-
 {{ template "chart.requirementsSection" . }}
 
-{{ template "chart.valuesSection" . }}
+## Configuration
+
+The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values file. Each value has a sensible default for a standard deployment.
+
+The Scalr Agent process itself reads its configuration from `SCALR_AGENT_*` environment variables, described in the [Scalr Agent configuration reference](https://docs.scalr.io/docs/configuration). This chart translates the relevant Helm values into those variables for you.
+
+Where a value controls one of these agent variables, its description carries an "Exports" note that links the reference (where the variable is documented). The note is informational only — always configure the agent through the Helm values, not by setting the agent variables yourself.
+
+For variables that have no dedicated value, the chart exposes `agent.extraEnv` (and the per-container `agent.controller.extraEnv` / `task.worker.extraEnv` / `task.runner.extraEnv`).
+
+> [!WARNING]
+> `extraEnv` is meant only for rare workarounds, not for configuring the agent. Setting `SCALR_AGENT_*` variables by hand bypasses related chart logic (a dedicated value often does more — e.g. the cache persistence options are coupled with volume provisioning) and may break `helm upgrade`. If a setting has no dedicated value, open an issue.
+
+{{ template "chart.valuesTable" . }}
+
+{{ template "chart.maintainersSection" . }}
 
 {{ template "helm-docs.versionFooter" . }}

@@ -1,3 +1,49 @@
+{{- /*
+  Custom markdown values table: keeps GitHub-rendered markdown in descriptions
+  (links and inline code) while rendering JSON object/list defaults as multiline
+  <pre> blocks so the Default column stays narrow.
+*/ -}}
+{{- define "scalr.defaultCell" -}}
+{{- $val := .Default -}}
+{{- if hasPrefix "`" $val -}}
+{{- $raw := trimAll "`" $val -}}
+{{- if or (hasPrefix "{" $raw) (hasPrefix "[" $raw) -}}
+<pre>{{ $raw | fromJson | toPrettyJson | replace "&" "&amp;" | replace "<" "&lt;" | replace "\n" "<br>" | replace " " "&nbsp;" }}</pre>
+{{- else -}}`{{ $raw }}`{{- end -}}
+{{- else -}}
+{{ $val }}
+{{- end -}}
+{{- end -}}
+
+{{- define "scalr.valuesTableRows" -}}
+{{- range . }}
+| {{ .Key }} | {{ .Type }} | {{ template "scalr.defaultCell" . }} | {{ if .Description }}{{ .Description }}{{ else }}{{ .AutoDescription }}{{ end }} |
+{{- end }}
+{{- end -}}
+
+{{- define "chart.valuesTable" -}}
+{{- if .Sections.Sections -}}
+{{- range .Sections.Sections }}
+### {{ .SectionName }}
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- template "scalr.valuesTableRows" .SectionItems }}
+{{ end }}
+{{- if .Sections.DefaultSection.SectionItems }}
+### {{ .Sections.DefaultSection.SectionName }}
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- template "scalr.valuesTableRows" .Sections.DefaultSection.SectionItems }}
+{{ end }}
+{{- else -}}
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- template "scalr.valuesTableRows" .Values }}
+{{- end -}}
+{{- end -}}
+
 {{ template "chart.header" . }}
 {{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
 
@@ -10,7 +56,6 @@
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
 - [Versioning Policy](#versioning-policy)
-- [Configuration](#configuration)
 - [Custom Certificate Authorities](#custom-certificate-authorities)
 - [Mutual TLS (mTLS)](#mutual-tls-mtls)
 - [Custom Agent Image](#custom-agent-image)
@@ -20,6 +65,8 @@
 - [Network Requirements](#network-requirements)
 - [Termination](#termination)
 - [Troubleshooting](#troubleshooting)
+- [Configuration](#configuration)
+- [Maintainers](#maintainers)
 
 ## Prerequisites
 
@@ -37,7 +84,7 @@ $ helm repo add scalr-charts https://scalr.github.io/agent-helm/
 $ helm install scalr-agent scalr-charts/agent-local --set agent.token="<agent-token>"
 ```
 
-_See [configuration](#values) below._
+_See [configuration](#configuration) below._
 
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
@@ -48,7 +95,7 @@ provider and binary caching. Storage can optionally be upgraded to persistent vo
 cache persistence across pod restarts.
 
 The chart uses the `local` Scalr Agent driver, where all operations are executed in local subprocesses.
-As a result, it uses the `scalr/agent` image as the base environment for runs instead of [scalr/runner](https://docs.scalr.io/docs/self-hosted-agents-pools#golden-image-beta) image.
+As a result, it uses the `scalr/agent` image as the base environment for runs instead of [scalr/runner](https://docs.scalr.io/docs/run-environment#runner-image) image.
 
 The concurrency of each agent instance is limited to 1. To scale concurrency, the recommended approach is to increase the `replicaCount`.
 
@@ -81,18 +128,6 @@ Each new agent release triggers a new chart release with an updated `appVersion`
 
 > [!WARNING]
 > Overriding `appVersion` to a version other than the one shipped with the chart is not recommended. Releases are tested and coordinated with a specific agent version, and mismatched combinations may include breaking changes between application and infrastructure code.
-
-## Configuration
-
-The Scalr Agent is configured using environment variables, which can be set using the `extraEnv` option in the Helm chart.
-
-```console
-$ helm install ...
-  --set extraEnv.SCALR_AGENT_DEBUG=1 \
-  --set extraEnv.HTTPS_PROXY="http://myproxy.com:3128"
-```
-
-See all available configuration options - https://docs.scalr.io/docs/configuration
 
 ## Custom Certificate Authorities
 
@@ -508,14 +543,30 @@ mkdir -p logs && for pod in $(kubectl get pods -n $ns -o name); do kubectl logs 
 
 It's best to pull the logs immediately after an incident, since this command will not retrieve logs from restarted or terminated pods.
 
+{{ template "chart.requirementsSection" . }}
+
+## Configuration
+
+The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values file.
+
+The Scalr Agent process itself reads its configuration from `SCALR_AGENT_*` environment variables, documented in the [Scalr Agent configuration reference](https://docs.scalr.io/docs/configuration). Pass any of them to the agent through the `extraEnv` value:
+
+```console
+$ helm install scalr-agent scalr-charts/agent-local \
+  --set agent.token="<agent-token>" \
+  --set extraEnv.SCALR_AGENT_DEBUG=1 \
+  --set extraEnv.HTTPS_PROXY="http://myproxy.com:3128"
+```
+
+> [!NOTE]
+> A few variables are managed by the chart and are rejected if set through `extraEnv` (the chart render fails and lists them): `SCALR_AGENT_NAME`, `SCALR_URL`, `SCALR_AGENT_TOKEN`, `SCALR_AGENT_DRIVER`, `SCALR_AGENT_CONCURRENCY`, `SCALR_AGENT_DISCONNECT_ON_STOP`, `SCALR_AGENT_WORKER_ON_STOP_ACTION`, `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`, `SCALR_AGENT_DATA_DIR`, `SCALR_AGENT_CA_CERT`, and `SSL_CERT_FILE`. Use the dedicated Helm values for those.
+
+{{ template "chart.valuesTable" . }}
+
 ---
 
 **Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-local>
 
 {{ template "chart.maintainersSection" . }}
-
-{{ template "chart.requirementsSection" . }}
-
-{{ template "chart.valuesSection" . }}
 
 {{ template "helm-docs.versionFooter" . }}
