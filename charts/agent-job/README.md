@@ -829,16 +829,16 @@ For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting
 
 ## Configuration
 
-The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values file. Each value has a sensible default for a standard deployment.
+The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values YAML file. Each value has a sensible default for a standard deployment.
 
 The Scalr Agent process itself reads its configuration from `SCALR_AGENT_*` environment variables, described in the [Scalr Agent configuration reference](https://docs.scalr.io/docs/configuration). This chart translates the relevant Helm values into those variables for you.
 
 Where a value controls one of these agent variables, its description carries an "Exports" note that links the reference (where the variable is documented). The note is informational only — always configure the agent through the Helm values, not by setting the agent variables yourself.
 
-For variables that have no dedicated value, the chart exposes `agent.extraEnv` (and the per-container `agent.controller.extraEnv` / `task.worker.extraEnv` / `task.runner.extraEnv`).
+The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extraEnv` / `task.worker.extraEn`v / `task.runner.extraEnv`), which can extend the environment variables passed to the containers.
 
 > [!WARNING]
-> `extraEnv` is meant only for rare workarounds, not for configuring the agent. Setting `SCALR_AGENT_*` variables by hand bypasses related chart logic (a dedicated value often does more — e.g. the cache persistence options are coupled with volume provisioning) and may break `helm upgrade`. If a setting has no dedicated value, open an issue.
+> `agent.extraEnv` is meant only for exceptional cases and should not be used as the main configuration mechanism for the agent. Setting `SCALR_AGENT_*` variables by hand bypasses related chart logic (a dedicated value often does more — e.g., the cache persistence options are coupled with volume provisioning) and may break helm upgrade. If a setting has no dedicated value, open an issue.
 
 ### Agent
 

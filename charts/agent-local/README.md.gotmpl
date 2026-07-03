@@ -547,7 +547,7 @@ It's best to pull the logs immediately after an incident, since this command wil
 
 ## Configuration
 
-The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values file.
+The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values YAML file.
 
 The Scalr Agent process itself reads its configuration from `SCALR_AGENT_*` environment variables, documented in the [Scalr Agent configuration reference](https://docs.scalr.io/docs/configuration). Pass any of them to the agent through the `extraEnv` value:
 
@@ -559,7 +559,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 ```
 
 > [!NOTE]
-> A few variables are managed by the chart and are rejected if set through `extraEnv` (the chart render fails and lists them): `SCALR_AGENT_NAME`, `SCALR_URL`, `SCALR_AGENT_TOKEN`, `SCALR_AGENT_DRIVER`, `SCALR_AGENT_CONCURRENCY`, `SCALR_AGENT_DISCONNECT_ON_STOP`, `SCALR_AGENT_WORKER_ON_STOP_ACTION`, `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`, `SCALR_AGENT_DATA_DIR`, `SCALR_AGENT_CA_CERT`, and `SSL_CERT_FILE`. Use the dedicated Helm values for those.
+> Some variables are managed by the chart and are rejected if set through `extraEnv` (the chart render fails and lists them): `SCALR_AGENT_NAME`, `SCALR_URL`, `SCALR_AGENT_TOKEN`, `SCALR_AGENT_DRIVER`, `SCALR_AGENT_CONCURRENCY`, `SCALR_AGENT_DISCONNECT_ON_STOP`, `SCALR_AGENT_WORKER_ON_STOP_ACTION`, `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`, `SCALR_AGENT_DATA_DIR`, `SCALR_AGENT_CA_CERT`, and `SSL_CERT_FILE`. Use the dedicated Helm values for those.
 
 {{ template "chart.valuesTable" . }}
 
