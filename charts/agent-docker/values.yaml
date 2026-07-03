@@ -33,8 +33,7 @@ docker:
 
 # -- Additional environment variables for agent containers.
 # For example, use this to add an agent configuration variable or set up an HTTP proxy.
-# See the full list of configuration options here:
-# https://docs.scalr.io/docs/self-hosted-agents-pools#docker--vm-deployments.
+# See the full list of configuration options here: https://docs.scalr.io/docs/configuration
 extraEnv: {}
 #   HTTPS_PROXY: "http://myproxy.com:3128"
 #   HTTP_PROXY: "http://myproxy.com:3128"

@@ -1,4 +1,4 @@
-.PHONY: docs
+.PHONY: docs linkcheck
 
 # Configure development environment
 platform = $(shell uname -s)
@@ -38,7 +38,7 @@ dev:
 	helm version; \
 	echo "$(kelik) Installed helm";
 # Install [helm-docs](https://github.com/norwoodj/helm-docs#installation)
-	version="1.11.0"; \
+	version="1.14.2"; \
 	set -e; \
 	echo "=> Installing helm-docs..."; \
 	case $(arch) in \
@@ -98,9 +98,24 @@ dev:
 	npm --prefix .github/actions install
 
 
-# Generate documentation using helm-docs
+# Generate documentation using helm-docs (requires helm-docs >= 1.14)
 docs:
+	@command -v helm-docs >/dev/null 2>&1 || { echo "helm-docs not found. Run 'make dev' to install it."; exit 1; }; \
+	ver=$$(helm-docs --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1); \
+	major=$$(echo $$ver | cut -d. -f1); \
+	minor=$$(echo $$ver | cut -d. -f2); \
+	if [ "$$major" -lt 1 ] || { [ "$$major" -eq 1 ] && [ "$$minor" -lt 14 ]; }; then \
+		echo "helm-docs >= 1.14 required, found $$ver. Run 'make dev' to install a compatible version."; \
+		exit 1; \
+	fi
 	helm-docs
+
+# Check documentation links online, including remote URL fragments/anchors.
+# Unlike the pre-commit lychee hook (which runs --offline and skips remote URLs),
+# this fetches external links and verifies their anchors. Requires network access.
+lychee:
+	@command -v lychee >/dev/null 2>&1 || { echo "lychee not found. See https://github.com/lycheeverse/lychee#installation"; exit 1; }
+	lychee --no-progress --include-fragments --extensions md .
 
 # Linting
 lint:
