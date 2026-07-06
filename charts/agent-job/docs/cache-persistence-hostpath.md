@@ -69,10 +69,7 @@ The same three requirements apply; the concrete paths differ per node OS. For ex
 
 The node path must be prepared on every node before agents can use it: the chart's pods run as a non-root user, Kubernetes does not apply `fsGroup` to hostPath volumes, and a freshly created directory is root-owned. The DaemonSet below is **cluster-level infrastructure**: install it once per cluster, and every agent release pointing at the same path shares it. It is deliberately not part of the chart, so multiple releases do not each manage a copy.
 
-On each matching node the DaemonSet:
-
-1. Recursively sets ownership of the cache directory to the agent user/group and permissions to `0775`
-2. Hands off to the agent's cache garbage collector when the agent image provides one, otherwise idles
+On each matching node the DaemonSet must recursively sets ownership of the cache directory to the agent user/group and permissions to `0775`
 
 Create a file named `scalr-agent-cache-init.yaml`:
 
@@ -112,7 +109,7 @@ spec:
             - name: CACHE_GID
               value: "1000"  # REPLACE only if you override the chart's podSecurityContext group
             - name: CACHE_DIR
-              value: /scalr-agent-cache  # in-container mount of the cache, used by the GC entrypoint
+              value: /scalr-agent-cache  # in-container mount of the cache
           command:
             - /bin/sh
             - -ec
@@ -235,7 +232,6 @@ Unlike the RWX setups, `used from cache` is expected per node: a run landing on 
 ## Operational Notes
 
 - **No size enforcement.** Nothing caps the cache at the volume level. Use the agent-side limits (`agent.providerCache.sizeLimit`, `agent.binaryCache.sizeLimit` — both per node) and size the disk with headroom, or the node risks disk-pressure eviction.
-- **Cache garbage collection is per-node.** GC tasks operate on the cache of the node they run on. With many nodes, expect uneven cache sizes; the disk must tolerate the worst case.
 - **Node replacement is free cleanup.** The cache lives and dies with the node — autoscaled or upgraded-away nodes take their cache with them, and new nodes start cold.
 
 ## Troubleshooting
