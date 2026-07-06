@@ -70,7 +70,7 @@ gcloud container node-pools create scalr-agents-ssd \
 
 The node path must be prepared on every node before agents can use it: the chart's pods run as a non-root user, Kubernetes does not apply `fsGroup` to hostPath volumes, and a freshly created directory is root-owned. The DaemonSet below is **cluster-level infrastructure**: install it once per cluster, and every agent release pointing at the same path shares it. It is deliberately not part of the chart, so multiple releases do not each manage a copy.
 
-On each matching node the DaemonSet must recursively sets ownership of the cache directory to the agent user/group and permissions to `0775`
+On each matching node, the DaemonSet recursively sets ownership of the cache directory to the agent user/group and permissions to `0775`.
 
 Create a file named `scalr-agent-cache-init.yaml`:
 
@@ -227,7 +227,7 @@ Unlike the RWX setups, `used from cache` is expected per node: a run landing on 
 ## Security Considerations
 
 - `hostPath` volumes are forbidden by the Pod Security Admission `baseline` and `restricted` profiles; the namespace must run at the `privileged` level or carry a policy exemption. Gatekeeper/OPA and Kyverno installations often restrict `hostPath` as well — allowlist the cache path if needed.
-- The node-preparation container is the only piece that runs as root (it must chown the node directory). The manifest in Step 2 is hardened: all capabilities dropped except `CHOWN`/`FOWNER`/`DAC_OVERRIDE`, no privilege escalation, read-only root filesystem, no service account token. Since it is cluster infrastructure you install yourself, it can live in an infra namespace (e.g. `kube-system`) with a permissive policy, keeping the agent namespace's policy surface smaller.
+- The node-preparation container is the only piece that runs as root (it must chown the node directory). The manifest in Step 2 have dropped capabilities except `CHOWN`/`FOWNER`/`DAC_OVERRIDE`, read-only root filesystem, no service account token. Since it is cluster infrastructure you install yourself, it can live in an infra namespace (e.g. `kube-system`) with a permissive policy, keeping the agent namespace's policy surface smaller.
 - The agent and runner containers keep running as the regular non-root user; the hostPath directory is made group-writable for them by the preparation step.
 
 ## Operational Notes
