@@ -113,8 +113,6 @@ spec:
               value: "1000"  # REPLACE only if you override the chart's podSecurityContext group
             - name: CACHE_DIR
               value: /scalr-agent-cache  # in-container mount of the cache, used by the GC entrypoint
-            - name: GC_BIN
-              value: /cache-gc/cache-gc  # GC entrypoint inside the mounted agent image
           command:
             - /bin/sh
             - -ec
