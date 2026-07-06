@@ -711,8 +711,9 @@ persistence:
     enabled: false
 
     # -- Node-local disk (hostPath) configuration for the cache directory.
-    # Enabled by setting `hostPath.path`: when set, the cache volume is a hostPath mount
-    # and takes precedence over `persistentVolumeClaim` and `emptyDir`; no PVC is created.
+    # Enabled by setting `hostPath.path`: when set, task pods mount the cache from the
+    # node path, taking precedence over `persistentVolumeClaim` and `emptyDir`, while
+    # the controller keeps an ephemeral (`emptyDir`) cache volume.
     # Intended for local SSDs or sized boot disks: much faster than any network volume,
     # but the cache is per-node and not shared across nodes. Note that hostPath volumes
     # are forbidden under the PSA `baseline`/`restricted` profiles.
@@ -721,11 +722,11 @@ persistence:
     # [hostPath cache guide](docs/cache-persistence-hostpath.md).
     # @section -- Persistence
     hostPath:
-      # -- Absolute path on the node backing the cache. Empty (default) disables the
-      # hostPath cache; setting it enables it. On GKE node pools with local SSDs, use a
-      # subdirectory of the SSD mount, e.g. `/mnt/disks/ssd0/scalr-agent-cache`. The path
-      # must be on a real disk with enough space, not on a `noexec` mount, and not reserved
-      # by other node agents — see [choosing the node path](docs/cache-persistence-hostpath.md#step-1-choose-the-node-path).
+      # -- Absolute path on the node backing the cache. Empty (default) keeps the
+      # hostPath cache disabled, and setting a path enables it. The directory must be
+      # readable, writable, and executable for the agent user, and backed by a real disk
+      # with enough space — see [choosing the node path](docs/cache-persistence-hostpath.md#step-1-choose-the-node-path)
+      # for platform-specific recommendations.
       # @section -- Persistence
       path: ""
       # -- hostPath [type](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath-volume-types).

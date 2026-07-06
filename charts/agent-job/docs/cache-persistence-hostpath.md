@@ -20,7 +20,7 @@ Stay with a RWX PVC when you want a single warm cache cluster-wide, or when your
 
 With `persistence.cache.hostPath.path` set:
 
-- The `cache-dir` volume in the controller and every task pod becomes a `hostPath` mount of `persistence.cache.hostPath.path`. It takes precedence over `persistentVolumeClaim` and `emptyDir`, and no PVC is created.
+- The `cache-dir` volume in every task pod becomes a `hostPath` mount of `persistence.cache.hostPath.path`, taking precedence over `persistentVolumeClaim` and `emptyDir`. The controller pod keeps an ephemeral cache volume, so its placement is unconstrained by the cache disk.
 - The persistent cache subPath layout (`cache/binaries`, `cache/providers`, etc.) applies exactly as in the PVC case, so the worker and runner containers share the same per-node directory tree.
 - The node path must be prepared before use: made writable by the non-root agent user (Kubernetes does not apply `fsGroup` to hostPath volumes). This is handled by a small node-preparation DaemonSet that is **installed once per cluster, separately from the chart** — node preparation is cluster-level infrastructure, shared by every agent release that uses the same path, not something each release should manage. See [Step 2](#step-2-deploy-the-node-preparation-daemonset-cluster-wide).
 
@@ -63,14 +63,14 @@ gcloud container node-pools create scalr-agents-ssd \
   --cluster {cluster-name} \
   --zone {zone} \
   --local-ssd-count 1 \
-  --machine-type n2-standard-8  # REPLACE: your machine type; local SSD support varies by machine family
+  --machine-type n2-standard-8  # REPLACE: your machine type (local SSD support varies by machine family)
 ```
 
 ## Step 2: Deploy the Node-Preparation DaemonSet (cluster-wide)
 
 The node path must be prepared on every node before agents can use it: the chart's pods run as a non-root user, Kubernetes does not apply `fsGroup` to hostPath volumes, and a freshly created directory is root-owned. The DaemonSet below is **cluster-level infrastructure**: install it once per cluster, and every agent release pointing at the same path shares it. It is deliberately not part of the chart, so multiple releases do not each manage a copy.
 
-On each matching node, the DaemonSet recursively sets ownership of the cache directory to the agent user/group and permissions to `0775`.
+On each matching node, the DaemonSet recursively sets ownership of the cache directory to the agent user/group and permissions to `2775`. The setgid bit (`2`) matters: when Kubernetes mounts a `subPath` that does not exist yet, the kubelet creates the missing directory owned by `root` without applying `fsGroup` — with setgid on the parent, such directories inherit the agent group and stay group-writable. This keeps the preparation independent of the chart's internal cache layout.
 
 Create a file named `scalr-agent-cache-init.yaml`:
 
@@ -116,7 +116,10 @@ spec:
             - -ec
             - |
               echo "preparing host cache directory ${HOST_PATH} (uid=${CACHE_UID} gid=${CACHE_GID})"
-              chmod -R 0775 "${CACHE_DIR}"
+              # 2775: the setgid bit makes any directory later created by the kubelet
+              # (missing subPath) or by root tooling inherit the agent group and stay
+              # group-writable, independent of the chart's directory layout.
+              chmod -R 2775 "${CACHE_DIR}"
               chown -R "${CACHE_UID}:${CACHE_GID}" "${CACHE_DIR}"
               echo "host cache directory ${HOST_PATH} ready"
               while true; do sleep 3600; done
@@ -167,7 +170,7 @@ To re-run preparation (e.g. after fixing a node, or changing the agent uid/gid):
 kubectl rollout restart daemonset/scalr-agent-cache-init -n kube-system
 ```
 
-If you already pre-provision node directories via node startup scripts or your own tooling, you can skip this step — but make sure your provisioning covers ownership, permissions, and the exec requirement.
+If you already pre-provision node directories via node startup scripts or your own tooling, you can skip this step — but make sure your provisioning covers ownership, the setgid permissions (`2775`), and the exec requirement.
 
 ## Step 3: Configure the Scalr Agent Helm Chart
 
@@ -204,7 +207,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
 ```
 
 > [!NOTE]
-> When `hostPath.path` is set it takes precedence: `persistence.cache.enabled` (PVC mode) is ignored for the cache volume and no PVC is created. Multiple agent releases may point at the same node path — they share the per-node cache and the same node-preparation DaemonSet.
+> When `hostPath.path` is set it takes precedence: task pods mount the cache from the node path even when `persistence.cache.enabled` (PVC mode) is on. Multiple agent releases may point at the same node path — they share the per-node cache and the same node-preparation DaemonSet.
 
 ## Step 4: Verify the Cache is Functioning
 
@@ -226,13 +229,13 @@ Unlike the RWX setups, `used from cache` is expected per node: a run landing on 
 
 ## Security Considerations
 
-- `hostPath` volumes are forbidden by the Pod Security Admission `baseline` and `restricted` profiles; the namespace must run at the `privileged` level or carry a policy exemption. Gatekeeper/OPA and Kyverno installations often restrict `hostPath` as well — allowlist the cache path if needed.
-- The node-preparation container is the only piece that runs as root (it must chown the node directory). The manifest in Step 2 have dropped capabilities except `CHOWN`/`FOWNER`/`DAC_OVERRIDE`, read-only root filesystem, no service account token. Since it is cluster infrastructure you install yourself, it can live in an infra namespace (e.g. `kube-system`) with a permissive policy, keeping the agent namespace's policy surface smaller.
-- The agent and runner containers keep running as the regular non-root user; the hostPath directory is made group-writable for them by the preparation step.
+- `hostPath` volumes are forbidden by the Pod Security Admission `baseline` and `restricted` profiles — the namespace must run at the `privileged` level or carry a policy exemption. Gatekeeper/OPA and Kyverno installations often restrict `hostPath` as well — allowlist the cache path if needed.
+- The node-preparation container is the only piece that runs as root (it must chown the node directory). The manifest in Step 2 has all capabilities dropped except `CHOWN`/`FOWNER`/`DAC_OVERRIDE`, a read-only root filesystem, and no service account token. Since it is cluster infrastructure you install yourself, it can live in an infra namespace (e.g. `kube-system`) with a permissive policy, keeping the agent namespace's policy surface smaller.
+- The agent and runner containers keep running as the regular non-root user, and the preparation step makes the hostPath directory group-writable for them.
 
 ## Operational Notes
 
-- **No size enforcement.** Nothing caps the cache at the volume level. Use the agent-side limits (`agent.providerCache.sizeLimit`, `agent.binaryCache.sizeLimit` — both per node) and size the disk with headroom, or the node risks disk-pressure eviction.
+- **No size enforcement.** Nothing caps the cache at the volume level. Size the disk with generous headroom, or the node risks disk-pressure eviction.
 - **Node replacement is free cleanup.** The cache lives and dies with the node — autoscaled or upgraded-away nodes take their cache with them, and new nodes start cold.
 
 ## Troubleshooting
@@ -252,7 +255,7 @@ Fix: use a node pool with local SSDs, or point `persistence.cache.hostPath.path`
 
 ### Runs fail with `fork/exec ... permission denied`
 
-The path is on a `noexec` mount, or ownership was never fixed. Check the `scalr-agent-cache-init` pod log on the affected node; if you provision nodes yourself instead of using the Step 2 DaemonSet, verify your provisioning covers exec and ownership.
+The path is on a `noexec` mount, or ownership was never fixed. Check the `scalr-agent-cache-init` pod log on the affected node. If you provision nodes yourself instead of using the Step 2 DaemonSet, verify your provisioning covers exec and ownership.
 
 ### scalr-agent-cache-init pod in `CrashLoopBackOff`
 

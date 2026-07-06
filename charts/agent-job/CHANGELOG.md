@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{path,type}`), enabled by setting `hostPath.path` (empty by default). When set, the cache volume in both the controller and task pods is a `hostPath` mount and takes precedence over `persistentVolumeClaim` and `emptyDir`. See [hostPath cache guide](docs/cache-persistence-hostpath.md) for details.
+- Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{path,type}`), enabled by setting `hostPath.path` (empty by default). When set, the cache volume in task pods is a `hostPath` mount that takes precedence over `persistentVolumeClaim` and `emptyDir`, while the controller keeps an ephemeral (`emptyDir`) cache volume. See [hostPath cache guide](docs/cache-persistence-hostpath.md) for details.
 - Added `agent.binaryCache.sizeLimit` (default `5Gi`) and `agent.binaryCache.thresholdDays` (default `10`) to configure garbage collection of the local binary cache (OpenTofu, Terraform, Terragrunt, OPA, Checkov). Binaries unused for more than `thresholdDays` are removed, and least-recently-used binaries are evicted once the cache exceeds `sizeLimit`. The size limit is soft: a binary in use by an active run is never evicted.
 
 ### Changed
