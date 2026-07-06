@@ -18,7 +18,7 @@ Stay with a RWX PVC when you want a single warm cache cluster-wide, or when your
 
 ### How it works
 
-With `persistence.cache.hostPath.enabled=true`:
+With `persistence.cache.hostPath.path` set:
 
 - The `cache-dir` volume in the controller and every task pod becomes a `hostPath` mount of `persistence.cache.hostPath.path`. It takes precedence over `persistentVolumeClaim` and `emptyDir`, and no PVC is created.
 - The persistent cache subPath layout (`cache/binaries`, `cache/providers`, etc.) applies exactly as in the PVC case, so the worker and runner containers share the same per-node directory tree.
@@ -54,7 +54,7 @@ Nothing validates these requirements for you — a wrong path surfaces later as 
 | AWS / EKS | a subdirectory of a mounted instance-store volume | Mount the instance store via your node bootstrap. On read-only host OSes such as Bottlerocket, writable-and-exec locations are limited — test a run on one node first. |
 
 > [!IMPORTANT]
-> On GKE nodes **without** a local SSD, `/mnt/disks` itself is a tiny (256K) tmpfs that only serves as a mount-point directory. The chart's default path (`/mnt/disks/scalr-agent-cache`) will not work there — runs fail with `No space left on device`. Also note that most other COS node paths (e.g. under `/var`) are mounted `noexec`.
+> On GKE nodes **without** a local SSD, `/mnt/disks` itself is a tiny (256K) tmpfs that only serves as a mount-point directory. A path directly under it (e.g. `/mnt/disks/scalr-agent-cache`) will not work there — runs fail with `No space left on device`. Also note that most other COS node paths (e.g. under `/var`) are mounted `noexec`.
 
 To create a GKE node pool with local SSDs:
 
@@ -179,7 +179,7 @@ Create or extend your `agent-values.yaml`:
 persistence:
   cache:
     hostPath:
-      enabled: true
+      # Setting the path enables the hostPath cache
       path: /mnt/disks/ssd0/scalr-agent-cache  # REPLACE: your node path from Step 1
 
 # Schedule task pods only on nodes that actually have the disk
@@ -204,7 +204,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
 ```
 
 > [!NOTE]
-> When `hostPath.enabled` is true it takes precedence: `persistence.cache.enabled` (PVC mode) is ignored for the cache volume and no PVC is created. Multiple agent releases may point at the same node path — they share the per-node cache and the same node-preparation DaemonSet.
+> When `hostPath.path` is set it takes precedence: `persistence.cache.enabled` (PVC mode) is ignored for the cache volume and no PVC is created. Multiple agent releases may point at the same node path — they share the per-node cache and the same node-preparation DaemonSet.
 
 ## Step 4: Verify the Cache is Functioning
 
@@ -239,7 +239,7 @@ Unlike the RWX setups, `used from cache` is expected per node: a run landing on 
 
 ### Runs fail with `OSError: [Errno 28] No space left on device` at the start of a run
 
-The write is landing on a filesystem that is full or tiny — classically the GKE tmpfs trap: no local SSD on the node, so the default path sits inside the 256K `/mnt/disks` tmpfs. Confirm from the node:
+The write is landing on a filesystem that is full or tiny — classically the GKE tmpfs trap: no local SSD on the node, so the configured path sits inside the 256K `/mnt/disks` tmpfs. Confirm from the node:
 
 ```shell
 kubectl debug node/{node-name} -it --image=ubuntu
