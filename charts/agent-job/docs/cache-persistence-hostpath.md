@@ -10,7 +10,7 @@ A `hostPath` cache trades global sharing for raw speed: each node keeps its own 
 
 Choose `hostPath` when:
 
-- Your runs are IO-heavy on the cacheand the RWX volume is the bottleneck
+- Your runs are IO-heavy on the cache and the RWX volume is the bottleneck
 - Your node pools have local SSDs (or generously sized boot disks)
 - You accept a per-node cache scope: every node warms up its own cache, so a run scheduled on a fresh node downloads providers once for that node
 
@@ -63,7 +63,10 @@ gcloud container node-pools create scalr-agents-ssd \
 
 ### Other platforms
 
-The same three requirements apply; the concrete paths differ per node OS. For example, on EKS with instance-store volumes, mount the instance store (e.g. at `/mnt/scalr-agent-cache`) via a node bootstrap script or a storage provisioner, and point the chart at a subdirectory. On read-only host OSes such as Bottlerocket, writable-and-exec locations are limited — test a run on one node before rolling out widely.
+The same three requirements apply; the concrete paths depend on the platform and node OS:
+
+- **Self-managed GCE nodes** (kOps, kubeadm, ...): unlike GKE, plain GCE does not format or mount local SSDs automatically — do it in your node startup script ([GCE local SSD docs](https://cloud.google.com/compute/docs/disks/add-local-ssd)) and point the chart at a subdirectory of the mount. Since you control node bootstrap, you can also pre-create the directory with the agent's ownership there and skip the node-preparation DaemonSet entirely.
+- **EKS**: mount instance-store volumes via your node bootstrap and use a subdirectory. On read-only host OSes such as Bottlerocket, writable-and-exec locations are limited and `fork/exec` failures have been reported ([agent-helm#33](https://github.com/Scalr/agent-helm/issues/33)) — test a run on one node before rolling out widely.
 
 ## Step 2: Deploy the Node-Preparation DaemonSet (cluster-wide)
 
