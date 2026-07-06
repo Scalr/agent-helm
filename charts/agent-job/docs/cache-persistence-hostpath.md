@@ -33,25 +33,30 @@ With `persistence.cache.hostPath.enabled=true`:
 
 ## Step 1: Choose the Node Path
 
-This is the step where hostPath setups usually go wrong. The path must satisfy three requirements:
+The path must satisfy three requirements:
 
 1. **It must be backed by a real disk with enough space.** `hostPath` has no capacity enforcement: the cache consumes the backing disk's free space and counts toward the node's ephemeral storage, so an undersized disk leads to `No space left on device` failures in runs or node disk-pressure eviction.
 2. **It must not be on a `noexec` mount.** The cache stores OpenTofu/Terraform and provider binaries that are executed in place. On a `noexec` filesystem, runs fail with intermittent `fork/exec ... permission denied` errors.
-3. **It must not be a directory reserved by other node agents.** For example, `/home/kubernetes/flexvolume` on GKE is scanned by the kubelet for Flexvolume plugins — placing files there makes every kubelet in the cluster log errors (see [agent-helm#33](https://github.com/Scalr/agent-helm/issues/33)).
+3. **It must not be a directory reserved by other node agents.** For example, `/home/kubernetes/flexvolume` on GKE is scanned by the kubelet for Flexvolume plugins — placing files there makes every kubelet in the cluster log errors.
 
 Nothing validates these requirements for you — a wrong path surfaces later as failing runs (see [Troubleshooting](#troubleshooting)), so choose carefully up front.
 
-### GKE
+### Recommended Paths
 
-| Node pool | Recommended path | Notes |
+> [!WARNING]
+> Suitable hostPath locations depend on the node OS image and may change between OS versions — mount layouts, `noexec` flags, and reserved directories all differ per OS. Treat the paths below as starting points and check them carefully on your actual nodes before rolling out.
+
+| Platform | Recommended path | Notes |
 |---|---|---|
-| With local SSD (`--local-ssd-count N`) | `/mnt/disks/ssd0/scalr-agent-cache` | GKE formats and mounts local SSDs at `/mnt/disks/ssd0`, `/mnt/disks/ssd1`, ... This is the intended use case. |
-| Without local SSD (boot disk) | `/home/kubernetes/bin/scalr-agent-cache` | Exec-capable, writable, not reserved. Size the boot disk accordingly. |
+| GKE — local SSD (`--local-ssd-count N`) | `/mnt/disks/ssd0/scalr-agent-cache` | GKE formats and mounts local SSDs at `/mnt/disks/ssd0`, `/mnt/disks/ssd1`, ... This is the intended use case. |
+| GKE — boot disk | `/home/kubernetes/bin/scalr-agent-cache` | Exec-capable, writable, not reserved. Size the boot disk accordingly. |
+| GCE — self-managed nodes (kOps, kubeadm, ...) | a subdirectory of the local SSD you mount yourself | Unlike GKE, plain GCE does not format or mount local SSDs — do it in your node startup script ([GCE local SSD docs](https://cloud.google.com/compute/docs/disks/add-local-ssd)). You can also pre-create the directory with the agent's ownership and skip the node-preparation DaemonSet. |
+| AWS / EKS | a subdirectory of a mounted instance-store volume | Mount the instance store via your node bootstrap. On read-only host OSes such as Bottlerocket, writable-and-exec locations are limited — test a run on one node first. |
 
 > [!IMPORTANT]
 > On GKE nodes **without** a local SSD, `/mnt/disks` itself is a tiny (256K) tmpfs that only serves as a mount-point directory. The chart's default path (`/mnt/disks/scalr-agent-cache`) will not work there — runs fail with `No space left on device`. Also note that most other COS node paths (e.g. under `/var`) are mounted `noexec`.
 
-To create a node pool with local SSDs:
+To create a GKE node pool with local SSDs:
 
 ```shell
 gcloud container node-pools create scalr-agents-ssd \
@@ -60,13 +65,6 @@ gcloud container node-pools create scalr-agents-ssd \
   --local-ssd-count 1 \
   --machine-type n2-standard-8  # REPLACE: your machine type; local SSD support varies by machine family
 ```
-
-### Other platforms
-
-The same three requirements apply; the concrete paths depend on the platform and node OS:
-
-- **Self-managed GCE nodes** (kOps, kubeadm, ...): unlike GKE, plain GCE does not format or mount local SSDs automatically — do it in your node startup script ([GCE local SSD docs](https://cloud.google.com/compute/docs/disks/add-local-ssd)) and point the chart at a subdirectory of the mount. Since you control node bootstrap, you can also pre-create the directory with the agent's ownership there and skip the node-preparation DaemonSet entirely.
-- **EKS**: mount instance-store volumes via your node bootstrap and use a subdirectory. On read-only host OSes such as Bottlerocket, writable-and-exec locations are limited and `fork/exec` failures have been reported ([agent-helm#33](https://github.com/Scalr/agent-helm/issues/33)) — test a run on one node before rolling out widely.
 
 ## Step 2: Deploy the Node-Preparation DaemonSet (cluster-wide)
 
@@ -117,7 +115,7 @@ spec:
             - /bin/sh
             - -ec
             - |
-              echo "preparing host cache directory ${HOST_PATH} (uid=${CACHE_UID} gid=${CACHE_GID}, recursive)"
+              echo "preparing host cache directory ${HOST_PATH} (uid=${CACHE_UID} gid=${CACHE_GID})"
               chmod -R 0775 "${CACHE_DIR}"
               chown -R "${CACHE_UID}:${CACHE_GID}" "${CACHE_DIR}"
               echo "host cache directory ${HOST_PATH} ready"
@@ -159,7 +157,7 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=scalr-agent-cache-init --t
 Expected log output on each node:
 
 ```text
-preparing host cache directory /mnt/disks/ssd0/scalr-agent-cache (uid=1000 gid=1000, recursive)
+preparing host cache directory /mnt/disks/ssd0/scalr-agent-cache (uid=1000 gid=1000)
 host cache directory /mnt/disks/ssd0/scalr-agent-cache ready
 ```
 
@@ -254,7 +252,7 @@ Fix: use a node pool with local SSDs, or point `persistence.cache.hostPath.path`
 
 ### Runs fail with `fork/exec ... permission denied`
 
-The path is on a `noexec` mount, or ownership was never fixed. Check the `scalr-agent-cache-init` pod log on the affected node; if you provision nodes yourself instead of using the Step 2 DaemonSet, verify your provisioning covers exec and ownership. See [agent-helm#33](https://github.com/Scalr/agent-helm/issues/33) for the GKE/COS background.
+The path is on a `noexec` mount, or ownership was never fixed. Check the `scalr-agent-cache-init` pod log on the affected node; if you provision nodes yourself instead of using the Step 2 DaemonSet, verify your provisioning covers exec and ownership.
 
 ### scalr-agent-cache-init pod in `CrashLoopBackOff`
 
