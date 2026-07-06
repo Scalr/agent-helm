@@ -555,10 +555,13 @@ Initializing plugins...
 Initialized 20 plugins in 6.09s (20 used from cache)
 ```
 
+Alternatively, for IO-heavy workloads where a shared network volume becomes the bottleneck, the cache can be backed by a node-local disk (local SSD) via `persistence.cache.hostPath` — faster than any network volume, at the cost of a per-node cache scope.
+
 See detailed guides:
 
-- [GKE Filestore](docs/cache-persistence-filestore.md)
-- [Amazon EFS](docs/cache-persistence-efs.md)
+- [GKE Filestore](docs/cache-persistence-filestore.md) (shared RWX cache)
+- [Amazon EFS](docs/cache-persistence-efs.md) (shared RWX cache)
+- [Node-local disk / hostPath](docs/cache-persistence-hostpath.md) (per-node cache)
 
 ### Data Volume Persistence
 

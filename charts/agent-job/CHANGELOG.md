@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{enabled,path,type}`). When enabled, the cache volume in both the controller and task pods is a `hostPath` mount and takes precedence over `persistentVolumeClaim` and `emptyDir`; no PVC is created, and the persistent subPath layout (`cache/bin`, `cache/binaries`, `cache/providers`) applies as in the PVC case. Intended for local SSDs or sized boot disks: much faster than network volumes, at the cost of the cache being per-node instead of shared. The node path requires per-node preparation (ownership fixes, since `fsGroup` is not applied to hostPath volumes) via a cluster-wide node-preparation DaemonSet installed once per cluster, separately from the chart — the manifest, path selection per platform, caveats (no size enforcement, PSA `baseline`/`restricted` forbid hostPath), and troubleshooting are documented in the [hostPath cache guide](docs/cache-persistence-hostpath.md).
+
 - Added `agent.binaryCache.sizeLimit` (default `5Gi`) and `agent.binaryCache.thresholdDays` (default `10`) to configure garbage collection of the local binary cache (OpenTofu, Terraform, Terragrunt, OPA, Checkov). Binaries unused for more than `thresholdDays` are removed, and least-recently-used binaries are evicted once the cache exceeds `sizeLimit`. The size limit is soft: a binary in use by an active run is never evicted.
 
 ### Changed
@@ -20,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The controller and worker containers now use the image's built-in `ENTRYPOINT`/`CMD` instead of the previously hard-coded `command: ["python", "-m", "tacoagent.cmd"]` in the chart. Optional overrides are available via `agent.controller.command`, `agent.controller.args`, `task.worker.command`, and `task.worker.args`, but default to empty and using the image default is recommended — overriding bypasses the image's tuned startup and may break the container or degrade its performance.
 
 **Note:** incorrectly built custom images with a modified or missing default entrypoint may be affected. If you package custom `scalr/agent` images, ensure the default entrypoint is not stripped or overridden.
+
+### Fixed
+
+- Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `"-"`. Setting `"-"` now renders `storageClassName: ""` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is.
 
 ## [v0.6.1]
 

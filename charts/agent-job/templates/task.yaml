@@ -110,7 +110,7 @@ spec:
               - name: cache-dir
                 readOnly: true
                 mountPath: /opt/bin
-                {{- if .Values.persistence.cache.enabled }}
+                {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.enabled }}
                 subPath: {{ printf "%s/cache/bin" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "bin"
@@ -118,7 +118,7 @@ spec:
               - name: cache-dir
                 readOnly: true
                 mountPath: /opt/binary-cache
-                {{- if .Values.persistence.cache.enabled }}
+                {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.enabled }}
                 subPath: {{ printf "%s/cache/binaries" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "binaries"
@@ -126,7 +126,7 @@ spec:
               - name: cache-dir
                 readOnly: true
                 mountPath: /opt/plugin-cache
-                {{- if .Values.persistence.cache.enabled }}
+                {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.enabled }}
                 subPath: {{ printf "%s/cache/providers" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "providers"
@@ -270,7 +270,7 @@ spec:
                 mountPath: {{ .Values.agent.dataDir }}
               - name: cache-dir
                 mountPath: {{ .Values.agent.cacheDir }}
-                {{- if .Values.persistence.cache.enabled }}
+                {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.enabled }}
                 subPath: {{ printf "%s/cache" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- end }}
               - name: tmp-dir
@@ -332,7 +332,11 @@ spec:
               {{- end }}
             {{- end }}
             - name: cache-dir
-            {{- if .Values.persistence.cache.enabled }}
+            {{- if .Values.persistence.cache.hostPath.enabled }}
+              hostPath:
+                path: {{ .Values.persistence.cache.hostPath.path | quote }}
+                type: {{ .Values.persistence.cache.hostPath.type | quote }}
+            {{- else if .Values.persistence.cache.enabled }}
               persistentVolumeClaim:
                 claimName: {{ .Values.persistence.cache.persistentVolumeClaim.claimName | default (printf "%s-cache" (include "agent-job.fullname" .)) }}
             {{- else }}

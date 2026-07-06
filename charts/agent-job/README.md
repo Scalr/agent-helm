@@ -512,10 +512,13 @@ Initializing plugins...
 Initialized 20 plugins in 6.09s (20 used from cache)
 ```
 
+Alternatively, for IO-heavy workloads where a shared network volume becomes the bottleneck, the cache can be backed by a node-local disk (local SSD) via `persistence.cache.hostPath` — faster than any network volume, at the cost of a per-node cache scope.
+
 See detailed guides:
 
-- [GKE Filestore](docs/cache-persistence-filestore.md)
-- [Amazon EFS](docs/cache-persistence-efs.md)
+- [GKE Filestore](docs/cache-persistence-filestore.md) (shared RWX cache)
+- [Amazon EFS](docs/cache-persistence-efs.md) (shared RWX cache)
+- [Node-local disk / hostPath](docs/cache-persistence-hostpath.md) (per-node cache)
 
 ### Data Volume Persistence
 
@@ -954,15 +957,19 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| persistence.cache | object | <pre>{<br>&nbsp;&nbsp;"emptyDir":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"sizeLimit":&nbsp;"1Gi"<br>&nbsp;&nbsp;},<br>&nbsp;&nbsp;"enabled":&nbsp;false,<br>&nbsp;&nbsp;"persistentVolumeClaim":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteMany",<br>&nbsp;&nbsp;&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;&nbsp;&nbsp;"storage":&nbsp;"90Gi",<br>&nbsp;&nbsp;&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;&nbsp;&nbsp;"subPath":&nbsp;""<br>&nbsp;&nbsp;}<br>}</pre> | Cache directory storage configuration. Stores OpenTofu/Terraform providers, modules and binaries. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. |
+| persistence.cache | object | <pre>{<br>&nbsp;&nbsp;"emptyDir":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"sizeLimit":&nbsp;"1Gi"<br>&nbsp;&nbsp;},<br>&nbsp;&nbsp;"enabled":&nbsp;false,<br>&nbsp;&nbsp;"hostPath":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"enabled":&nbsp;false,<br>&nbsp;&nbsp;&nbsp;&nbsp;"path":&nbsp;"/mnt/disks/scalr-agent-cache",<br>&nbsp;&nbsp;&nbsp;&nbsp;"type":&nbsp;"DirectoryOrCreate"<br>&nbsp;&nbsp;},<br>&nbsp;&nbsp;"persistentVolumeClaim":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteMany",<br>&nbsp;&nbsp;&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;&nbsp;&nbsp;"storage":&nbsp;"90Gi",<br>&nbsp;&nbsp;&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;&nbsp;&nbsp;"subPath":&nbsp;""<br>&nbsp;&nbsp;}<br>}</pre> | Cache directory storage configuration. Stores OpenTofu/Terraform providers, modules and binaries. Mounted to both worker (for agent cache) and runner (for binary/plugin cache) containers. |
 | persistence.cache.emptyDir | object | <pre>{<br>&nbsp;&nbsp;"sizeLimit":&nbsp;"1Gi"<br>}</pre> | EmptyDir volume configuration (used when enabled is false). |
 | persistence.cache.emptyDir.sizeLimit | string | `"1Gi"` | Size limit for the emptyDir volume. |
 | persistence.cache.enabled | bool | `false` | Enable persistent storage for cache directory. Highly recommended: Avoids re-downloading providers and binaries (saves 1-5 minutes per run). When false, providers and binaries are downloaded fresh for each task. When true, cache is shared across all task pods for significant performance improvement (may vary depending on RWM volume performace). |
+| persistence.cache.hostPath | object | <pre>{<br>&nbsp;&nbsp;"enabled":&nbsp;false,<br>&nbsp;&nbsp;"path":&nbsp;"/mnt/disks/scalr-agent-cache",<br>&nbsp;&nbsp;"type":&nbsp;"DirectoryOrCreate"<br>}</pre> | Node-local disk (hostPath) configuration for the cache directory. When `hostPath.enabled` is true, the cache volume is a hostPath mount and takes precedence over `persistentVolumeClaim` and `emptyDir`; no PVC is created. Intended for local SSDs or sized boot disks: much faster than any network volume, but the cache is per-node and not shared across nodes. Note that hostPath volumes are forbidden under the PSA `baseline`/`restricted` profiles. The node path must be made writable by the agent user via a cluster-wide node-preparation DaemonSet, installed once per cluster — see the [hostPath cache guide](docs/cache-persistence-hostpath.md). |
+| persistence.cache.hostPath.enabled | bool | `false` | Mount the cache directory from the node filesystem instead of a PVC or emptyDir. |
+| persistence.cache.hostPath.path | string | `"/mnt/disks/scalr-agent-cache"` | Absolute path on the node backing the cache. The default follows the GKE local-SSD convention (local SSDs are mounted at `/mnt/disks/ssd0`, so prefer a subdirectory such as `/mnt/disks/ssd0/scalr-agent-cache`). The path must be on a real disk with enough space, not on a `noexec` mount, and not reserved by other node agents — see [choosing the node path](docs/cache-persistence-hostpath.md#step-1-choose-the-node-path). |
+| persistence.cache.hostPath.type | string | `"DirectoryOrCreate"` | hostPath [type](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath-volume-types). Note: a missing directory is created owned by root (0755), not writable by the non-root agent — the node-preparation DaemonSet from the guide fixes the ownership. |
 | persistence.cache.persistentVolumeClaim | object | <pre>{<br>&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteMany",<br>&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;"storage":&nbsp;"90Gi",<br>&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;"subPath":&nbsp;""<br>}</pre> | PersistentVolumeClaim configuration (used when enabled is true). |
 | persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteMany"` | Access mode for the PVC. Use ReadWriteMany to share cache across multiple task pods. Note: ReadWriteMany requires compatible storage class (e.g., NFS, EFS, Filestore). |
 | persistence.cache.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-cache` is created. |
 | persistence.cache.persistentVolumeClaim.storage | string | `"90Gi"` | Storage size for the PVC. |
-| persistence.cache.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. |
+| persistence.cache.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
 | persistence.cache.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. Useful when sharing a single PVC across multiple installations. |
 | persistence.data | object | <pre>{<br>&nbsp;&nbsp;"emptyDir":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"sizeLimit":&nbsp;"4Gi"<br>&nbsp;&nbsp;},<br>&nbsp;&nbsp;"enabled":&nbsp;false,<br>&nbsp;&nbsp;"persistentVolumeClaim":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteOnce",<br>&nbsp;&nbsp;&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;&nbsp;&nbsp;"storage":&nbsp;"4Gi",<br>&nbsp;&nbsp;&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;&nbsp;&nbsp;"subPath":&nbsp;""<br>&nbsp;&nbsp;}<br>}</pre> | Data directory storage configuration. Stores workspace data including configuration versions, modules, and run metadata. This directory is mounted to the worker sidecar container. |
 | persistence.data.emptyDir | object | <pre>{<br>&nbsp;&nbsp;"sizeLimit":&nbsp;"4Gi"<br>}</pre> | EmptyDir volume configuration (used when enabled is false). |
@@ -972,7 +979,7 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 | persistence.data.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. |
 | persistence.data.persistentVolumeClaim.claimName | string | `""` | Name of an existing PVC. If empty, a new PVC named `<release-name>-data` is created. |
 | persistence.data.persistentVolumeClaim.storage | string | `"4Gi"` | Storage size for the PVC. |
-| persistence.data.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. |
+| persistence.data.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and require a pre-existing PVC. |
 | persistence.data.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
 
 ### RBAC

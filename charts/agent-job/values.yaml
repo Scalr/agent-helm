@@ -685,6 +685,7 @@ persistence:
       # @section -- Persistence
       claimName: ""
       # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
+      # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
       # @section -- Persistence
       storageClassName: ""
       # -- Storage size for the PVC.
@@ -709,6 +710,33 @@ persistence:
     # @section -- Persistence
     enabled: false
 
+    # -- Node-local disk (hostPath) configuration for the cache directory.
+    # When `hostPath.enabled` is true, the cache volume is a hostPath mount and takes
+    # precedence over `persistentVolumeClaim` and `emptyDir`; no PVC is created.
+    # Intended for local SSDs or sized boot disks: much faster than any network volume,
+    # but the cache is per-node and not shared across nodes. Note that hostPath volumes
+    # are forbidden under the PSA `baseline`/`restricted` profiles.
+    # The node path must be made writable by the agent user via a cluster-wide
+    # node-preparation DaemonSet, installed once per cluster — see the
+    # [hostPath cache guide](docs/cache-persistence-hostpath.md).
+    # @section -- Persistence
+    hostPath:
+      # -- Mount the cache directory from the node filesystem instead of a PVC or emptyDir.
+      # @section -- Persistence
+      enabled: false
+      # -- Absolute path on the node backing the cache. The default follows the GKE
+      # local-SSD convention (local SSDs are mounted at `/mnt/disks/ssd0`, so prefer a
+      # subdirectory such as `/mnt/disks/ssd0/scalr-agent-cache`). The path must be on a
+      # real disk with enough space, not on a `noexec` mount, and not reserved by other
+      # node agents — see [choosing the node path](docs/cache-persistence-hostpath.md#step-1-choose-the-node-path).
+      # @section -- Persistence
+      path: /mnt/disks/scalr-agent-cache
+      # -- hostPath [type](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath-volume-types).
+      # Note: a missing directory is created owned by root (0755), not writable by the
+      # non-root agent — the node-preparation DaemonSet from the guide fixes the ownership.
+      # @section -- Persistence
+      type: DirectoryOrCreate
+
     # -- EmptyDir volume configuration (used when enabled is false).
     # @section -- Persistence
     emptyDir:
@@ -723,6 +751,7 @@ persistence:
       # @section -- Persistence
       claimName: ""
       # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
+      # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
       # @section -- Persistence
       storageClassName: ""
       # -- Storage size for the PVC.

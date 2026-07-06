@@ -178,7 +178,7 @@ spec:
               mountPath: {{ .Values.agent.dataDir | quote }}
             - name: cache-dir
               mountPath: {{ .Values.agent.cacheDir | quote }}
-              {{- if .Values.persistence.cache.enabled }}
+              {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.enabled }}
               subPath: {{ printf "%s/cache" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
               {{- end }}
             - name: tmp-dir
@@ -211,7 +211,11 @@ spec:
           emptyDir: {}
         # Note: In agent-job mode controller with persistence cache designed to run GC tasks
         - name: cache-dir
-        {{- if .Values.persistence.cache.enabled }}
+        {{- if .Values.persistence.cache.hostPath.enabled }}
+          hostPath:
+            path: {{ .Values.persistence.cache.hostPath.path | quote }}
+            type: {{ .Values.persistence.cache.hostPath.type | quote }}
+        {{- else if .Values.persistence.cache.enabled }}
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.cache.persistentVolumeClaim.claimName | default (printf "%s-cache" (include "agent-job.fullname" .)) }}
         {{- else }}

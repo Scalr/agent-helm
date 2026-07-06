@@ -200,6 +200,23 @@
                     "properties": {
                         "enabled": {
                             "type": "boolean"
+                        },
+                        "hostPath": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "pattern": "^/"
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["", "Directory", "DirectoryOrCreate"]
+                                }
+                            }
                         }
                     }
                 }
