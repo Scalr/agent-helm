@@ -74,8 +74,6 @@ On each matching node the DaemonSet:
 1. Recursively sets ownership of the cache directory to the agent user/group and permissions to `0775`
 2. Hands off to the agent's cache garbage collector when the agent image provides one, otherwise idles
 
-The GC tooling is delivered the same way task pods inject agent tooling into the runner container: the `scalr/agent` image is mounted read-only as an [OCI image volume](https://kubernetes.io/docs/tasks/configure-pod-container/image-volumes/) at `/cache-gc`, and the entrypoint is executed from the mount. The container image itself stays a minimal busybox. Image volumes require Kubernetes 1.33+, which the agent-job chart already relies on.
-
 Create a file named `scalr-agent-cache-init.yaml`:
 
 > [!IMPORTANT]
@@ -105,7 +103,7 @@ spec:
       # tolerations: []  # add if your agent node pool is tainted
       containers:
         - name: cache-init
-          image: busybox:1.37  # any image with a POSIX shell and chown/chmod/df/awk works
+          image: busybox:1.37  # any image with a POSIX shell and chown/chmod works
           env:
             - name: HOST_PATH
               value: /mnt/disks/ssd0/scalr-agent-cache  # REPLACE: same as persistence.cache.hostPath.path
@@ -125,15 +123,6 @@ spec:
               chmod -R 0775 "${CACHE_DIR}"
               chown -R "${CACHE_UID}:${CACHE_GID}" "${CACHE_DIR}"
               echo "host cache directory ${HOST_PATH} ready"
-
-              # Hand off to the agent's cache garbage collector, delivered via the
-              # image volume mounted at /cache-gc. Falls back to idling when the
-              # agent image does not ship a GC entrypoint yet.
-              if [ -x "${GC_BIN}" ]; then
-                echo "starting cache GC: ${GC_BIN}"
-                exec "${GC_BIN}"
-              fi
-              echo "no cache GC entrypoint at ${GC_BIN}; idling"
               while true; do sleep 3600; done
           securityContext:
             runAsNonRoot: false
@@ -154,18 +143,11 @@ spec:
           volumeMounts:
             - name: cache-dir
               mountPath: /scalr-agent-cache
-            - name: cache-gc
-              mountPath: /cache-gc
-              readOnly: true
       volumes:
         - name: cache-dir
           hostPath:
             path: /mnt/disks/ssd0/scalr-agent-cache  # REPLACE: same as HOST_PATH above
             type: DirectoryOrCreate
-        - name: cache-gc
-          image:
-            reference: scalr/agent:1.1.0  # REPLACE: match your agent image and registry mirror
-            pullPolicy: IfNotPresent
 ```
 
 Apply and verify it is healthy on all target nodes:
