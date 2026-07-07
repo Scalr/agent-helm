@@ -516,7 +516,7 @@ Monitor your run's resource usage and configure resource requests and limits acc
 
 ## Provider Network Mirrors
 
-The agent can install OpenTofu/Terraform providers from [provider network mirrors](https://opentofu.org/docs/internals/provider-network-mirror-protocol/) instead of the origin registries, for example when runs execute in a network without access to the public registries. Mirrors are consulted in the configured order during provider cache warm-up and during `init`, with the origin registry as a fallback. This requires a committed dependency lock file and Terraform >= 0.15, and is not supported for Terragrunt runs.
+The agent can install OpenTofu/Terraform providers from [provider network mirrors](https://opentofu.org/docs/internals/provider-network-mirror-protocol/) instead of the origin registries, for example when runs execute in a network without access to the public registries. During provider cache warm-up the agent downloads providers from the mirrors in the configured order and falls back to the origin registry itself. During `init`, OpenTofu/Terraform consults the mirrors and falls back to the origin registry only when a mirror returns a clean 404 for a provider it does not serve. Static GCS/S3 bucket mirrors return 403 for missing objects, so they must replicate every provider matched by their `include` patterns. Requires Terraform >= 0.15 and is not supported for Terragrunt runs.
 
 ```yaml
 agent:
@@ -535,8 +535,6 @@ agent:
     - url: https://private-mirror.example.com/
       token: "<bearer-token>"
 ```
-
-See [`SCALR_AGENT_PROVIDER_NETWORK_MIRRORS`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_network_mirrors) for the full option reference.
 
 ## Network Requirements
 
