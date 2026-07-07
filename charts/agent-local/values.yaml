@@ -75,6 +75,15 @@ agent:
   # @section -- Agent
   cacheDir: "/var/lib/scalr-agent/cache"
 
+  # -- OpenTofu/Terraform provider network mirrors, as a list of mirror objects.
+  # Each entry has a required `url`, an optional `token` bearer credential, and an
+  # optional `include` list of provider source address patterns
+  # (`hostname/namespace/type`, `*` matches a whole segment; defaults to all providers).
+  # Note: a `token` set here is rendered into the pod spec as a plain env value.
+  # <br>Exports [`SCALR_AGENT_PROVIDER_NETWORK_MIRRORS`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_network_mirrors).
+  # @section -- Agent
+  providerNetworkMirrors: []
+
   # -- mTLS client certificate configuration for mutual TLS authentication with Scalr.
   # <br>Exports [`SCALR_AGENT_TLS_CERT_FILE`](https://docs.scalr.io/docs/configuration#scalr_agent_tls_cert_file) and [`SCALR_AGENT_TLS_KEY_FILE`](https://docs.scalr.io/docs/configuration#scalr_agent_tls_key_file).
   # @section -- Agent.TLS

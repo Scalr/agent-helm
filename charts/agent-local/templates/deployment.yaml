@@ -8,6 +8,7 @@
   "SCALR_AGENT_WORKER_ON_STOP_ACTION"
   "SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT"
   "SCALR_AGENT_DATA_DIR"
+  "SCALR_AGENT_PROVIDER_NETWORK_MIRRORS"
   "SCALR_AGENT_TOKEN"
   "SCALR_AGENT_CA_CERT"
   "SSL_CERT_FILE"
@@ -109,6 +110,10 @@ spec:
               value: {{ .Values.agent.dataDir | quote }}
             - name: SCALR_AGENT_CACHE_DIR
               value: {{ .Values.agent.cacheDir | quote }}
+            {{- if .Values.agent.providerNetworkMirrors }}
+            - name: SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
+              value: {{ toJson .Values.agent.providerNetworkMirrors | quote }}
+            {{- end }}
             - name: SCALR_AGENT_TOKEN
               valueFrom:
                 secretKeyRef:
