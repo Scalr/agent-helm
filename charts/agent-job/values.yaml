@@ -750,7 +750,7 @@ persistence:
     emptyDir:
       # -- Size limit for the emptyDir volume.
       # @section -- Persistence
-      sizeLimit: 1Gi
+      sizeLimit: 4Gi
 
     # -- PersistentVolumeClaim configuration (used when enabled is true).
     # @section -- Persistence
