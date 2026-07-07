@@ -105,16 +105,6 @@ spec:
               - name: data-dir
                 mountPath: /tmp
                 subPath: run/tmp
-              # Keep legacy binary cache path for one additional release for backward
-              # compatibility with previous agent release.
-              - name: cache-dir
-                readOnly: true
-                mountPath: /opt/bin
-                {{- if .Values.persistence.cache.enabled }}
-                subPath: {{ printf "%s/cache/bin" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
-                {{- else }}
-                subPath: "bin"
-                {{- end }}
               - name: cache-dir
                 readOnly: true
                 mountPath: /opt/binary-cache
@@ -332,7 +322,11 @@ spec:
               {{- end }}
             {{- end }}
             - name: cache-dir
-            {{- if .Values.persistence.cache.enabled }}
+            {{- if and .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.path }}
+              hostPath:
+                path: {{ .Values.persistence.cache.hostPath.path | quote }}
+                type: {{ .Values.persistence.cache.hostPath.type | quote }}
+            {{- else if .Values.persistence.cache.enabled }}
               persistentVolumeClaim:
                 claimName: {{ .Values.persistence.cache.persistentVolumeClaim.claimName | default (printf "%s-cache" (include "agent-job.fullname" .)) }}
             {{- else }}

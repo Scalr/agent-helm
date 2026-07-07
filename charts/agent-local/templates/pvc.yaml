@@ -13,10 +13,8 @@ spec:
   resources:
     requests:
       storage: {{ .Values.persistence.data.persistentVolumeClaim.storage }}
-  {{- if .Values.persistence.data.persistentVolumeClaim.storageClassName }}
-  storageClassName: {{ .Values.persistence.data.persistentVolumeClaim.storageClassName }}
-  {{- else if eq .Values.persistence.data.persistentVolumeClaim.storageClassName "-" }}
-  storageClassName: ""
+  {{- with .Values.persistence.data.persistentVolumeClaim.storageClassName }}
+  storageClassName: {{ ternary "" . (eq . "-") | quote }}
   {{- end }}
 {{- end }}
 
@@ -39,9 +37,7 @@ spec:
   resources:
     requests:
       storage: {{ $cache.storage }}
-  {{- if $cache.storageClassName }}
-  storageClassName: {{ $cache.storageClassName }}
-  {{- else if eq $cache.storageClassName "-" }}
-  storageClassName: ""
+  {{- with $cache.storageClassName }}
+  storageClassName: {{ ternary "" . (eq . "-") | quote }}
   {{- end }}
 {{- end }}

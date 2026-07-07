@@ -515,7 +515,7 @@ Two volumes are always attached to run Pods:
 
 ### Cache Volume Persistence
 
-It's recommended to enable persistent storage with `ReadWriteMany` access mode to share the cache across all task pods. This significantly improves performance by avoiding repeated downloads (saves 1-5 minutes per task).
+It's recommended to enable persistent storage with `ReadWriteMany` access mode or per-node disk to share the cache across all task pods. This significantly improves performance by avoiding repeated downloads (saves 1-5 minutes per task).
 
 Benefits of persistent cache:
 
@@ -546,6 +546,27 @@ agent:
     sizeLimit: 20Gi # soft-limit
 ```
 
+> [!NOTE]
+> RWX PersistentVolumes are network-based storage (NFS, Filestore, EFS, and similar). Their IO capacity is shared by every task pod mounting the volume, so under high run concurrency — or on volume tiers with low provisioned IOPS/throughput — the disk itself can become the bottleneck, slowing down every run in the pool. It is important to monitor the volume's IOPS, throughput, and read latency, and alert before it saturates. See [All Runs Are Uniformly Slow](#all-runs-are-uniformly-slow) for the symptoms of a saturated cache volume.
+
+**Configuration Example with hostPath**:
+
+Alternatively, for workloads where a shared network volume becomes the bottleneck, the cache can be backed by a node-local disk (local SSD) via `persistence.cache.hostPath` — a local disk is faster than any network volume, at the cost of a per-node cache scope. With `persistence.cache.enabled` and `hostPath.path` set, task pods mount the cache from the node path, taking precedence over `persistentVolumeClaim`, while the controller keeps an ephemeral cache volume. The node path must be prepared (made writable by the agent user) by a cluster-wide node-preparation DaemonSet — see the [hostPath guide](docs/cache-persistence-hostpath.md).
+
+```yaml
+persistence:
+  cache:
+    enabled: true
+    hostPath:
+      # Setting the path selects the hostPath backend. Use a subdirectory of a
+      # node-local disk mount — see the hostPath guide for per-platform paths.
+      path: /mnt/disks/ssd0/scalr-agent-cache
+agent:
+  providerCache:
+    enabled: true
+    sizeLimit: 20Gi # soft-limit, per node
+```
+
 If configured correctly, you should see confirmation in the Scalr Run console that plugins are being used from cache:
 
 ```shell
@@ -557,8 +578,9 @@ Initialized 20 plugins in 6.09s (20 used from cache)
 
 See detailed guides:
 
-- [GKE Filestore](docs/cache-persistence-filestore.md)
-- [Amazon EFS](docs/cache-persistence-efs.md)
+- [GKE Filestore](docs/cache-persistence-filestore.md) (shared RWX cache)
+- [Amazon EFS](docs/cache-persistence-efs.md) (shared RWX cache)
+- [Node-local disk / hostPath](docs/cache-persistence-hostpath.md) (per-node cache)
 
 ### Data Volume Persistence
 
@@ -843,6 +865,15 @@ kubectl version
 # Node (kubelet) versions and container runtimes
 kubectl get nodes -o wide
 ```
+
+### All Runs Are Uniformly Slow
+
+A distinctive performance pattern: every operation in every run takes longer than usual — plan, apply, provider initialization, hooks — and the slowness is roughly linear across all of them. This usually points to a node-level resource bottleneck rather than a problem in any particular run:
+
+- **Node CPU saturation.** Monitor CPU utilization on the nodes running task pods. When run concurrency pushes nodes near 100% CPU, every container on the node slows down proportionally. Watch for CPU throttling as well if task containers have CPU limits set.
+- **Network-attached disk saturation.** If the cache volume is a network-based PVC (NFS, Filestore, EFS), monitor its IOPS, throughput, and read latency. A saturated cache volume slows every run in the pool at once — provider initialization is IO-heavy, and all task pods share the same volume capacity.
+
+To confirm the cache volume is the culprit, compare performance with the network disk detached: temporarily disable the persistent cache (`persistence.cache.enabled=false`, falling back to ephemeral `emptyDir`) and re-run the same workload. If runs speed up significantly, the volume's IO capacity is the bottleneck — consider a higher-throughput volume tier or a node-local disk cache (see [Cache Volume Persistence](#cache-volume-persistence)).
 
 ### Debug Logging
 
