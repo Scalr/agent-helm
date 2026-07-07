@@ -18,9 +18,9 @@ Stay with a RWX PVC when you want a single warm cache cluster-wide, or when your
 
 ### How it works
 
-With `persistence.cache.hostPath.path` set:
+With `persistence.cache.enabled: true` and `persistence.cache.hostPath.path` set:
 
-- The `cache-dir` volume in every task pod becomes a `hostPath` mount of `persistence.cache.hostPath.path`, taking precedence over `persistentVolumeClaim` and `emptyDir`. The controller pod keeps an ephemeral cache volume, so its placement is unconstrained by the cache disk.
+- The `cache-dir` volume in every task pod becomes a `hostPath` mount of `persistence.cache.hostPath.path`, taking precedence over `persistentVolumeClaim`. The controller pod keeps an ephemeral cache volume, so its placement is unconstrained by the cache disk.
 - The persistent cache subPath layout (`cache/binaries`, `cache/providers`, etc.) applies exactly as in the PVC case, so the worker and runner containers share the same per-node directory tree.
 - The node path must be prepared before use: made writable by the non-root agent user (Kubernetes does not apply `fsGroup` to hostPath volumes). This is handled by a small node-preparation DaemonSet that is **installed once per cluster, separately from the chart** — node preparation is cluster-level infrastructure, shared by every agent release that uses the same path, not something each release should manage. See [Step 2](#step-2-deploy-the-node-preparation-daemonset-cluster-wide).
 
@@ -181,8 +181,9 @@ Create or extend your `agent-values.yaml`:
 ```yaml
 persistence:
   cache:
+    enabled: true
     hostPath:
-      # Setting the path enables the hostPath cache
+      # Setting the path selects the hostPath backend
       path: /mnt/disks/ssd0/scalr-agent-cache  # REPLACE: your node path from Step 1
 
 # Schedule task pods only on nodes that actually have the disk
@@ -207,7 +208,7 @@ helm upgrade --install scalr-agent scalr-agent/agent-job \
 ```
 
 > [!NOTE]
-> When `hostPath.path` is set it takes precedence: task pods mount the cache from the node path even when `persistence.cache.enabled` (PVC mode) is on. Multiple agent releases may point at the same node path — they share the per-node cache and the same node-preparation DaemonSet.
+> With persistence enabled, `hostPath.path` takes precedence over the PVC backend and the chart skips creating the cache PersistentVolumeClaim. Multiple agent releases may point at the same node path — they share the per-node cache and the same node-preparation DaemonSet.
 
 ## Step 4: Verify the Cache is Functioning
 

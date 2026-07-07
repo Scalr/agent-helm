@@ -108,7 +108,7 @@ spec:
               - name: cache-dir
                 readOnly: true
                 mountPath: /opt/binary-cache
-                {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.path }}
+                {{- if .Values.persistence.cache.enabled }}
                 subPath: {{ printf "%s/cache/binaries" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "binaries"
@@ -116,7 +116,7 @@ spec:
               - name: cache-dir
                 readOnly: true
                 mountPath: /opt/plugin-cache
-                {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.path }}
+                {{- if .Values.persistence.cache.enabled }}
                 subPath: {{ printf "%s/cache/providers" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- else }}
                 subPath: "providers"
@@ -260,7 +260,7 @@ spec:
                 mountPath: {{ .Values.agent.dataDir }}
               - name: cache-dir
                 mountPath: {{ .Values.agent.cacheDir }}
-                {{- if or .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.path }}
+                {{- if .Values.persistence.cache.enabled }}
                 subPath: {{ printf "%s/cache" (default "" .Values.persistence.cache.persistentVolumeClaim.subPath) | trimPrefix "/" | quote }}
                 {{- end }}
               - name: tmp-dir
@@ -322,7 +322,7 @@ spec:
               {{- end }}
             {{- end }}
             - name: cache-dir
-            {{- if .Values.persistence.cache.hostPath.path }}
+            {{- if and .Values.persistence.cache.enabled .Values.persistence.cache.hostPath.path }}
               hostPath:
                 path: {{ .Values.persistence.cache.hostPath.path | quote }}
                 type: {{ .Values.persistence.cache.hostPath.type | quote }}

@@ -551,13 +551,14 @@ agent:
 
 **Configuration Example with hostPath**:
 
-Alternatively, for workloads where a shared network volume becomes the bottleneck, the cache can be backed by a node-local disk (local SSD) via `persistence.cache.hostPath` — a local disk is faster than any network volume, at the cost of a per-node cache scope. When `hostPath.path` is set, task pods mount the cache from the node path, taking precedence over `persistentVolumeClaim` and `emptyDir`, while the controller keeps an ephemeral cache volume. The node path must be prepared (made writable by the agent user) by a cluster-wide node-preparation DaemonSet — see the [hostPath guide](docs/cache-persistence-hostpath.md).
+Alternatively, for workloads where a shared network volume becomes the bottleneck, the cache can be backed by a node-local disk (local SSD) via `persistence.cache.hostPath` — a local disk is faster than any network volume, at the cost of a per-node cache scope. With `persistence.cache.enabled` and `hostPath.path` set, task pods mount the cache from the node path, taking precedence over `persistentVolumeClaim`, while the controller keeps an ephemeral cache volume. The node path must be prepared (made writable by the agent user) by a cluster-wide node-preparation DaemonSet — see the [hostPath guide](docs/cache-persistence-hostpath.md).
 
 ```yaml
 persistence:
   cache:
+    enabled: true
     hostPath:
-      # Setting the path enables the hostPath cache. Use a subdirectory of a
+      # Setting the path selects the hostPath backend. Use a subdirectory of a
       # node-local disk mount — see the hostPath guide for per-platform paths.
       path: /mnt/disks/ssd0/scalr-agent-cache
 agent:

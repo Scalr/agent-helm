@@ -710,10 +710,11 @@ persistence:
     # @section -- Persistence
     enabled: false
 
-    # -- Node-local disk (hostPath) configuration for the cache directory.
-    # Enabled by setting `hostPath.path`: when set, task pods mount the cache from the
-    # node path, taking precedence over `persistentVolumeClaim` and `emptyDir`, while
-    # the controller keeps an ephemeral (`emptyDir`) cache volume.
+    # -- Node-local disk (hostPath) backend for the cache directory.
+    # Used when `persistence.cache.enabled` is true and `hostPath.path` is set: task
+    # pods mount the cache from the node path, taking precedence over
+    # `persistentVolumeClaim`, while the controller keeps an ephemeral (`emptyDir`)
+    # cache volume.
     # Intended for local SSDs or sized boot disks: much faster than any network volume,
     # but the cache is per-node and not shared across nodes. Note that hostPath volumes
     # are forbidden under the PSA `baseline`/`restricted` profiles.
@@ -722,8 +723,8 @@ persistence:
     # [hostPath cache guide](docs/cache-persistence-hostpath.md).
     # @section -- Persistence
     hostPath:
-      # -- Absolute path on the node backing the cache. Empty (default) keeps the
-      # hostPath cache disabled, and setting a path enables it. The directory must be
+      # -- Absolute path on the node backing the cache. Empty (default) keeps the PVC
+      # backend, and setting a path selects the hostPath backend. The directory must be
       # readable, writable, and executable for the agent user, and backed by a real disk
       # with enough space — see [choosing the node path](docs/cache-persistence-hostpath.md#step-1-choose-the-node-path)
       # for platform-specific recommendations.
