@@ -113,6 +113,10 @@ spec:
               value: {{ include "agent-job.sizeToMB" .Values.agent.binaryCache.sizeLimit | quote }}
             - name: SCALR_AGENT_BINARY_CACHE_THRESHOLD_DAYS
               value: {{ .Values.agent.binaryCache.thresholdDays | quote }}
+            {{- if .Values.agent.providerNetworkMirrors }}
+            - name: SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
+              value: {{ toJson .Values.agent.providerNetworkMirrors | quote }}
+            {{- end }}
             - name: SCALR_AGENT_DRIVER
               value: "kubernetes-job"
             - name: SCALR_AGENT_KUBERNETES_MODE

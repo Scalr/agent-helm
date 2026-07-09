@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `agent.providerNetworkMirrors` to configure OpenTofu/Terraform provider network mirrors. Each entry has a required `url`, an optional `token` bearer credential, and an optional `include` list of provider source address patterns (defaults to all providers). The chart renders the list as JSON into the `SCALR_AGENT_PROVIDER_NETWORK_MIRRORS` environment variable. Requires an agent version with network mirror support.
+
 ### Fixed
 
 - Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `"-"`. The documented `"-"` convention now works as intended and renders `storageClassName: ""` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is.
