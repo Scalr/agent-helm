@@ -1346,6 +1346,74 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: changed
+          description: "Bumping chart version to v0.6.2 for scalr-agent v1.2.0"
+        - kind: added
+          description: "Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{path,type}`), used when `persistence.cache.enabled` is true and `hostPath.path` is set (empty by default). The cache volume in task pods is then a `hostPath` mount that takes precedence over `persistentVolumeClaim`, while the controller keeps an ephemeral (`emptyDir`) cache volume. See [hostPath cache guide](docs/cache-persistence-hostpath.md) for details."
+        - kind: added
+          description: "Added `agent.binaryCache.sizeLimit` (default `5Gi`) and `agent.binaryCache.thresholdDays` (default `10`) to configure garbage collection of the local binary cache (OpenTofu, Terraform, Terragrunt, OPA, Checkov). Binaries unused for more than `thresholdDays` are removed, and least-recently-used binaries are evicted once the cache exceeds `sizeLimit`. The size limit is soft: a binary in use by an active run is never evicted."
+        - kind: changed
+          description: "The in-container bind mount for the binary cache moved from `/opt/bin` to `/opt/binary-cache`."
+        - kind: changed
+          description: "The controller and worker containers now use the image's built-in `ENTRYPOINT`/`CMD` instead of the previously hard-coded `command: [\"python\", \"-m\", \"tacoagent.cmd\"]` in the chart. Optional overrides are available via `agent.controller.command`, `agent.controller.args`, `task.worker.command`, and `task.worker.args`, but default to empty and using the image default is recommended — overriding bypasses the image's tuned startup and may break the container or degrade its performance."
+        - kind: fixed
+          description: "Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `\"-\"`. Setting `\"-\"` now renders `storageClassName: \"\"` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is."
+      artifacthub.io/crds: |
+        - kind: AgentTaskTemplate
+          version: v1alpha1
+          name: agenttasktemplate
+          displayName: Agent Task Template
+          description: |
+            Defines a template for tasks that the Scalr Agent controller materializes
+            into Kubernetes Jobs for each Scalr Run.
+      artifacthub.io/displayName: Scalr Agent (Job)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.2.0
+        - name: runner
+          image: scalr/runner:0.2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.2.0
+    created: "2026-07-13T11:37:17.838510393Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      It uses a job-based model, where each Scalr Run is isolated in its own Kubernetes
+      Job. '
+    digest: a6aab8dfc153b1fa122ebff94ee482d9b29e403d934f8002ac33843283b9658d
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - job
+    - multi-tenancy
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-job
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.6.2/agent-job-0.6.2.tgz
+    version: 0.6.2
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Bumping chart version to v0.6.1 for scalr-agent v1.1.0"
         - kind: added
           description: "Added a PodDisruptionBudget for task pods (`task.podDisruptionBudget`), enabled by default with `maxUnavailable: 0`. Previously only the controller had a PDB (selecting `app.kubernetes.io/component: agent`), so task pods were not covered and could be evicted mid-run by the Eviction API during node upgrades/drains — the pod-level `safe-to-evict`/`karpenter` annotations do not protect against that path, only a PDB does. With the new PDB a draining node now waits for the running task to finish on its own before evicting it. Configurable via `task.podDisruptionBudget.enabled`, `minAvailable`, and `maxUnavailable`."
@@ -1759,6 +1827,55 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.59/agent-job-0.5.59.tgz
     version: 0.5.59
   agent-k8s:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "Bumping chart version to v0.6.2 for scalr-agent v1.2.0"
+      artifacthub.io/displayName: Scalr Agent (Kubernetes)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.2.0
+        - name: runner
+          image: scalr/runner:0.2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-k8s/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.2.0
+    created: "2026-07-13T11:37:18.022236603Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys an agent controller with a set of agent workers and executes runs in
+      isolated pods. '
+    digest: cf83b8edebefa6587acb9f650b3fe57312f26cf5704e5b4f105ef61ba2254261
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - multi-tenancy
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.6.2/agent-k8s-0.6.2.tgz
+    version: 0.6.2
   - annotations:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
@@ -3252,6 +3369,53 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: changed
+          description: "Bumping chart version to v0.6.2 for scalr-agent v1.2.0"
+        - kind: fixed
+          description: "Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `\"-\"`. The documented `\"-\"` convention now works as intended and renders `storageClassName: \"\"` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is."
+      artifacthub.io/displayName: Scalr Agent (Local)
+      artifacthub.io/images: |
+        - name: agent-runner
+          image: scalr/agent:1.2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.2.0
+    created: "2026-07-13T11:37:18.18424021Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys a static number of agents and executes runs in shared agent pods. '
+    digest: f951a4164a12e5cc47000c8c7d5b3c60871fdec88006c33f18c1df745dc85aa3
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.6.2/agent-local-0.6.2.tgz
+    version: 0.6.2
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Bumping chart version to v0.6.1 for scalr-agent v1.1.0"
         - kind: changed
           description: "**BREAKING:** Default `image.repository` changed from `scalr/agent-runner` to `scalr/agent`. The chart now defaults to the minimal [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image, which ships the Scalr Agent service, the OpenTofu/Terraform runtime, and basic tooling (`git`, `curl`, `openssl`, `ca-certificates`). It does **not** ship cloud-provider CLIs (`aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`) — those were previously bundled in `scalr/agent-runner`. The motivation is a smaller default image, faster pulls, and a reduced attack surface for the majority of installations that never invoke a cloud CLI from a run. Only installations whose runs invoke `aws`, `gcloud`, `az`, `kubectl`, `scalr-cli`, or other tooling that was previously preinstalled in `scalr/agent-runner` are affected. To check, scan your Workspace hooks and Terraform/OpenTofu modules for those binaries. Installations already using a custom `image.repository` are unaffected. If affected, pick one: - Build a custom image on top of `scalr/agent` with the required tooling preinstalled (see [Custom Agent Image](README.md#custom-agent-image)) and point the chart at it:"
@@ -3829,4 +3993,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
     version: 0.5.40
-generated: "2026-06-17T17:41:40.527488972Z"
+generated: "2026-07-13T11:37:18.184812097Z"
