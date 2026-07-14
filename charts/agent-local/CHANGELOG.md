@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.3]
+
+### Updated
+
+- Bumping chart version to v0.6.3 for scalr-agent v1.2.1
+
 ### Added
 
 - Added `agent.providerNetworkMirrors` to configure OpenTofu/Terraform provider network mirrors. Each entry has a required `url`, an optional `token` bearer credential, and an optional `include` list of provider source address patterns (defaults to all providers). The chart renders the list as JSON into the `SCALR_AGENT_PROVIDER_NETWORK_MIRRORS` environment variable. Requires an agent version with network mirror support.
