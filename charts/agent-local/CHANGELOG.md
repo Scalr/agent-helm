@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.3]
+
+### Updated
+
+- Bumping chart version to v0.6.3 for scalr-agent v1.2.1
+
 ### Fixed
 
 - Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `"-"`. The documented `"-"` convention now works as intended and renders `storageClassName: ""` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is.

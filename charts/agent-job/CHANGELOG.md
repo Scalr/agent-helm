@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.3]
+
+### Updated
+
+- Bumping chart version to v0.6.3 for scalr-agent v1.2.1
+
 ### Added
 
 - Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{path,type}`), used when `persistence.cache.enabled` is true and `hostPath.path` is set (empty by default). The cache volume in task pods is then a `hostPath` mount that takes precedence over `persistentVolumeClaim`, while the controller keeps an ephemeral (`emptyDir`) cache volume. See [hostPath cache guide](docs/cache-persistence-hostpath.md) for details.
