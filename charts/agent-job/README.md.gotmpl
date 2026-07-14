@@ -68,6 +68,7 @@ See the [official documentation](https://docs.scalr.io/docs/agent-pools) for mor
 - [Mutual TLS (mTLS)](#mutual-tls-mtls)
 - [Volumes](#volumes)
 - [Security](#security)
+- [Provider Network Mirrors](#provider-network-mirrors)
 - [Network Requirements](#network-requirements)
 - [Job History Management](#job-history-management)
 - [Metrics and Observability](#metrics-and-observability)
@@ -653,6 +654,28 @@ Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Test
 | Azure AKS | Azure CNI (network plugin) + Cilium (network data-plane)                          | ✅ |
 
 **Note (EKS):** Pod networking is provided by Amazon VPC CNI. Calico is used only as the network policy engine (no Calico data plane); the VPC CNI is patched so Calico can enforce policy (e.g. `ANNOTATE_POD_IP=true` on the aws-node DaemonSet)
+
+## Provider Network Mirrors
+
+The agent can install OpenTofu/Terraform providers from [provider network mirrors](https://opentofu.org/docs/internals/provider-network-mirror-protocol/) instead of the origin registries, for example when runs execute in a network without access to the public registries. When caching providers from the dependency lockfile, the agent downloads them from the mirrors in the configured order and falls back to the origin registry itself. During `init`, OpenTofu/Terraform consults the mirrors and falls back to the origin registry only when a mirror returns a clean 404 for a provider it does not serve. Static GCS/S3 bucket mirrors return 403 for missing objects, so they must replicate every provider matched by their `include` patterns. Requires Terraform >= 0.15 and is not supported for Terragrunt runs.
+
+```yaml
+agent:
+  providerNetworkMirrors:
+    - url: https://mirror.example.com/
+      include:
+        - registry.terraform.io/*/*
+        - registry.opentofu.org/*/*
+```
+
+`include` limits a mirror to matching provider source addresses (`hostname/namespace/type`, where `*` matches a whole segment) and defaults to all providers. An optional `token` adds a bearer credential for the mirror. The token is rendered into the pod spec as a plain environment variable value:
+
+```yaml
+agent:
+  providerNetworkMirrors:
+    - url: https://private-mirror.example.com/
+      token: "<bearer-token>"
+```
 
 ## Network Requirements
 

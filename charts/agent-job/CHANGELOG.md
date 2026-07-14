@@ -15,8 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bumping chart version to v0.6.3 for scalr-agent v1.2.1
 
+## [v0.6.2]
+
+### Updated
+
+- Bumping chart version to v0.6.2 for scalr-agent v1.2.0
+
 ### Added
 
+- Added `agent.providerNetworkMirrors` to configure OpenTofu/Terraform provider network mirrors. Each entry has a required `url`, an optional `token` bearer credential, and an optional `include` list of provider source address patterns (defaults to all providers). The chart renders the list as JSON into the `SCALR_AGENT_PROVIDER_NETWORK_MIRRORS` environment variable. Requires an agent version with network mirror support.
 - Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{path,type}`), used when `persistence.cache.enabled` is true and `hostPath.path` is set (empty by default). The cache volume in task pods is then a `hostPath` mount that takes precedence over `persistentVolumeClaim`, while the controller keeps an ephemeral (`emptyDir`) cache volume. See [hostPath cache guide](docs/cache-persistence-hostpath.md) for details.
 - Added `agent.binaryCache.sizeLimit` (default `5Gi`) and `agent.binaryCache.thresholdDays` (default `10`) to configure garbage collection of the local binary cache (OpenTofu, Terraform, Terragrunt, OPA, Checkov). Binaries unused for more than `thresholdDays` are removed, and least-recently-used binaries are evicted once the cache exceeds `sizeLimit`. The size limit is soft: a binary in use by an active run is never evicted.
 

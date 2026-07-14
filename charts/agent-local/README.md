@@ -18,6 +18,7 @@ Deploys a static number of agents and executes runs in shared agent pods.
 - [Volumes](#volumes)
 - [Security](#security)
 - [Metrics and Observability](#metrics-and-observability)
+- [Provider Network Mirrors](#provider-network-mirrors)
 - [Network Requirements](#network-requirements)
 - [Termination](#termination)
 - [Troubleshooting](#troubleshooting)
@@ -469,6 +470,28 @@ When a agent container exceeds its memory limit, Kubernetes sends SIGKILL direct
 
 Monitor your run's resource usage and configure resource requests and limits accordingly to mitigate the risk of unexpected termination.
 
+## Provider Network Mirrors
+
+The agent can install OpenTofu/Terraform providers from [provider network mirrors](https://opentofu.org/docs/internals/provider-network-mirror-protocol/) instead of the origin registries, for example when runs execute in a network without access to the public registries. When caching providers from the dependency lockfile, the agent downloads them from the mirrors in the configured order and falls back to the origin registry itself. During `init`, OpenTofu/Terraform consults the mirrors and falls back to the origin registry only when a mirror returns a clean 404 for a provider it does not serve. Static GCS/S3 bucket mirrors return 403 for missing objects, so they must replicate every provider matched by their `include` patterns. Requires Terraform >= 0.15 and is not supported for Terragrunt runs.
+
+```yaml
+agent:
+  providerNetworkMirrors:
+    - url: https://mirror.example.com/
+      include:
+        - registry.terraform.io/*/*
+        - registry.opentofu.org/*/*
+```
+
+`include` limits a mirror to matching provider source addresses (`hostname/namespace/type`, where `*` matches a whole segment) and defaults to all providers. An optional `token` adds a bearer credential for the mirror. The token is rendered into the pod spec as a plain environment variable value:
+
+```yaml
+agent:
+  providerNetworkMirrors:
+    - url: https://private-mirror.example.com/
+      token: "<bearer-token>"
+```
+
 ## Network Requirements
 
 The agent requires outbound HTTPS access to the following endpoints:
@@ -513,7 +536,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 ```
 
 > [!NOTE]
-> Some variables are managed by the chart and are rejected if set through `extraEnv` (the chart render fails and lists them): `SCALR_AGENT_NAME`, `SCALR_URL`, `SCALR_AGENT_TOKEN`, `SCALR_AGENT_DRIVER`, `SCALR_AGENT_CONCURRENCY`, `SCALR_AGENT_DISCONNECT_ON_STOP`, `SCALR_AGENT_WORKER_ON_STOP_ACTION`, `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`, `SCALR_AGENT_DATA_DIR`, `SCALR_AGENT_CA_CERT`, and `SSL_CERT_FILE`. Use the dedicated Helm values for those.
+> Some variables are managed by the chart and are rejected if set through `extraEnv` (the chart render fails and lists them): `SCALR_AGENT_NAME`, `SCALR_URL`, `SCALR_AGENT_TOKEN`, `SCALR_AGENT_DRIVER`, `SCALR_AGENT_CONCURRENCY`, `SCALR_AGENT_DISCONNECT_ON_STOP`, `SCALR_AGENT_WORKER_ON_STOP_ACTION`, `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`, `SCALR_AGENT_DATA_DIR`, `SCALR_AGENT_PROVIDER_NETWORK_MIRRORS`, `SCALR_AGENT_CA_CERT`, and `SSL_CERT_FILE`. Use the dedicated Helm values for those.
 
 ### Scheduling & Placement
 

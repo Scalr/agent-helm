@@ -99,10 +99,15 @@ jobs:
       - name: Import GPG signing key
         run: |
           set -euo pipefail
-          echo "${{ secrets.GPG_PRIVATE_KEY_BASE64 }}" | base64 -d | gpg --batch --import
-          # Export a raw secret keyring that Helm/chart-releaser can read.
-          gpg --batch --export-secret-keys > /tmp/secring.gpg
+          mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent 2>/dev/null || true
+
           printf '%s' '${{ secrets.GPG_PASSPHRASE }}' > /tmp/passphrase
+          echo "${{ secrets.GPG_PRIVATE_KEY_BASE64 }}" | base64 -d | gpg --batch --import
+          gpg --batch --yes --pinentry-mode loopback --passphrase-file /tmp/passphrase \
+              --export-secret-keys > /tmp/secring.gpg
+
           key_uid="$(gpg --list-secret-keys --with-colons | awk -F: '/^uid:/{print $10; exit}')"
           echo "CR_KEY=${key_uid}" >> "$GITHUB_ENV"
 
