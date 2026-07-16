@@ -1346,6 +1346,74 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: changed
+          description: "Bumping chart version to v0.6.3 for scalr-agent v1.2.1"
+        - kind: added
+          description: "Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{path,type}`), used when `persistence.cache.enabled` is true and `hostPath.path` is set (empty by default). The cache volume in task pods is then a `hostPath` mount that takes precedence over `persistentVolumeClaim`, while the controller keeps an ephemeral (`emptyDir`) cache volume. See [hostPath cache guide](docs/cache-persistence-hostpath.md) for details."
+        - kind: added
+          description: "Added `agent.binaryCache.sizeLimit` (default `5Gi`) and `agent.binaryCache.thresholdDays` (default `10`) to configure garbage collection of the local binary cache (OpenTofu, Terraform, Terragrunt, OPA, Checkov). Binaries unused for more than `thresholdDays` are removed, and least-recently-used binaries are evicted once the cache exceeds `sizeLimit`. The size limit is soft: a binary in use by an active run is never evicted."
+        - kind: changed
+          description: "The in-container bind mount for the binary cache moved from `/opt/bin` to `/opt/binary-cache`."
+        - kind: changed
+          description: "The controller and worker containers now use the image's built-in `ENTRYPOINT`/`CMD` instead of the previously hard-coded `command: [\"python\", \"-m\", \"tacoagent.cmd\"]` in the chart. Optional overrides are available via `agent.controller.command`, `agent.controller.args`, `task.worker.command`, and `task.worker.args`, but default to empty and using the image default is recommended — overriding bypasses the image's tuned startup and may break the container or degrade its performance."
+        - kind: fixed
+          description: "Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `\"-\"`. Setting `\"-\"` now renders `storageClassName: \"\"` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is."
+      artifacthub.io/crds: |
+        - kind: AgentTaskTemplate
+          version: v1alpha1
+          name: agenttasktemplate
+          displayName: Agent Task Template
+          description: |
+            Defines a template for tasks that the Scalr Agent controller materializes
+            into Kubernetes Jobs for each Scalr Run.
+      artifacthub.io/displayName: Scalr Agent (Job)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.2.1
+        - name: runner
+          image: scalr/runner:0.2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.2.1
+    created: "2026-07-16T10:48:40.454414851Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      It uses a job-based model, where each Scalr Run is isolated in its own Kubernetes
+      Job. '
+    digest: 2476c4697b5dcaf5a5061d73ff3e3d1e350d35a548157f0df4f1b51079a99889
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - job
+    - multi-tenancy
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-job
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.6.3/agent-job-0.6.3.tgz
+    version: 0.6.3
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Bumping chart version to v0.6.2 for scalr-agent v1.2.0"
         - kind: added
           description: "Added a node-local disk backend for the cache directory (`persistence.cache.hostPath.{path,type}`), used when `persistence.cache.enabled` is true and `hostPath.path` is set (empty by default). The cache volume in task pods is then a `hostPath` mount that takes precedence over `persistentVolumeClaim`, while the controller keeps an ephemeral (`emptyDir`) cache volume. See [hostPath cache guide](docs/cache-persistence-hostpath.md) for details."
@@ -1827,6 +1895,55 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.59/agent-job-0.5.59.tgz
     version: 0.5.59
   agent-k8s:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "Bumping chart version to v0.6.3 for scalr-agent v1.2.1"
+      artifacthub.io/displayName: Scalr Agent (Kubernetes)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.2.1
+        - name: runner
+          image: scalr/runner:0.2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-k8s/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.2.1
+    created: "2026-07-16T10:48:40.635130704Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys an agent controller with a set of agent workers and executes runs in
+      isolated pods. '
+    digest: 8a8e12d65ad4b5472e6556428ba6caf8c0bc0d0a4097b54debb0b9425ddcb3eb
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - multi-tenancy
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.6.3/agent-k8s-0.6.3.tgz
+    version: 0.6.3
   - annotations:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
@@ -3369,6 +3486,53 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: changed
+          description: "Bumping chart version to v0.6.3 for scalr-agent v1.2.1"
+        - kind: fixed
+          description: "Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `\"-\"`. The documented `\"-\"` convention now works as intended and renders `storageClassName: \"\"` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is."
+      artifacthub.io/displayName: Scalr Agent (Local)
+      artifacthub.io/images: |
+        - name: agent-runner
+          image: scalr/agent:1.2.1
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.2.1
+    created: "2026-07-16T10:48:40.767732302Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys a static number of agents and executes runs in shared agent pods. '
+    digest: e489a14eef5cb4079f8e7c721249a956207ef5a29a26cf0dbbacd57f843911d7
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.6.3/agent-local-0.6.3.tgz
+    version: 0.6.3
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Bumping chart version to v0.6.2 for scalr-agent v1.2.0"
         - kind: fixed
           description: "Fixed `helm template`/`helm install` failing with `YAML parse error ... block sequence entries are not allowed in this context` when `persistence.data.persistentVolumeClaim.storageClassName` or `persistence.cache.persistentVolumeClaim.storageClassName` was set to `\"-\"`. The documented `\"-\"` convention now works as intended and renders `storageClassName: \"\"` to disable dynamic provisioning. Existing setups are unaffected: an empty value still omits the field (cluster default storage class) and an explicit class name is still rendered as-is."
@@ -3993,4 +4157,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
     version: 0.5.40
-generated: "2026-07-13T11:37:18.184812097Z"
+generated: "2026-07-16T10:48:40.76841213Z"
