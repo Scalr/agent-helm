@@ -23,7 +23,7 @@ spec:
       {{- include "agent-job.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: agent
 {{- end }}
-
+---
 {{- if .Values.task.podDisruptionBudget.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
