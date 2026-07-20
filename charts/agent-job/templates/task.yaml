@@ -43,7 +43,6 @@ spec:
           - action: Ignore
             onPodConditions:
               - type: DisruptionTarget
-      restartPolicy: Never
       ttlSecondsAfterFinished: {{ .Values.task.job.ttlSecondsAfterFinished }}
       template:
         metadata:

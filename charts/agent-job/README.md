@@ -881,6 +881,10 @@ kubectl logs -n <namespace> <task-pod-name> --all-containers
 For issues not covered above, or if you need additional assistance, open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
 For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting#creating-a-support-ticket on how to gather the right information to speed up issue resolution.
 
+## Requirements
+
+Kubernetes: `>=1.35.0-0`
+
 ## Configuration
 
 The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values YAML file. Each value has a sensible default for a standard deployment.
