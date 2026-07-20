@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Added `task.job.backoffLimit` (default `1`) to bound retries for task pods that fail before the workload starts, such as launch and infrastructure failures.
+
+### Changed
+
+- Task Jobs now use a `podFailurePolicy` so a pod that already started the task is no longer retried. A container that exits non-zero fails the Job immediately, while a pod disrupted before it starts (eviction, preemption, node shutdown) is retried without consuming the backoff budget. Previously `backoffLimit` was fixed at `0` and never retried.
+
 ## [v0.6.3]
 
 ### Updated

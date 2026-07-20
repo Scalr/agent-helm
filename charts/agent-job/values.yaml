@@ -469,6 +469,11 @@ task:
     # -- Time in seconds after job completion before it is automatically deleted.
     # @section -- Task
     ttlSecondsAfterFinished: 60
+    # -- Number of retries for task pods that fail before the workload starts, such as
+    # launch and infrastructure failures. A pod failure policy stops retries once the
+    # workload has started, so only pre-start failures use this budget.
+    # @section -- Task
+    backoffLimit: 1
 
   # -- Additional labels for the Job (workload object).
   # @section -- Task
