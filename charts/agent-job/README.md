@@ -772,7 +772,7 @@ Leave `sentryDsn` empty (the default) to disable Sentry integration.
 By default the chart provisions:
 
 - **ServiceAccount** used by the controller and task pods
-- **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
+- **Role/RoleBinding** with namespaced access to manage pods/jobs and ephemeral image pull Secrets needed for task execution
 - **ClusterRole/ClusterRoleBinding** granting read access to `AgentTaskTemplate` resources (`agenttasktemplates.scalr.io`)
 
 Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
@@ -896,4 +896,3 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 > Setting `SCALR_AGENT_*` variables by hand bypasses related chart logic (a dedicated value often does more — e.g., the cache persistence options are coupled with volume provisioning).
 > Additionally, overriding existing variables may lead to non-deterministic behavior when resolving duplicate environment entries and may break Helm upgrades.
 > If a setting has no dedicated Helm value, open an issue.
-

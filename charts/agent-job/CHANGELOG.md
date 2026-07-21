@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- Granted the agent controller namespaced access to create, inspect, reconcile, and delete
+  ephemeral image pull Secrets for authenticated custom runner images.
+
 ## [v0.6.3]
 
 ### Updated

@@ -33,7 +33,7 @@ rbac:
   # @section -- RBAC
   create: true
   # -- Namespaced RBAC rules granted to the controller ServiceAccount.
-  # @default -- Pods, Jobs, Deployments and Events permissions (see values.yaml)
+  # @default -- Pods, Jobs, Deployments, Events and pull Secret permissions (see values.yaml)
   # @section -- RBAC
   rules:
     - apiGroups: [""]
@@ -58,6 +58,9 @@ rbac:
     - apiGroups: [""]
       resources: ["pods/status"]
       verbs: ["get", "patch", "update"]
+    - apiGroups: [""]
+      resources: ["secrets"]
+      verbs: ["get", "create", "patch", "delete"]
     - apiGroups: ["apps"]
       resources: ["deployments"]
       verbs: ["get", "list", "watch"]
