@@ -409,6 +409,11 @@ agent:
     # <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_CONCURRENCY`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_concurrency).
     # @section -- Agent
     concurrency: 10
+    # -- Drop Linux kernel page cache entries for the OpenTofu/Terraform provider cache directory.
+    # This frees cached filesystem pages while keeping all provider files in place.
+    # <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_DROP_KERNEL_PAGES`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_drop_kernel_pages).
+    # @section -- Agent
+    dropKernelPages: true
 
   # -- OpenTofu/Terraform provider network mirrors, as a list of mirror objects.
   # Each entry has a required `url`, an optional `token` bearer credential, and an

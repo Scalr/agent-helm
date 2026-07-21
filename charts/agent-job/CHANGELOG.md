@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `task.job.backoffLimit` (default `1`) to bound retries for task pods that fail before the workload starts, such as launch and infrastructure failures.
 - Added a `kubeVersion: ">=1.35.0-0"` constraint so Helm rejects installation and upgrades on clusters older than Kubernetes 1.35.
+- Added `agent.providerCache.dropKernelPages` (default `true`) to control dropping Linux kernel page cache entries for the provider cache directory, exported as `SCALR_AGENT_PROVIDER_CACHE_DROP_KERNEL_PAGES`.
 
 ### Changed
 

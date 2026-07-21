@@ -205,7 +205,7 @@ spec:
               - name: SCALR_AGENT_SENTRY_DSN
                 value: {{ .Values.agent.sentryDsn | quote }}
               - name: SCALR_AGENT_PROVIDER_CACHE_DROP_KERNEL_PAGES
-                value: "false"
+                value: {{ .Values.agent.providerCache.dropKernelPages | quote }}
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
