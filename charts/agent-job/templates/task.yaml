@@ -27,9 +27,22 @@ spec:
       {{- end }}
     {{- end }}
     spec:
-      # The agent doesn't support task retries on infrastructure layer at the moment.
-      backoffLimit: 0
-      restartPolicy: Never
+      # Retry only launch and infrastructure failures. The pod failure policy fails the
+      # Job as soon as a container starts and exits non-zero, so a pod that already ran
+      # the task is never retried. A pod disrupted before it starts (eviction, preemption,
+      # node shutdown) is retried without consuming the backoff budget.
+      backoffLimit: {{ dig "job" "backoffLimit" 1 .Values.task }}
+      podFailurePolicy:
+        rules:
+          # A container started and exited non-zero: the task ran, so fail the Job.
+          - action: FailJob
+            onExitCodes:
+              operator: NotIn
+              values: [0]
+          # The pod was disrupted before starting: retry without spending the budget.
+          - action: Ignore
+            onPodConditions:
+              - type: DisruptionTarget
       ttlSecondsAfterFinished: {{ .Values.task.job.ttlSecondsAfterFinished }}
       template:
         metadata:
@@ -192,7 +205,7 @@ spec:
               - name: SCALR_AGENT_SENTRY_DSN
                 value: {{ .Values.agent.sentryDsn | quote }}
               - name: SCALR_AGENT_PROVIDER_CACHE_DROP_KERNEL_PAGES
-                value: "false"
+                value: {{ .Values.agent.providerCache.dropKernelPages | quote }}
               {{- include "agent-job.proxyEnv" . | nindent 14 }}
               {{- include "agent-job.caCertEnv" . | nindent 14 }}
               {{- if or .Values.global.tls.clientCertSecret.name (and .Values.global.tls.clientCert .Values.global.tls.clientKey) }}
