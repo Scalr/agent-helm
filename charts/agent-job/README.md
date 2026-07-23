@@ -881,6 +881,10 @@ kubectl logs -n <namespace> <task-pod-name> --all-containers
 For issues not covered above, or if you need additional assistance, open a support ticket at [Scalr Support Center](https://scalr-labs.atlassian.net/servicedesk/customer/portal/31).
 For errors, see the detailed steps at https://docs.scalr.io/docs/troubleshooting#creating-a-support-ticket on how to gather the right information to speed up issue resolution.
 
+## Requirements
+
+Kubernetes: `>=1.35.0-0`
+
 ## Configuration
 
 The chart is configured through the Helm values listed below — set them with `--set key=value` or a custom values YAML file. Each value has a sensible default for a standard deployment.
@@ -933,6 +937,7 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 | agent.podLabels | object | <pre>{}</pre> | Controller-specific pod labels (merged with global.podLabels, overrides duplicate keys). |
 | agent.podSecurityContext | object | <pre>{}</pre> | Controller-specific pod security context (merged with global.podSecurityContext, overrides duplicate keys). |
 | agent.providerCache.concurrency | int | `10` | Maximum number of threads used for provider installations. This value is global for the Scalr service and applies across all concurrent runs. Increasing it will increase resource consumption and may improve provider installation speed, but the effect depends on individual setups. <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_CONCURRENCY`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_concurrency). |
+| agent.providerCache.dropKernelPages | bool | `true` | Drop Linux kernel page cache entries for the OpenTofu/Terraform provider cache directory. This frees cached filesystem pages while keeping all provider files in place. <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_DROP_KERNEL_PAGES`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_drop_kernel_pages). |
 | agent.providerCache.enabled | bool | `false` | Enable provider caching. Disabled by default since the default configuration uses an ephemeral volume for the cache directory. <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_ENABLED`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_enabled). |
 | agent.providerCache.sizeLimit | string | `"40Gi"` | Provider cache soft limit. Must be tuned according to cache directory size. <br>Exports [`SCALR_AGENT_PROVIDER_CACHE_SIZE_LIMIT_MB`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_cache_size_limit_mb). |
 | agent.providerNetworkMirrors | list | <pre>[]</pre> | OpenTofu/Terraform provider network mirrors, as a list of mirror objects. Each entry has a required `url`, an optional `token` bearer credential, and an optional `include` list of provider source address patterns (`hostname/namespace/type`, `*` matches a whole segment; defaults to all providers). Note: a `token` set here is rendered into the pod spec as a plain env value. <br>Exports [`SCALR_AGENT_PROVIDER_NETWORK_MIRRORS`](https://docs.scalr.io/docs/configuration#scalr_agent_provider_network_mirrors). |
@@ -1060,6 +1065,7 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 | task.allowMetadataService | bool | `false` | When set to `true`, disables the NetworkPolicy that blocks access to the VM metadata service (`169.254.169.254`) for agent task containers. When set to `false` (default), a NetworkPolicy is created to prevent workloads from accessing cloud credentials or instance metadata. |
 | task.extraVolumes | list | <pre>[]</pre> | Additional volumes for task job pods. |
 | task.job | object | <pre>{<br>&nbsp;&nbsp;"basename":&nbsp;"",<br>&nbsp;&nbsp;"ttlSecondsAfterFinished":&nbsp;60<br>}</pre> | Job configuration for task execution. |
+| task.job.backoffLimit | int | `1` | Number of retries for task pods that fail before the workload starts, such as launch and infrastructure failures. A pod failure policy stops retries once the workload has started, so only pre-start failures use this budget. |
 | task.job.basename | string | `""` | Base name prefix for spawned Kubernetes Jobs (defaults to fullname, e.g., "scalr-agent"). Jobs are named as `<basename>-<run-id>`. See README for details on task naming. |
 | task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it is automatically deleted. |
 | task.jobAnnotations | object | <pre>{}</pre> | Additional annotations for the Job (workload object). |
