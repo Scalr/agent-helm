@@ -1064,7 +1064,7 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 | task.affinity | object | <pre>{}</pre> | Node affinity for task job pods. |
 | task.allowMetadataService | bool | `false` | When set to `true`, disables the NetworkPolicy that blocks access to the VM metadata service (`169.254.169.254`) for agent task containers. When set to `false` (default), a NetworkPolicy is created to prevent workloads from accessing cloud credentials or instance metadata. |
 | task.extraVolumes | list | <pre>[]</pre> | Additional volumes for task job pods. |
-| task.job | object | <pre>{<br>&nbsp;&nbsp;"backoffLimit":&nbsp;1,<br>&nbsp;&nbsp;"basename":&nbsp;"",<br>&nbsp;&nbsp;"ttlSecondsAfterFinished":&nbsp;60<br>}</pre> | Job configuration for task execution. |
+| task.job | object | <pre>{<br>&nbsp;&nbsp;"basename":&nbsp;"",<br>&nbsp;&nbsp;"ttlSecondsAfterFinished":&nbsp;60<br>}</pre> | Job configuration for task execution. |
 | task.job.backoffLimit | int | `1` | Number of retries for task pods that fail before the workload starts, such as launch and infrastructure failures. A pod failure policy stops retries once the workload has started, so only pre-start failures use this budget. |
 | task.job.basename | string | `""` | Base name prefix for spawned Kubernetes Jobs (defaults to fullname, e.g., "scalr-agent"). Jobs are named as `<basename>-<run-id>`. See README for details on task naming. |
 | task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it is automatically deleted. |
