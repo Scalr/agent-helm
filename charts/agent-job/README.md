@@ -108,13 +108,15 @@ See [agent task Job CRD template](https://github.com/Scalr/agent-helm/blob/maste
 
 This chart deploys the [Scalr Agent](https://docs.scalr.io/docs/agent-pools) using the [`scalr/agent`](https://hub.docker.com/r/scalr/agent) image. The agent supports multiple runtimes beyond Kubernetes and is versioned independently from this chart.
 
-Each new agent release triggers a new chart release with an updated `appVersion`. The two changelogs cover different scopes:
+Each new agent release triggers a new chart release with an updated `appVersion`. By default the chart deploys the matching agent image: `agent.image.tag` is empty and falls back to `.Chart.AppVersion`. Upgrade the agent by upgrading the chart to a release that ships the agent version you want.
+
+The two changelogs cover different scopes:
 
 - [Scalr Agent changelog](https://docs.scalr.io/docs/changelog) — application-level changes and new Scalr platform functionality
 - [CHANGELOG.md](CHANGELOG.md) — chart-level changes: Kubernetes resources, values, and defaults
 
 > [!WARNING]
-> Overriding `appVersion` to a version other than the one shipped with the chart is not recommended. Releases are tested and coordinated with a specific agent version, and mismatched combinations may include breaking changes between application and infrastructure code.
+> Setting `agent.image.tag` to an agent version other than the chart's `appVersion` is not recommended. Each chart release is tested and coordinated with a specific agent version, and mismatched combinations may include breaking changes between the application and the chart's Kubernetes resources.
 
 ## Agent Task Naming
 
