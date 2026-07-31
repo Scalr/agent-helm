@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.4]
+
+### Updated
+
+- Bumping chart version to v0.6.4 for scalr-agent v1.3.0
+
 ### Added
 
 - Added `task.job.backoffLimit` (default `1`) to bound retries for task pods that fail before the workload starts, such as launch and infrastructure failures.
