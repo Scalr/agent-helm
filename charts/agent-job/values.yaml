@@ -615,6 +615,8 @@ task:
 
     # -- Resource requests and limits for the runner container.
     # Note: For scalr-managed agents, this may be overridden by Scalr platform billing resource tier presets.
+    # Note: The memory effectively available to a run is the hard limit scaled by task.runner.memorySoftLimitPercent
+    # (default 80%), so the 8192Mi default leaves about 6553Mi for the workload before the agent terminates it gracefully.
     # @section -- Task
     resources:
       requests:
@@ -622,7 +624,7 @@ task:
         memory: 512Mi
       limits:
         cpu: 4000m
-        memory: 2048Mi
+        memory: 8192Mi
 
     # -- Memory soft limit as a percentage of the hard limit (task.runner.resources.limits.memory).
     # When memory usage exceeds this value, the process will be gracefully terminated by the agent.
