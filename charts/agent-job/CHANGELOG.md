@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Task Jobs now use a `podFailurePolicy` so a pod that already started the task is no longer retried. A container that exits non-zero fails the Job immediately, while a pod disrupted before it starts (eviction, preemption, node shutdown) is retried without consuming the backoff budget. Previously `backoffLimit` was fixed at `0` and never retried.
+- Raised the default `task.runner.resources.limits.memory` from `2048Mi` to `8192Mi` to give run workloads more headroom before the memory limit is reached. With the default `task.runner.memorySoftLimitPercent` of `80`, a run has about `6553Mi` of effectively usable memory before the agent terminates it gracefully.
 
 ## [v0.6.3]
 

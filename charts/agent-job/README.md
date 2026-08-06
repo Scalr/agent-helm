@@ -302,6 +302,8 @@ The agent uses a two-tier memory limit model:
 - **Soft limit** (`task.runner.memorySoftLimitPercent`, default 80% of hard limit) — when exceeded, the agent sends SIGTERM to the workload. OpenTofu/Terraform handles SIGTERM gracefully by pushing state before exiting. The headroom between the soft and hard limits gives the process time to complete the state push.
 - **Hard limit** (`task.runner.resources.limits.memory`) — enforced by Kubernetes. If the process does not exit after SIGTERM and memory continues to grow, the container is killed with SIGKILL.
 
+This means the memory effectively available to a run is the hard limit scaled by the soft limit percentage, rather than the full `task.runner.resources.limits.memory` value. With the chart defaults (hard limit `8192Mi`, soft limit `80%`, warn threshold `90%`), a run is gracefully terminated once it reaches about `6553Mi`, and a warning is logged once it passes about `5898Mi`. Size the hard limit accordingly — to give a workload `8192Mi` of usable memory at the default percentages, set the hard limit to about `10240Mi`.
+
 The gap between the soft limit and the hard limit is the memory budget available for the state push after SIGTERM is sent. OOM termination is not precise and may fail during sudden memory spikes, so sufficient headroom is important to handle the race between graceful termination and the Kubernetes hard kill.
 
 - Setting `task.runner.memorySoftLimitPercent` too high (e.g., 95%) leaves little headroom — if memory continues to grow after SIGTERM, the process may be killed before the state push completes.
