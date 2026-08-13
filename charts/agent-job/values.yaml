@@ -60,7 +60,7 @@ rbac:
       verbs: ["get", "patch", "update"]
     - apiGroups: [""]
       resources: ["secrets"]
-      verbs: ["get", "create", "patch", "delete"]
+      verbs: ["get", "list", "create", "patch", "delete"]
     - apiGroups: ["apps"]
       resources: ["deployments"]
       verbs: ["get", "list", "watch"]
