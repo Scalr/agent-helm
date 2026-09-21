@@ -523,6 +523,18 @@ task:
   # @section -- Task
   affinity: {}
 
+  # -- Host aliases for task job pods, written to `/etc/hosts` of every container in the pod.
+  # Use this to pin a hostname to a specific address, for example to route `github.com` around an unhealthy edge.
+  # Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#hostalias-v1-core>.
+  # Example: `--set task.hostAliases[0].ip=140.82.112.3,task.hostAliases[0].hostnames[0]=github.com`
+  # @section -- Task
+  hostAliases: []
+
+  # -- DNS configuration for task job pods (nameservers, searches, options).
+  # Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#poddnsconfig-v1-core>.
+  # @section -- Task
+  dnsConfig: {}
+
   # -- Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys).
   # @section -- Task
   podAnnotations: {}
