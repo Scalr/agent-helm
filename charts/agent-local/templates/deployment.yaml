@@ -50,7 +50,7 @@ spec:
         {{- $selectorKeys := $selectorLabels | fromYaml }}
         {{- range $key, $value := .Values.podLabels }}
         {{- if not (hasKey $selectorKeys $key) }}
-        {{ $key }}: {{ $value | quote }}
+        {{ $key | quote }}: {{ $value | quote }}
         {{- end }}
         {{- end }}
     spec:
