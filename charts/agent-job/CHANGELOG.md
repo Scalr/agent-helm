@@ -13,10 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `task.hostAliases` and `task.dnsConfig` values, passed through to the task job pod spec, so hostname resolution for runner pods can be steered from the chart instead of by patching the AgentTaskTemplate.
 
-### Fixed
-
-- Pod labels from `global.labels`, `global.podLabels`, `agent.podLabels` and `task.podLabels` now merge into a single set with documented precedence, so duplicate keys render once. Chart selector and component labels take precedence over user labels, and label keys and values are quoted.
-
 ## [v0.6.8]
 
 ### Updated

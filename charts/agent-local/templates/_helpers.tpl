@@ -52,19 +52,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Pod template labels. Selector labels take precedence over duplicate keys in podLabels. Keys and values are quoted.
-*/}}
-{{- define "agent-local.podLabels" -}}
-{{- $reserved := include "agent-local.selectorLabels" . | fromYaml }}
-{{- include "agent-local.selectorLabels" . }}
-{{- range $key, $value := .Values.podLabels }}
-{{- if not (hasKey $reserved $key) }}
-{{ $key | quote }}: {{ $value | quote }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
 Create the name of the service account to use
 */}}
 {{- define "agent-local.serviceAccountName" -}}

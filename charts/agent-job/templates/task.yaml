@@ -55,7 +55,17 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           labels:
-            {{- include "agent-job.podLabels" (dict "context" . "component" "task" "podLabels" .Values.task.podLabels) | nindent 12 }}
+            {{- include "agent-job.selectorLabels" . | nindent 12 }}
+            {{- with .Values.global.labels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with .Values.global.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with .Values.task.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            app.kubernetes.io/component: task
         spec:
           restartPolicy: Never
           {{- with .Values.global.imagePullSecrets }}
