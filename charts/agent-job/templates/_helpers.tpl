@@ -63,6 +63,26 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Pod template labels for a component.
+User labels merge in order global.labels, global.podLabels, then the component podLabels, with later values overriding earlier ones.
+Selector and component labels take precedence over duplicate keys. Keys and values are quoted.
+Usage: {{ include "agent-job.podLabels" (dict "context" . "component" "agent" "podLabels" .Values.agent.podLabels) }}
+*/}}
+{{- define "agent-job.podLabels" -}}
+{{- $ctx := .context }}
+{{- $reserved := include "agent-job.selectorLabels" $ctx | fromYaml }}
+{{- $_ := set $reserved "app.kubernetes.io/component" .component }}
+{{- $labels := merge (deepCopy (default (dict) .podLabels)) (default (dict) $ctx.Values.global.podLabels) (default (dict) $ctx.Values.global.labels) }}
+{{- include "agent-job.selectorLabels" $ctx }}
+{{- range $key, $value := $labels }}
+{{- if not (hasKey $reserved $key) }}
+{{ $key | quote }}: {{ $value | quote }}
+{{- end }}
+{{- end }}
+app.kubernetes.io/component: {{ .component }}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "agent-job.serviceAccountName" -}}

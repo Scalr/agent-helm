@@ -965,7 +965,7 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 | global.imageRegistry | string |  | Global Docker registry override for all images. Prepended to image repositories. Example: "us-central1-docker.pkg.dev/myorg/images" Leave empty to use default Docker Hub. |
 | global.labels | object | <pre>{}</pre> | Global labels applied to all chart resources (metadata.labels), including pods. |
 | global.podAnnotations | object | <pre>{}</pre> | Global pod annotations applied to all pods. |
-| global.podLabels | object | <pre>{}</pre> | Global pod labels applied to all pods. |
+| global.podLabels | object | <pre>{}</pre> | Global pod labels applied to all pods (merged with global.labels, overrides duplicate keys). Chart selector and component labels take precedence. |
 | global.podSecurityContext | object | <pre>{<br>&nbsp;&nbsp;"fsGroup":&nbsp;1000,<br>&nbsp;&nbsp;"fsGroupChangePolicy":&nbsp;"OnRootMismatch",<br>&nbsp;&nbsp;"runAsGroup":&nbsp;1000,<br>&nbsp;&nbsp;"runAsNonRoot":&nbsp;true,<br>&nbsp;&nbsp;"runAsUser":&nbsp;1000,<br>&nbsp;&nbsp;"seLinuxOptions":&nbsp;{},<br>&nbsp;&nbsp;"seccompProfile":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"type":&nbsp;"RuntimeDefault"<br>&nbsp;&nbsp;},<br>&nbsp;&nbsp;"supplementalGroups":&nbsp;[],<br>&nbsp;&nbsp;"sysctls":&nbsp;[]<br>}</pre> | Security context applied to all pods. |
 | global.podSecurityContext.fsGroup | int | `1000` | File system group for volume ownership. |
 | global.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` | File system group change policy. |
