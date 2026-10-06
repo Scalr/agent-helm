@@ -214,6 +214,10 @@ serviceAccount:
 # @section -- Pod Configuration
 podAnnotations: {}
 
+# -- Labels for Scalr Agent pods. Selector labels take precedence over duplicate keys.
+# @section -- Pod Configuration
+podLabels: {}
+
 # -- Security context for Scalr Agent pod.
 # @section -- Security
 podSecurityContext:

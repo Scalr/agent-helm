@@ -45,7 +45,14 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "agent-local.selectorLabels" . | nindent 8 }}
+        {{- $selectorLabels := include "agent-local.selectorLabels" . }}
+        {{- $selectorLabels | nindent 8 }}
+        {{- $selectorKeys := $selectorLabels | fromYaml }}
+        {{- range $key, $value := .Values.podLabels }}
+        {{- if not (hasKey $selectorKeys $key) }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
