@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- `podLabels` value to add custom labels to Scalr Agent pods.
+
 ## [v0.6.8]
 
 ### Updated

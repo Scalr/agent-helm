@@ -45,7 +45,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "agent-local.selectorLabels" . | nindent 8 }}
+        {{- merge (include "agent-local.selectorLabels" . | fromYaml) (default (dict) .Values.podLabels) | toYaml | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
