@@ -620,7 +620,7 @@ task:
       repository: scalr/runner
       # -- Default tag for the runner image.
       # @section -- Task
-      tag: "0.2.0"
+      tag: "0.6.0"
       # -- Image pull policy.
       # @section -- Task
       pullPolicy: IfNotPresent
