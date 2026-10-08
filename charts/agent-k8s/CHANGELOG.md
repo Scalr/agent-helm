@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Updated
+
+- Default runner image (`agent.container_task_image`) bumped from `scalr/runner:0.2.0` to `scalr/runner:0.6.0`. The new image ships Python 3.14.8 and updated cloud CLIs. See changes: https://github.com/Scalr/runner/compare/0.2.0...0.6.0
+
 ## [v0.6.8]
 
 ### Updated

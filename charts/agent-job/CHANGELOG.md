@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `task.hostAliases` and `task.dnsConfig` values, passed through to the task job pod spec, so hostname resolution for runner pods can be steered from the chart instead of by patching the AgentTaskTemplate.
 
+### Updated
+
+- Default runner image (`task.runner.image.tag`) bumped from `scalr/runner:0.2.0` to `scalr/runner:0.6.0`. The new image ships Python 3.14.8 and updated cloud CLIs. See changes: https://github.com/Scalr/runner/compare/0.2.0...0.6.0
+
 ## [v0.6.8]
 
 ### Updated
