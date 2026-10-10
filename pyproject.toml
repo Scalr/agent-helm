@@ -1,0 +1,33 @@
+[project]
+name = "agent-helm-tests"
+version = "0.0.0"
+description = "Helm chart rendering and validation tests"
+requires-python = ">=3.15"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9,<10",
+    "pyyaml>=6.0.3,<7",
+    "ruff>=0.16.10",
+    "ty>=0.0.85",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+include = ["tests/**/*.py"]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["I", "ANN"]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[tool.ty.src]
+include = ["tests"]

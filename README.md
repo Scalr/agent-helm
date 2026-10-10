@@ -32,8 +32,13 @@ This repository contains multiple charts for different deployment types and use 
 
 - Install [pre-commit](https://pre-commit.com/).
 - Install Node.js for building and testing GitHub Actions: [https://nodejs.org/en/download/package-manager](https://nodejs.org/en/download/package-manager)
-- Install additional dependencies: `make dev`
-- Rebuild documentation from templates using [helm-docs](https://github.com/norwoodj/helm-docs): `make docs`
+- Install [just](https://just.systems/man/en/packages.html) and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+- Install additional dependencies: `just dev`
+- Run chart rendering and validation tests: `just test` (requires Helm; uv manages Python and the locked test dependencies).
+- Format Python tests with Ruff: `just fmt`
+- Check Python test lint, formatting, and types with Ruff and ty: `just lint-tests`
+- Rebuild documentation from templates using [helm-docs](https://github.com/norwoodj/helm-docs): `just docs`
+- List available commands: `just`
 
 ## Contributing
 
