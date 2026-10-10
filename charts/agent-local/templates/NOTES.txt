@@ -5,7 +5,10 @@ Namespace:    {{ .Release.Namespace }}
 Chart:        {{ .Chart.Name }}-{{ .Chart.Version }} (appVersion {{ .Chart.AppVersion }})
 
 {{- if .Release.IsUpgrade }}
-{{- $existing := lookup "apps/v1" "Deployment" .Release.Namespace (include "agent-local.fullname" .) }}
+{{- $existing := or
+  (lookup "apps/v1" "Deployment" .Release.Namespace (include "agent-local.fullname" .))
+  (lookup "apps/v1" "StatefulSet" .Release.Namespace (include "agent-local.statefulSetName" .))
+}}
 {{- if $existing }}
 {{- $prevImage := "" }}
 {{- range $c := $existing.spec.template.spec.containers }}
@@ -33,17 +36,11 @@ WARNING: Deprecated persistence configuration detected.
   The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated
   and will be removed in a future release. They were honored for this release for backward compatibility.
 
-  Migrate to the per-volume schema:
+  Before migrating a chart-managed cache PVC, add `helm.sh/resource-policy: keep`
+  under `persistence.persistentVolumeClaim.annotations` and perform a separate Helm upgrade.
+  Then set `persistence.cache.persistentVolumeClaim.claimName` to the existing PVC name
+  when removing the legacy settings. Leaving claimName empty creates a new, empty PVC.
 
-    persistence:
-      cache:
-        enabled: {{ .Values.persistence.enabled }}
-        persistentVolumeClaim:
-          claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | quote }}
-          storageClassName: {{ .Values.persistence.persistentVolumeClaim.storageClassName | quote }}
-          storage: {{ .Values.persistence.persistentVolumeClaim.storage }}
-          accessMode: {{ .Values.persistence.persistentVolumeClaim.accessMode }}
-          subPath: {{ .Values.persistence.persistentVolumeClaim.subPath | quote }}
-
-  See the chart README for the full schema and the new `persistence.data.*` options.
+  See https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/README.md#migrate-legacy-cache-settings
+  for the migration steps.
 {{- end }}

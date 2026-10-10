@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `podLabels` value to add custom labels to Scalr Agent pods.
+- `workload.kind` to select Deployment (the existing default) or StatefulSet, with shared pod configuration, a headless Service, and StatefulSet update and PVC retention settings.
+- Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate` storage. Existing `enabled` settings and legacy cache PVC names remain unchanged when mode is omitted.
+- PVC annotations for chart-managed claims and claim templates, including retention annotations for migrating existing shared claims.
+- Helm schema validation for workload kinds, storage modes, and StatefulSet-only claim templates.
+
+### Fixed
+
+- Place eviction annotations on agent pods, with overrides through `podAnnotations`.
+- Reserve cache, drain timeout, and TLS environment variables managed by the chart.
+- Preserve legacy cache PVCs in the documented migration to per-volume settings.
 
 ## [v0.6.8]
 

@@ -24,6 +24,20 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 
+{{/* Older releases using --reuse-values do not have workload settings. */}}
+{{- define "agent-local.workloadKind" -}}
+{{- (default dict .Values.workload).kind | default "Deployment" -}}
+{{- end }}
+
+{{/* Leave room for the revision hash label and use a valid governing Service name. */}}
+{{- define "agent-local.statefulSetName" -}}
+{{- $name := include "agent-local.fullname" . | replace "." "-" -}}
+{{- if regexMatch "^[0-9]" $name -}}
+{{- $name = printf "agent-%s" $name -}}
+{{- end -}}
+{{- $name | trunc 52 | trimSuffix "-" -}}
+{{- end }}
+
 {{/*
 Create chart name and version as used by the chart label.
 */}}
@@ -73,29 +87,72 @@ true
 {{- end }}
 
 {{/*
-Effective cache persistence config as a dict with keys:
-  enabled, claimName, storageClassName, storage, accessMode, subPath, emptyDirSizeLimit, defaultClaimName
-When the deprecated top-level schema is in use, falls back to legacy `persistence.persistentVolumeClaim.*` and `persistence.enabled`,
-and preserves the legacy default PVC name (`<fullname>`) to avoid orphaning existing PVCs on upgrade.
+Resolve one volume's storage mode and claim settings. An empty mode preserves the
+enabled flag's behavior, including the legacy cache PVC name and precedence.
+Parameters: root (chart context), name (data or cache).
 */}}
-{{- define "agent-local.persistence.cache" -}}
-{{- $deprecated := eq (include "agent-local.persistence.usingDeprecated" .) "true" -}}
-{{- $enabled := or .Values.persistence.cache.enabled .Values.persistence.enabled -}}
-{{- $pvc := .Values.persistence.cache.persistentVolumeClaim -}}
-{{- $defaultClaimName := printf "%s-cache" (include "agent-local.fullname" .) -}}
-{{- if $deprecated -}}
-  {{- $pvc = .Values.persistence.persistentVolumeClaim -}}
-  {{- $defaultClaimName = include "agent-local.fullname" . -}}
+{{- define "agent-local.persistence.volume" -}}
+{{- $volume := index .root.Values.persistence .name -}}
+{{- $enabled := $volume.enabled -}}
+{{- $pvc := $volume.persistentVolumeClaim -}}
+{{- $defaultClaimName := printf "%s-%s" (include "agent-local.fullname" .root) .name -}}
+{{- if eq .name "cache" -}}
+  {{- $enabled = or $enabled .root.Values.persistence.enabled -}}
+  {{- if eq (include "agent-local.persistence.usingDeprecated" .root) "true" -}}
+    {{- $pvc = .root.Values.persistence.persistentVolumeClaim -}}
+    {{- $defaultClaimName = include "agent-local.fullname" .root -}}
+  {{- end -}}
 {{- end -}}
+{{- $mode := default (ternary "persistentVolumeClaim" "emptyDir" $enabled) $volume.mode -}}
 {{- $out := dict
-    "enabled" $enabled
+    "name" .name
+    "mode" $mode
     "claimName" (default "" $pvc.claimName)
     "storageClassName" (default "" $pvc.storageClassName)
     "storage" $pvc.storage
     "accessMode" $pvc.accessMode
     "subPath" (default "" $pvc.subPath)
-    "emptyDirSizeLimit" .Values.persistence.cache.emptyDir.sizeLimit
+    "annotations" (default (dict) $pvc.annotations)
+    "emptyDirSizeLimit" $volume.emptyDir.sizeLimit
     "defaultClaimName" $defaultClaimName
 -}}
 {{- toYaml $out -}}
+{{- end }}
+
+{{/* Shared spec for standalone PVCs and both kinds of claim templates. */}}
+{{- define "agent-local.persistence.claimSpec" -}}
+accessModes:
+  - {{ .accessMode }}
+resources:
+  requests:
+    storage: {{ .storage }}
+{{- with .storageClassName }}
+storageClassName: {{ ternary "" . (eq . "-") | quote }}
+{{- end }}
+{{- end }}
+
+{{/* Pod volume source. StatefulSet claim templates supply their own volumes. */}}
+{{- define "agent-local.persistence.podVolume" -}}
+- name: {{ .name }}-dir
+  {{- if eq .mode "emptyDir" }}
+  {{- if .emptyDirSizeLimit }}
+  emptyDir:
+    sizeLimit: {{ .emptyDirSizeLimit }}
+  {{- else }}
+  emptyDir: {}
+  {{- end }}
+  {{- else if eq .mode "persistentVolumeClaim" }}
+  persistentVolumeClaim:
+    claimName: {{ .claimName | default .defaultClaimName }}
+  {{- else if eq .mode "ephemeral" }}
+  ephemeral:
+    volumeClaimTemplate:
+      {{- with omit .annotations "helm.sh/resource-policy" }}
+      metadata:
+        annotations:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+      spec:
+        {{- include "agent-local.persistence.claimSpec" . | nindent 8 }}
+  {{- end }}
 {{- end }}

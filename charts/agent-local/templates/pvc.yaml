@@ -1,43 +1,20 @@
-{{- if and .Values.persistence.data.enabled (not .Values.persistence.data.persistentVolumeClaim.claimName) }}
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "agent-local.fullname" . }}-data
-  namespace: {{ .Release.Namespace | quote }}
-  labels:
-    {{- include "agent-local.labels" . | nindent 4 }}
-    app.kubernetes.io/component: data
-spec:
-  accessModes:
-    - {{ .Values.persistence.data.persistentVolumeClaim.accessMode }}
-  resources:
-    requests:
-      storage: {{ .Values.persistence.data.persistentVolumeClaim.storage }}
-  {{- with .Values.persistence.data.persistentVolumeClaim.storageClassName }}
-  storageClassName: {{ ternary "" . (eq . "-") | quote }}
-  {{- end }}
-{{- end }}
-
-{{- $cache := fromYaml (include "agent-local.persistence.cache" .) }}
-{{- if and $cache.enabled (not $cache.claimName) }}
-{{- if .Values.persistence.data.enabled }}
+{{- range $name := list "data" "cache" }}
+{{- $volume := include "agent-local.persistence.volume" (dict "root" $ "name" $name) | fromYaml }}
+{{- if and (eq $volume.mode "persistentVolumeClaim") (not $volume.claimName) }}
 ---
-{{- end }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ $cache.defaultClaimName }}
-  namespace: {{ .Release.Namespace | quote }}
+  name: {{ $volume.defaultClaimName }}
+  namespace: {{ $.Release.Namespace | quote }}
   labels:
-    {{- include "agent-local.labels" . | nindent 4 }}
-    app.kubernetes.io/component: cache
-spec:
-  accessModes:
-    - {{ $cache.accessMode }}
-  resources:
-    requests:
-      storage: {{ $cache.storage }}
-  {{- with $cache.storageClassName }}
-  storageClassName: {{ ternary "" . (eq . "-") | quote }}
+    {{- include "agent-local.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+  {{- with $volume.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
+spec:
+  {{- include "agent-local.persistence.claimSpec" $volume | nindent 2 }}
+{{- end }}
 {{- end }}

@@ -21,6 +21,88 @@
             "type": "integer",
             "minimum": 10,
             "description": "Kubernetes pod termination grace period in seconds."
+        },
+        "workload": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "enum": [
+                        "Deployment",
+                        "StatefulSet"
+                    ]
+                }
+            }
+        },
+        "persistence": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/volume"
+                },
+                "cache": {
+                    "$ref": "#/definitions/volume"
+                }
+            }
+        }
+    },
+    "definitions": {
+        "volume": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "enum": [
+                        "",
+                        "emptyDir",
+                        "persistentVolumeClaim",
+                        "ephemeral",
+                        "volumeClaimTemplate"
+                    ]
+                }
+            }
+        }
+    },
+    "if": {
+        "required": [
+            "workload"
+        ],
+        "properties": {
+            "workload": {
+                "required": [
+                    "kind"
+                ],
+                "properties": {
+                    "kind": {
+                        "const": "StatefulSet"
+                    }
+                }
+            }
+        }
+    },
+    "else": {
+        "description": "volumeClaimTemplate requires workload.kind=StatefulSet; an omitted kind defaults to Deployment.",
+        "properties": {
+            "persistence": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "mode": {
+                                "not": {
+                                    "const": "volumeClaimTemplate"
+                                }
+                            }
+                        }
+                    },
+                    "cache": {
+                        "properties": {
+                            "mode": {
+                                "not": {
+                                    "const": "volumeClaimTemplate"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

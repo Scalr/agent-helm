@@ -1,4 +1,9 @@
-{{- /* Build list of all helm controller env var names */ -}}
+{{- $kind := include "agent-local.workloadKind" . -}}
+{{- $data := include "agent-local.persistence.volume" (dict "root" . "name" "data") | fromYaml -}}
+{{- $cache := include "agent-local.persistence.volume" (dict "root" . "name" "cache") | fromYaml -}}
+{{- $clientCert := or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) -}}
+{{- $caBundle := or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle -}}
+{{- /* Environment variables managed by the chart. */ -}}
 {{- $reservedEnvVars := list
   "SCALR_AGENT_NAME"
   "SCALR_URL"
@@ -7,26 +12,26 @@
   "SCALR_AGENT_DISCONNECT_ON_STOP"
   "SCALR_AGENT_WORKER_ON_STOP_ACTION"
   "SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT"
+  "SCALR_AGENT_WORKER_DRAIN_TIMEOUT"
   "SCALR_AGENT_DATA_DIR"
+  "SCALR_AGENT_CACHE_DIR"
   "SCALR_AGENT_PROVIDER_NETWORK_MIRRORS"
   "SCALR_AGENT_TOKEN"
   "SCALR_AGENT_CA_CERT"
+  "SCALR_AGENT_TLS_CERT_FILE"
+  "SCALR_AGENT_TLS_KEY_FILE"
   "SSL_CERT_FILE"
 -}}
 
 apiVersion: apps/v1
-kind: Deployment
+kind: {{ $kind }}
 metadata:
-  name: {{ include "agent-local.fullname" . }}
+  name: {{ if eq $kind "StatefulSet" }}{{ include "agent-local.statefulSetName" . }}{{ else }}{{ include "agent-local.fullname" . }}{{ end }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
-  annotations:
-    cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
-    karpenter.sh/do-not-evict: "true"
-    karpenter.sh/do-not-disrupt: "true"
-    autopilot.gke.io/priority: high
 spec:
+  {{- if eq $kind "Deployment" }}
   strategy:
     type: {{ .Values.strategy.type }}
     {{- if eq .Values.strategy.type "RollingUpdate" }}
@@ -34,16 +39,54 @@ spec:
       maxSurge: {{ .Values.strategy.rollingUpdate.maxSurge }}
       maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable }}
     {{- end }}
+  {{- else }}
+  {{- $statefulSet := .Values.workload.statefulSet | default dict }}
+  {{- $updateStrategy := dig "updateStrategy" "type" "RollingUpdate" $statefulSet }}
+  serviceName: {{ include "agent-local.statefulSetName" . }}
+  podManagementPolicy: {{ $statefulSet.podManagementPolicy | default "Parallel" }}
+  updateStrategy:
+    type: {{ $updateStrategy }}
+    {{- if eq $updateStrategy "RollingUpdate" }}
+    rollingUpdate:
+      partition: {{ dig "updateStrategy" "rollingUpdate" "partition" 0 $statefulSet }}
+    {{- end }}
+  {{- if or (eq $data.mode "volumeClaimTemplate") (eq $cache.mode "volumeClaimTemplate") }}
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: {{ dig "persistentVolumeClaimRetentionPolicy" "whenDeleted" "Retain" $statefulSet }}
+    whenScaled: {{ dig "persistentVolumeClaimRetentionPolicy" "whenScaled" "Retain" $statefulSet }}
+  volumeClaimTemplates:
+    {{- range $volume := list $data $cache }}
+    {{- if eq $volume.mode "volumeClaimTemplate" }}
+    - metadata:
+        name: {{ $volume.name }}-dir
+        labels:
+          {{- /* Claim template metadata is immutable: do not include chart/app versions. */}}
+          {{- include "agent-local.selectorLabels" $ | nindent 10 }}
+          app.kubernetes.io/component: {{ $volume.name }}
+        {{- with omit $volume.annotations "helm.sh/resource-policy" }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        {{- include "agent-local.persistence.claimSpec" $volume | nindent 8 }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "agent-local.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- $annotations := dict
+          "cluster-autoscaler.kubernetes.io/safe-to-evict" "false"
+          "karpenter.sh/do-not-evict" "true"
+          "karpenter.sh/do-not-disrupt" "true"
+          "autopilot.gke.io/priority" "high"
+        }}
+        {{- mergeOverwrite $annotations (default dict .Values.podAnnotations) | toYaml | nindent 8 }}
       labels:
         {{- merge (include "agent-local.selectorLabels" . | fromYaml) (default (dict) .Values.podLabels) | toYaml | nindent 8 }}
     spec:
@@ -125,13 +168,13 @@ spec:
                   key: token
                   {{- end }}
                   optional: false
-            {{- if or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) }}
+            {{- if $clientCert }}
             - name: SCALR_AGENT_TLS_CERT_FILE
               value: "/etc/scalr-agent/ssl/tls.crt"
             - name: SCALR_AGENT_TLS_KEY_FILE
               value: "/etc/scalr-agent/ssl/tls.key"
             {{- end }}
-            {{- if or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle }}
+            {{- if $caBundle }}
             - name: SCALR_AGENT_CA_CERT
               value: "/etc/ssl/certs/scalr-ca-bundle.crt"
             - name: SSL_CERT_FILE
@@ -139,24 +182,23 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- $cache := fromYaml (include "agent-local.persistence.cache" .) }}
           volumeMounts:
             - name: data-dir
               mountPath: {{ .Values.agent.dataDir }}
-              {{- if and .Values.persistence.data.enabled .Values.persistence.data.persistentVolumeClaim.subPath }}
-              subPath: {{ .Values.persistence.data.persistentVolumeClaim.subPath }}
+              {{- if and (ne $data.mode "emptyDir") $data.subPath }}
+              subPath: {{ $data.subPath }}
               {{- end }}
             - name: cache-dir
               mountPath: {{ .Values.agent.cacheDir }}
-              {{- if and $cache.enabled $cache.subPath }}
+              {{- if and (ne $cache.mode "emptyDir") $cache.subPath }}
               subPath: {{ $cache.subPath }}
               {{- end }}
-            {{- if or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) }}
+            {{- if $clientCert }}
             - name: client-cert
               mountPath: /etc/scalr-agent/ssl
               readOnly: true
             {{- end }}
-            {{- if or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle }}
+            {{- if $caBundle }}
             - name: ca-bundle
               mountPath: /etc/ssl/certs/scalr-ca-bundle.crt
               subPath: {{ .Values.agent.tls.caBundleSecret.key }}
@@ -165,24 +207,14 @@ spec:
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+      {{- if or (ne $data.mode "volumeClaimTemplate") (ne $cache.mode "volumeClaimTemplate") $clientCert $caBundle .Values.extraVolumes }}
       volumes:
-        - name: data-dir
-          {{- if .Values.persistence.data.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ .Values.persistence.data.persistentVolumeClaim.claimName | default (printf "%s-data" (include "agent-local.fullname" .)) }}
-          {{- else }}
-          emptyDir:
-            sizeLimit: {{ .Values.persistence.data.emptyDir.sizeLimit }}
-          {{- end }}
-        - name: cache-dir
-          {{- if $cache.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ $cache.claimName | default $cache.defaultClaimName }}
-          {{- else }}
-          emptyDir:
-            sizeLimit: {{ $cache.emptyDirSizeLimit }}
-          {{- end }}
-        {{- if or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) }}
+        {{- range $volume := list $data $cache }}
+        {{- if ne $volume.mode "volumeClaimTemplate" }}
+        {{- include "agent-local.persistence.podVolume" $volume | nindent 8 }}
+        {{- end }}
+        {{- end }}
+        {{- if $clientCert }}
         - name: client-cert
           secret:
             secretName: {{ .Values.agent.tls.clientCertSecret.name | default (printf "%s-client-cert" (include "agent-local.fullname" .)) }}
@@ -192,7 +224,7 @@ spec:
               - key: {{ .Values.agent.tls.clientCertSecret.keyKey }}
                 path: tls.key
         {{- end }}
-        {{- if or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle }}
+        {{- if $caBundle }}
         - name: ca-bundle
           secret:
             secretName: {{ .Values.agent.tls.caBundleSecret.name | default (printf "%s-ca-bundle" (include "agent-local.fullname" .)) }}
@@ -203,6 +235,7 @@ spec:
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

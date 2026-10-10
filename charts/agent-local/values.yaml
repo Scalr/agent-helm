@@ -1,13 +1,45 @@
 # Default values for the Scalr Agent Helm chart.
 # This is a YAML-formatted file used to configure the Scalr Agent deployment.
 
-# -- Number of replicas for the Scalr Agent deployment. Adjust for high availability.
+# -- Number of replicas for the Scalr Agent workload. Adjust for high availability.
 # @section -- Scheduling & Placement
 replicaCount: 1
 
-# -- Deployment strategy configuration.
+# Workload controller configuration.
+workload:
+  # -- Workload controller. Supported values: Deployment, StatefulSet.
+  # Changing the kind replaces the controller and its pods. See the migration guide.
+  # @section -- Deployment & Scaling
+  kind: Deployment
+  statefulSet:
+    # -- StatefulSet scaling policy: Parallel or OrderedReady. Agents can scale independently.
+    # Choose before installation. Changing this value requires recreating the StatefulSet.
+    # @section -- Deployment & Scaling
+    podManagementPolicy: Parallel
+    # -- StatefulSet update strategy. Deployment uses the top-level strategy instead.
+    # @section -- Deployment & Scaling
+    updateStrategy:
+      # -- StatefulSet update type: RollingUpdate or OnDelete.
+      # @section -- Deployment & Scaling
+      type: RollingUpdate
+      rollingUpdate:
+        # -- Lowest pod ordinal to update during a StatefulSet rolling update.
+        # @section -- Deployment & Scaling
+        partition: 0
+    # -- Retention of StatefulSet volumeClaimTemplate PVCs.
+    # @section -- Deployment & Scaling
+    persistentVolumeClaimRetentionPolicy:
+      # -- Retain or Delete per-replica PVCs when the StatefulSet is deleted.
+      # @section -- Deployment & Scaling
+      whenDeleted: Retain
+      # -- Retain or Delete per-replica PVCs when replicas are scaled down.
+      # @section -- Deployment & Scaling
+      whenScaled: Retain
+
+# -- Deployment strategy configuration. Only used with workload.kind=Deployment.
 strategy:
   # -- Type of deployment strategy. Options: RollingUpdate, Recreate.
+  # Use Recreate with replicaCount: 1 when sharing a ReadWriteOncePod claim.
   type: RollingUpdate
   # -- Rolling update parameters.
   rollingUpdate:
@@ -296,77 +328,99 @@ persistence:
   # Stores workspace data including configuration versions, modules, and providers.
   # @section -- Persistence
   data:
+    # -- Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
+    # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
+    # When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true).
+    # An explicit mode takes precedence over enabled. All PVC modes use persistentVolumeClaim settings.
+    # @section -- Persistence
+    mode: ""
     # -- Enable persistent storage for the data directory.
     # When false, uses emptyDir (ephemeral, recommended for most use cases as each pod gets fresh workspace).
-    # When true, uses PVC (persistent across pod restarts, useful for debugging or sharing data between runs).
+    # When true, uses a shared PVC. Only used when mode is empty.
     # @section -- Persistence
     enabled: false
 
-    # -- EmptyDir volume configuration (used when persistence.data.enabled is false).
+    # -- EmptyDir volume configuration.
     # @section -- Persistence
     emptyDir:
-      # -- Size limit for the emptyDir volume.
+      # -- Size limit for the emptyDir volume. Set to null or "" to leave it unlimited.
       # @section -- Persistence
       sizeLimit: 4Gi
 
-    # -- PersistentVolumeClaim configuration (used when persistence.data.enabled is true).
+    # -- Claim settings for shared, generic ephemeral, and StatefulSet per-replica PVCs.
     # @section -- Persistence
     persistentVolumeClaim:
-      # -- Name of an existing PVC. If empty, a new PVC named `<release-name>-data` is created.
+      # -- Existing shared PVC name. If empty in persistentVolumeClaim mode, creates `<fullname>-data`.
+      # Ignored by other storage modes.
       # @section -- Persistence
       claimName: ""
       # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
-      # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
+      # Set to "-" to disable dynamic provisioning and bind a matching pre-provisioned PV.
       # @section -- Persistence
       storageClassName: ""
       # -- Storage size for the PVC.
       # @section -- Persistence
       storage: 4Gi
-      # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
+      # -- Access mode for the PVC. Use "ReadWriteOnce" for per-pod/per-replica claims or a shared claim on one node.
       # Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS).
       # @section -- Persistence
       accessMode: ReadWriteOnce
       # -- Optional subPath for mounting a specific subdirectory of the volume.
       # @section -- Persistence
       subPath: ""
+      # -- Annotations on chart-created PVCs or claim templates.
+      # helm.sh/resource-policy applies only to shared chart-managed PVCs.
+      # @section -- Persistence
+      annotations: {}
 
   # -- Cache directory storage configuration.
   # Stores OpenTofu/Terraform providers, modules and binaries.
   # @section -- Persistence
   cache:
+    # -- Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
+    # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
+    # When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true).
+    # An explicit mode takes precedence over enabled. Legacy top-level settings retain precedence for claim options until removed.
+    # @section -- Persistence
+    mode: ""
     # -- Enable persistent storage for the cache directory.
-    # When false, uses emptyDir (ephemeral, providers and binaries are re-downloaded on each pod start).
-    # When true, uses PVC; with ReadWriteMany the cache is shared across all agent pods.
+    # When false, uses emptyDir (survives container restarts, lost when the pod is replaced).
+    # When true, uses a shared PVC. Only used when mode is empty.
     # @section -- Persistence
     enabled: false
 
-    # -- EmptyDir volume configuration (used when persistence.cache.enabled is false).
+    # -- EmptyDir volume configuration.
     # @section -- Persistence
     emptyDir:
-      # -- Size limit for the emptyDir volume.
+      # -- Size limit for the emptyDir volume. Set to null or "" to leave it unlimited.
       # @section -- Persistence
       sizeLimit: 20Gi
 
-    # -- PersistentVolumeClaim configuration (used when persistence.cache.enabled is true).
+    # -- Claim settings for shared, generic ephemeral, and StatefulSet per-replica PVCs.
     # @section -- Persistence
     persistentVolumeClaim:
-      # -- Name of an existing PVC. If empty, a new PVC named `<release-name>-cache` is created.
+      # -- Existing shared PVC name. If empty in persistentVolumeClaim mode, creates `<fullname>-cache`.
+      # Ignored by other storage modes.
       # @section -- Persistence
       claimName: ""
       # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
-      # Set to "-" to disable dynamic provisioning and require a pre-existing PVC.
+      # Set to "-" to disable dynamic provisioning and bind a matching pre-provisioned PV.
       # @section -- Persistence
       storageClassName: ""
       # -- Storage size for the PVC.
       # @section -- Persistence
       storage: 20Gi
-      # -- Access mode for the PVC. Use "ReadWriteOnce" for single-replica deployments.
+      # -- Access mode for the PVC. Use "ReadWriteOnce" for per-pod/per-replica claims or a shared claim on one node.
       # Use "ReadWriteMany" to share the cache across multiple agent pods (requires a compatible storage class).
       # @section -- Persistence
       accessMode: ReadWriteOnce
       # -- Optional subPath for mounting a specific subdirectory of the volume.
       # @section -- Persistence
       subPath: ""
+      # -- Annotations on chart-created PVCs or claim templates.
+      # helm.sh/resource-policy applies only to shared chart-managed PVCs.
+      # @section -- Persistence
+      annotations: {}
 
   # -- DEPRECATED: Use `persistence.cache.enabled` instead. Kept for backward compatibility; will be removed in a future release.
   # When set to `true`, behaves as `persistence.cache.enabled: true` and emits a deprecation warning.
@@ -392,6 +446,9 @@ persistence:
     # -- DEPRECATED: see `persistence.cache.persistentVolumeClaim.subPath`.
     # @section -- Persistence
     subPath: ""
+    # -- DEPRECATED: see `persistence.cache.persistentVolumeClaim.annotations`.
+    # @section -- Persistence
+    annotations: {}
 
 # -- Termination grace period (in seconds) for pod shutdown.
 # <br>Exports [`SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`](https://docs.scalr.io/docs/configuration#scalr_agent_worker_grace_shutdown_timeout).
