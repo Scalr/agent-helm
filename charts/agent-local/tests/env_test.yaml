@@ -1,9 +1,96 @@
 suite: Conditional environment variables
 templates:
   - workload.yaml
+release:
+  name: storage-test
 set:
   agent.token: dummy
 tests:
+  - it: preserves the existing environment variable order on upgrade
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env
+          value:
+            - name: SCALR_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SCALR_URL
+              value: ''
+            - name: SCALR_AGENT_DRIVER
+              value: local
+            - name: SCALR_AGENT_CONCURRENCY
+              value: '1'
+            - name: SCALR_AGENT_DISCONNECT_ON_STOP
+              value: '1'
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+              value: grace-shutdown
+            - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              value: '110'
+            - name: SCALR_AGENT_DATA_DIR
+              value: /var/lib/scalr-agent/data
+            - name: SCALR_AGENT_CACHE_DIR
+              value: /var/lib/scalr-agent/cache
+            - name: SCALR_AGENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: storage-test-agent-local-token
+                  key: token
+                  optional: false
+
+  - it: preserves environment order with extra variables and conditional chart settings
+    set:
+      extraEnv.EXAMPLE: custom
+      agent.shutdownMode: drain
+      agent.tls.clientCertSecret.name: client-cert
+      agent.tls.caBundleSecret.name: ca-bundle
+      agent.providerNetworkMirrors:
+        - url: https://mirror.example.com
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env
+          value:
+            - name: EXAMPLE
+              value: custom
+            - name: SCALR_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SCALR_URL
+              value: ''
+            - name: SCALR_AGENT_DRIVER
+              value: local
+            - name: SCALR_AGENT_CONCURRENCY
+              value: '1'
+            - name: SCALR_AGENT_DISCONNECT_ON_STOP
+              value: '1'
+            - name: SCALR_AGENT_WORKER_ON_STOP_ACTION
+              value: drain
+            - name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+              value: '50'
+            - name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              value: '60'
+            - name: SCALR_AGENT_DATA_DIR
+              value: /var/lib/scalr-agent/data
+            - name: SCALR_AGENT_CACHE_DIR
+              value: /var/lib/scalr-agent/cache
+            - name: SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
+              value: '[{"url":"https://mirror.example.com"}]'
+            - name: SCALR_AGENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: storage-test-agent-local-token
+                  key: token
+                  optional: false
+            - name: SCALR_AGENT_TLS_CERT_FILE
+              value: /etc/scalr-agent/ssl/tls.crt
+            - name: SCALR_AGENT_TLS_KEY_FILE
+              value: /etc/scalr-agent/ssl/tls.key
+            - name: SCALR_AGENT_CA_CERT
+              value: /etc/ssl/certs/scalr-ca-bundle.crt
+            - name: SSL_CERT_FILE
+              value: /etc/ssl/certs/scalr-ca-bundle.crt
+
   - it: allows custom TLS paths when certificates are mounted through extraVolumes
     set:
       extraEnv:
@@ -53,3 +140,33 @@ tests:
           content:
             name: SSL_CERT_FILE
             value: /custom/ca.crt
+
+  - it: accepts previously reserved variables when their chart settings are disabled
+    set:
+      agent.shutdownMode: force
+      extraEnv:
+        SCALR_AGENT_CA_CERT: /custom/ca.crt
+        SSL_CERT_FILE: /custom/ca.crt
+        SCALR_AGENT_PROVIDER_NETWORK_MIRRORS: '[{"url":"https://mirror.example.com"}]'
+        SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT: "90"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SCALR_AGENT_CA_CERT
+            value: /custom/ca.crt
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SSL_CERT_FILE
+            value: /custom/ca.crt
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
+            value: '[{"url":"https://mirror.example.com"}]'
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+            value: "90"

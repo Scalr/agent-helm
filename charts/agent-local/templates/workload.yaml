@@ -1,9 +1,14 @@
-{{- $kind := include "agent-local.workloadKind" . -}}
+{{- /* Older releases using --reuse-values do not have workload settings. */ -}}
+{{- $kind := (default dict .Values.workload).kind | default "Deployment" -}}
 {{- $data := include "agent-local.persistence.volume" (dict "root" . "name" "data") | fromYaml -}}
 {{- $cache := include "agent-local.persistence.volume" (dict "root" . "name" "cache") | fromYaml -}}
-{{- $clientCert := or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) -}}
-{{- $caBundle := or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle -}}
-{{- $env := include "agent-local.env" (dict "root" . "clientCert" $clientCert "caBundle" $caBundle) | fromYaml -}}
+{{- $hasClientCert := or .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey) -}}
+{{- $hasCaBundle := or .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle -}}
+{{- $hasPodVolumes := or
+  (ne $data.mode "volumeClaimTemplate")
+  (ne $cache.mode "volumeClaimTemplate")
+  $hasClientCert $hasCaBundle .Values.extraVolumes
+-}}
 
 apiVersion: apps/v1
 kind: {{ $kind }}
@@ -58,7 +63,14 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       spec:
-        {{- include "agent-local.persistence.claimSpec" $volume | nindent 8 }}
+        accessModes:
+          - {{ $volume.accessMode }}
+        resources:
+          requests:
+            storage: {{ $volume.storage }}
+        {{- with $volume.storageClassName }}
+        storageClassName: {{ ternary "" . (eq . "-") | quote }}
+        {{- end }}
     {{- end }}
     {{- end }}
   {{- end }}
@@ -92,16 +104,64 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.extraEnv }}
-            {{- if hasKey $env $key }}
-            {{- fail (printf "extraEnv contains a key '%s' that is controlled by the Helm chart" $key) }}
+            {{- /* Keep release ordering and validate extraEnv against the entries rendered below. */}}
+            {{- $env := list
+              (dict "name" "SCALR_AGENT_NAME" "valueFrom" (dict "fieldRef" (dict "fieldPath" "metadata.name")))
+              (dict "name" "SCALR_URL" "value" .Values.agent.url)
+              (dict "name" "SCALR_AGENT_DRIVER" "value" "local")
+              (dict "name" "SCALR_AGENT_CONCURRENCY" "value" "1")
+              (dict "name" "SCALR_AGENT_DISCONNECT_ON_STOP" "value" "1")
+            }}
+            {{- if eq .Values.agent.shutdownMode "graceful" }}
+            {{- if lt (.Values.terminationGracePeriodSeconds | int) 30 }}
+            {{- fail "terminationGracePeriodSeconds must be at least 30 seconds when agent.shutdownMode=graceful" }}
             {{- end }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_WORKER_ON_STOP_ACTION" "value" "grace-shutdown") }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT" "value" (sub .Values.terminationGracePeriodSeconds 10)) }}
+            {{- else if eq .Values.agent.shutdownMode "drain" }}
+            {{- if lt (.Values.terminationGracePeriodSeconds | int) 120 }}
+            {{- fail "terminationGracePeriodSeconds must be at least 120 seconds when agent.shutdownMode=drain" }}
+            {{- end }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_WORKER_ON_STOP_ACTION" "value" "drain") }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_WORKER_DRAIN_TIMEOUT" "value" (sub .Values.terminationGracePeriodSeconds 70)) }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT" "value" "60") }}
+            {{- else }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_WORKER_ON_STOP_ACTION" "value" "force-shutdown") }}
+            {{- end }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_DATA_DIR" "value" .Values.agent.dataDir) }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_CACHE_DIR" "value" .Values.agent.cacheDir) }}
+            {{- with .Values.agent.providerNetworkMirrors }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_PROVIDER_NETWORK_MIRRORS" "value" (toJson .)) }}
+            {{- end }}
+            {{- $tokenSecret := dict "name" (printf "%s-token" (include "agent-local.fullname" .)) "key" "token" "optional" false }}
+            {{- if .Values.agent.tokenExistingSecret.name }}
+            {{- $_ := set $tokenSecret "name" (.Values.agent.tokenExistingSecret.name | toString) }}
+            {{- $_ := set $tokenSecret "key" (.Values.agent.tokenExistingSecret.key | toString) }}
+            {{- end }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_TOKEN" "valueFrom" (dict "secretKeyRef" $tokenSecret)) }}
+            {{- if $hasClientCert }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_TLS_CERT_FILE" "value" "/etc/scalr-agent/ssl/tls.crt") }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_TLS_KEY_FILE" "value" "/etc/scalr-agent/ssl/tls.key") }}
+            {{- end }}
+            {{- if $hasCaBundle }}
+            {{- $env = append $env (dict "name" "SCALR_AGENT_CA_CERT" "value" "/etc/ssl/certs/scalr-ca-bundle.crt") }}
+            {{- $env = append $env (dict "name" "SSL_CERT_FILE" "value" "/etc/ssl/certs/scalr-ca-bundle.crt") }}
+            {{- end }}
+            {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- range $key, $value := $env }}
-            - name: {{ $key }}
-              {{- toYaml $value | nindent 14 }}
+            {{- range $env }}
+            {{- if hasKey ($.Values.extraEnv | default dict) .name }}
+            {{- fail (printf "extraEnv contains a key '%s' that is controlled by the Helm chart" .name) }}
+            {{- end }}
+            - name: {{ .name }}
+              {{- if hasKey . "value" }}
+              value: {{ .value | quote }}
+              {{- else }}
+              valueFrom:
+                {{- toYaml .valueFrom | nindent 16 }}
+              {{- end }}
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -116,12 +176,12 @@ spec:
               {{- if and (ne $cache.mode "emptyDir") $cache.subPath }}
               subPath: {{ $cache.subPath }}
               {{- end }}
-            {{- if $clientCert }}
+            {{- if $hasClientCert }}
             - name: client-cert
               mountPath: /etc/scalr-agent/ssl
               readOnly: true
             {{- end }}
-            {{- if $caBundle }}
+            {{- if $hasCaBundle }}
             - name: ca-bundle
               mountPath: /etc/ssl/certs/scalr-ca-bundle.crt
               subPath: {{ .Values.agent.tls.caBundleSecret.key }}
@@ -130,14 +190,42 @@ spec:
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-      {{- if or (ne $data.mode "volumeClaimTemplate") (ne $cache.mode "volumeClaimTemplate") $clientCert $caBundle .Values.extraVolumes }}
+      {{- if $hasPodVolumes }}
       volumes:
         {{- range $volume := list $data $cache }}
         {{- if ne $volume.mode "volumeClaimTemplate" }}
-        {{- include "agent-local.persistence.podVolume" $volume | nindent 8 }}
+        - name: {{ $volume.name }}-dir
+          {{- if eq $volume.mode "emptyDir" }}
+          {{- if $volume.emptyDirSizeLimit }}
+          emptyDir:
+            sizeLimit: {{ $volume.emptyDirSizeLimit }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+          {{- else if eq $volume.mode "persistentVolumeClaim" }}
+          persistentVolumeClaim:
+            claimName: {{ $volume.claimName | default $volume.defaultClaimName }}
+          {{- else if eq $volume.mode "ephemeral" }}
+          ephemeral:
+            volumeClaimTemplate:
+              {{- with omit $volume.annotations "helm.sh/resource-policy" }}
+              metadata:
+                annotations:
+                  {{- toYaml . | nindent 18 }}
+              {{- end }}
+              spec:
+                accessModes:
+                  - {{ $volume.accessMode }}
+                resources:
+                  requests:
+                    storage: {{ $volume.storage }}
+                {{- with $volume.storageClassName }}
+                storageClassName: {{ ternary "" . (eq . "-") | quote }}
+                {{- end }}
+          {{- end }}
         {{- end }}
         {{- end }}
-        {{- if $clientCert }}
+        {{- if $hasClientCert }}
         - name: client-cert
           secret:
             secretName: {{ .Values.agent.tls.clientCertSecret.name | default (printf "%s-client-cert" (include "agent-local.fullname" .)) }}
@@ -147,7 +235,7 @@ spec:
               - key: {{ .Values.agent.tls.clientCertSecret.keyKey }}
                 path: tls.key
         {{- end }}
-        {{- if $caBundle }}
+        {{- if $hasCaBundle }}
         - name: ca-bundle
           secret:
             secretName: {{ .Values.agent.tls.caBundleSecret.name | default (printf "%s-ca-bundle" (include "agent-local.fullname" .)) }}

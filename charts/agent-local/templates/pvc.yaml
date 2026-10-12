@@ -15,6 +15,13 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- include "agent-local.persistence.claimSpec" $volume | nindent 2 }}
+  accessModes:
+    - {{ $volume.accessMode }}
+  resources:
+    requests:
+      storage: {{ $volume.storage }}
+  {{- with $volume.storageClassName }}
+  storageClassName: {{ ternary "" . (eq . "-") | quote }}
+  {{- end }}
 {{- end }}
 {{- end }}

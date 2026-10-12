@@ -1,4 +1,4 @@
-{{- if eq (include "agent-local.workloadKind" .) "StatefulSet" }}
+{{- if eq (default dict .Values.workload).kind "StatefulSet" }}
 apiVersion: v1
 kind: Service
 metadata:
