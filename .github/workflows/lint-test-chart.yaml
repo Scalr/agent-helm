@@ -28,7 +28,12 @@ jobs:
           version: v4.3.0
 
       - name: Set up helm-unittest
-        run: helm plugin install https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/unittest-1.2.1.tgz --verify=false
+        run: |
+          curl --fail --location --retry 3 \
+            https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/unittest-1.2.1.tgz \
+            --output "$RUNNER_TEMP/unittest.tgz"
+          echo "bbcebd42631dff9fc595462fad839c49a1b06f9635e952e7e837d7e5fe82865f  $RUNNER_TEMP/unittest.tgz" | sha256sum --check
+          helm plugin install "$RUNNER_TEMP/unittest.tgz" --verify=false
 
       - name: Run unit tests
         run: helm unittest --strict charts/*
@@ -46,7 +51,7 @@ jobs:
         run: |
           changed=$(ct list-changed --config .ct/ct.yaml)
           if git diff --name-only "origin/$CT_TARGET_BRANCH...HEAD" -- \
-            .ct .github/workflows/lint-test-chart.yaml justfile | grep -q .; then
+            .ct/ct.yaml .ct/kind.yaml .github/workflows/lint-test-chart.yaml | grep -q .; then
             echo "CT_ALL=true" >> "$GITHUB_ENV"
             echo "changed=true" >> "$GITHUB_OUTPUT"
           elif [[ -n "$changed" ]]; then

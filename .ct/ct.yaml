@@ -1,6 +1,7 @@
 chart-dirs:
   - charts
 target-branch: master
+exclude-deprecated: true
 check-version-increment: false
 chart-yaml-schema: .ct/chart_schema.yaml
 lint-conf: .ct/lintconf.yaml

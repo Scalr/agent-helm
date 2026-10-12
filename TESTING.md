@@ -35,7 +35,11 @@ helm unittest --strict -f tests/storage_test.yaml charts/agent-local
 `just test-install` uses `ct install --upgrade` to check Kubernetes resource creation,
 pod readiness, and upgrades with the chart's `ci/*-values.yaml` profiles. CI runs these checks in kind.
 
-These tests use dummy credentials and create and remove releases. Use a disposable cluster:
+Upgrade checks cover the target branch's profiles and an in-place upgrade of each current profile.
+They do not test switching workload kinds or storage modes. Deprecated charts are excluded.
+
+These tests use dummy credentials and create and remove releases. The command requires the
+`kind-agent-helm-test` context. Create a disposable cluster:
 
 ```console
 kind create cluster --name agent-helm-test --config .ct/kind.yaml --image kindest/node:v1.37.0

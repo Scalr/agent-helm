@@ -1,3 +1,5 @@
+set positional-arguments
+
 # List available commands.
 default:
     @just --list
@@ -33,7 +35,7 @@ lychee-online:
 test *args:
     @command -v helm >/dev/null || { echo "helm not found. See https://helm.sh/docs/intro/install/"; exit 1; }
     @helm plugin list | awk '$1 == "unittest" { found=1 } END { exit !found }' || { echo "helm-unittest not found. Install: helm plugin install https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/unittest-1.2.1.tgz --verify=false"; exit 1; }
-    helm unittest --strict {{args}} charts/*
+    helm unittest --strict "$@" charts/*
 
 # Lint all charts using pre-commit's managed dependencies.
 lint:
@@ -43,10 +45,11 @@ lint:
     @command -v helm >/dev/null || { echo "helm not found. See https://helm.sh/docs/intro/install/"; exit 1; }
     pre-commit run chart-lint --all-files
 
-# Install and upgrade charts in the current cluster. Requires a disposable cluster.
+# Install and upgrade charts in the disposable kind-agent-helm-test context.
 test-install *args:
     @command -v ct >/dev/null || { echo "ct not found. See https://github.com/helm/chart-testing#installation"; exit 1; }
     @command -v git >/dev/null || { echo "git not found. See https://git-scm.com/downloads"; exit 1; }
     @command -v helm >/dev/null || { echo "helm not found. See https://helm.sh/docs/intro/install/"; exit 1; }
     @command -v kubectl >/dev/null || { echo "kubectl not found. See https://kubernetes.io/docs/tasks/tools/"; exit 1; }
-    ct install --config .ct/ct.yaml --upgrade {{args}}
+    @test "$(kubectl config current-context)" = kind-agent-helm-test || { echo "Select the disposable kind-agent-helm-test context. See TESTING.md for setup."; exit 1; }
+    ct install --config .ct/ct.yaml --upgrade "$@"

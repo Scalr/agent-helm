@@ -51,10 +51,10 @@ See [GitHub Actions development](./CONTRIBUTING.md#github-actions-development) f
 
 ### Setup
 
-Install [helm-unittest](https://github.com/helm-unittest/helm-unittest#install), then enable Git hooks:
+Install the same [helm-unittest](https://github.com/helm-unittest/helm-unittest#install) release as CI, then enable Git hooks:
 
 ```console
-helm plugin install https://github.com/helm-unittest/helm-unittest.git --verify=false
+helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.2.1 --verify=false
 pre-commit install
 ```
 
