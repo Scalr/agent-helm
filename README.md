@@ -36,13 +36,11 @@ Install these tools using their installation guides or your package manager:
 
 - [just](https://just.systems/man/en/packages.html) >= 1.23 for development commands.
 - [Helm 4](https://helm.sh/docs/intro/install/) for chart tests.
-- [chart-testing](https://github.com/helm/chart-testing#installation) (`ct`) 3.15.0 for chart linting and installation tests.
+- [chart-testing](https://github.com/helm/chart-testing#installation) (`ct`) >= 3.15.0 for chart linting and installation tests.
 - [helm-docs](https://github.com/norwoodj/helm-docs#installation) >= 1.14 for generated documentation.
 - [pre-commit](https://pre-commit.com/#install) and [lychee](https://github.com/lycheeverse/lychee#installation) for Git hooks and link checks.
 
-Pre-commit installs ct's Python dependencies in an isolated environment: Yamale 6.0.0
-validates chart metadata, and yamllint 1.33.0 checks YAML formatting. The chart-testing
-action manages these dependencies in CI.
+Pre-commit manages ct's Python dependencies.
 
 For local installation tests, also install [Docker](https://docs.docker.com/get-started/get-docker/),
 [kind](https://kind.sigs.k8s.io/docs/user/quick-start/), and [kubectl](https://kubernetes.io/docs/tasks/tools/).
@@ -53,10 +51,10 @@ See [GitHub Actions development](./CONTRIBUTING.md#github-actions-development) f
 
 ### Setup
 
-Install helm-unittest 1.2.1, then enable Git hooks:
+Install [helm-unittest](https://github.com/helm-unittest/helm-unittest#install), then enable Git hooks:
 
 ```console
-helm plugin install https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/unittest-1.2.1.tgz --verify=false
+helm plugin install https://github.com/helm-unittest/helm-unittest.git --verify=false
 pre-commit install
 ```
 
