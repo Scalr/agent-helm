@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.9]
+
+### Updated
+
+- Bumping chart version to v0.6.9 for scalr-agent v1.8.0
+
 ### Added
 
 - `task.hostAliases` and `task.dnsConfig` values, passed through to the task job pod spec, so hostname resolution for runner pods can be steered from the chart instead of by patching the AgentTaskTemplate.
