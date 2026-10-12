@@ -1,4 +1,4 @@
-{{- if eq (default dict .Values.workload).kind "StatefulSet" }}
+{{- if eq (.Values.workload).kind "StatefulSet" }}
 apiVersion: v1
 kind: Service
 metadata:

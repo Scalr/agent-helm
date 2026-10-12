@@ -1,9 +1,9 @@
 {{- /* Older releases using --reuse-values need the Deployment default. */ -}}
-{{- $kind := (default dict .Values.workload).kind | default "Deployment" -}}
+{{- $kind := (.Values.workload).kind | default "Deployment" -}}
 {{- /* Legacy cache settings take precedence over persistence.cache claim settings. */ -}}
 {{- $cachePvc := .Values.persistence.cache.persistentVolumeClaim -}}
 {{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" -}}
-{{- $cachePvc = .Values.persistence.persistentVolumeClaim -}}
+{{-   $cachePvc = .Values.persistence.persistentVolumeClaim -}}
 {{- end -}}
 
 {{- /* Build list of all helm controller env var names */ -}}
@@ -25,7 +25,11 @@
 apiVersion: apps/v1
 kind: {{ $kind }}
 metadata:
-  name: {{ if eq $kind "StatefulSet" }}{{ include "agent-local.statefulSetName" . }}{{ else }}{{ include "agent-local.fullname" . }}{{ end }}
+  {{- if eq $kind "StatefulSet" }}
+  name: {{ include "agent-local.statefulSetName" . }}
+  {{- else }}
+  name: {{ include "agent-local.fullname" . }}
+  {{- end }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
@@ -45,14 +49,17 @@ spec:
     {{- end }}
   {{- else }}
   serviceName: {{ include "agent-local.statefulSetName" . }}
-  podManagementPolicy: {{ (default dict .Values.workload.statefulSet).podManagementPolicy | default "Parallel" }}
+  podManagementPolicy: {{ (.Values.workload.statefulSet).podManagementPolicy | default "Parallel" }}
   updateStrategy:
     type: {{ dig "updateStrategy" "type" "RollingUpdate" (default dict .Values.workload.statefulSet) }}
     {{- if eq (dig "updateStrategy" "type" "RollingUpdate" (default dict .Values.workload.statefulSet)) "RollingUpdate" }}
     rollingUpdate:
       partition: {{ dig "updateStrategy" "rollingUpdate" "partition" 0 (default dict .Values.workload.statefulSet) }}
     {{- end }}
-  {{- if or (eq .Values.persistence.data.mode "volumeClaimTemplate") (eq .Values.persistence.cache.mode "volumeClaimTemplate") }}
+  {{- if or
+    (eq .Values.persistence.data.mode "volumeClaimTemplate")
+    (eq .Values.persistence.cache.mode "volumeClaimTemplate")
+  }}
   persistentVolumeClaimRetentionPolicy:
     whenDeleted: {{ dig "persistentVolumeClaimRetentionPolicy" "whenDeleted" "Retain" (default dict .Values.workload.statefulSet) }}
     whenScaled: {{ dig "persistentVolumeClaimRetentionPolicy" "whenScaled" "Retain" (default dict .Values.workload.statefulSet) }}
@@ -248,7 +255,10 @@ spec:
       volumes:
         {{- if ne .Values.persistence.data.mode "volumeClaimTemplate" }}
         - name: data-dir
-          {{- if or (eq .Values.persistence.data.mode "persistentVolumeClaim") (and (not .Values.persistence.data.mode) .Values.persistence.data.enabled) }}
+          {{- if or
+            (eq .Values.persistence.data.mode "persistentVolumeClaim")
+            (and (not .Values.persistence.data.mode) .Values.persistence.data.enabled)
+          }}
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.data.persistentVolumeClaim.claimName | default (printf "%s-data" (include "agent-local.fullname" .)) }}
           {{- else if eq .Values.persistence.data.mode "ephemeral" }}
@@ -269,7 +279,7 @@ spec:
                 storageClassName: {{ ternary "" . (eq . "-") | quote }}
                 {{- end }}
           {{- else }}
-          {{- with (default dict .Values.persistence.data.emptyDir).sizeLimit }}
+          {{- with (.Values.persistence.data.emptyDir).sizeLimit }}
           emptyDir:
             sizeLimit: {{ . }}
           {{- else }}
@@ -279,7 +289,10 @@ spec:
         {{- end }}
         {{- if ne .Values.persistence.cache.mode "volumeClaimTemplate" }}
         - name: cache-dir
-          {{- if or (eq .Values.persistence.cache.mode "persistentVolumeClaim") (and (not .Values.persistence.cache.mode) (or .Values.persistence.cache.enabled .Values.persistence.enabled)) }}
+          {{- if or
+            (eq .Values.persistence.cache.mode "persistentVolumeClaim")
+            (and (not .Values.persistence.cache.mode) (or .Values.persistence.cache.enabled .Values.persistence.enabled))
+          }}
           persistentVolumeClaim:
             {{- if $cachePvc.claimName }}
             claimName: {{ $cachePvc.claimName }}
@@ -306,7 +319,7 @@ spec:
                 storageClassName: {{ ternary "" . (eq . "-") | quote }}
                 {{- end }}
           {{- else }}
-          {{- with (default dict .Values.persistence.cache.emptyDir).sizeLimit }}
+          {{- with (.Values.persistence.cache.emptyDir).sizeLimit }}
           emptyDir:
             sizeLimit: {{ . }}
           {{- else }}

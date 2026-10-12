@@ -1,5 +1,8 @@
 {{- if and
-  (or (eq .Values.persistence.data.mode "persistentVolumeClaim") (and (not .Values.persistence.data.mode) .Values.persistence.data.enabled))
+  (or
+    (eq .Values.persistence.data.mode "persistentVolumeClaim")
+    (and (not .Values.persistence.data.mode) .Values.persistence.data.enabled)
+  )
   (not .Values.persistence.data.persistentVolumeClaim.claimName)
 }}
 apiVersion: v1
@@ -28,17 +31,24 @@ spec:
 {{- $cachePvc := .Values.persistence.cache.persistentVolumeClaim -}}
 {{- /* Legacy cache settings retain their claim options and resource name. */ -}}
 {{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" -}}
-{{- $cachePvc = .Values.persistence.persistentVolumeClaim -}}
+{{-   $cachePvc = .Values.persistence.persistentVolumeClaim -}}
 {{- end -}}
 {{- if and
-  (or (eq .Values.persistence.cache.mode "persistentVolumeClaim") (and (not .Values.persistence.cache.mode) (or .Values.persistence.cache.enabled .Values.persistence.enabled)))
+  (or
+    (eq .Values.persistence.cache.mode "persistentVolumeClaim")
+    (and (not .Values.persistence.cache.mode) (or .Values.persistence.cache.enabled .Values.persistence.enabled))
+  )
   (not $cachePvc.claimName)
 }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "agent-local.fullname" . }}{{ if ne (include "agent-local.persistence.usingDeprecated" .) "true" }}-cache{{ end }}
+  {{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" }}
+  name: {{ include "agent-local.fullname" . }}
+  {{- else }}
+  name: {{ include "agent-local.fullname" . }}-cache
+  {{- end }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
