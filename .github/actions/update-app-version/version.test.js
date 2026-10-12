@@ -8,8 +8,8 @@ test('bumps the minor version for breaking changes before 1.0', () => {
   assert.equal(nextChartVersion('0.6.8', '0.6.8', breaking), '0.7.0')
 })
 
-test('bumps the major version for breaking changes from 1.0 onward', () => {
-  assert.equal(nextChartVersion('1.6.8', '1.6.8', breaking), '2.0.0')
+test('keeps the major version for breaking changes from 1.0 onward', () => {
+  assert.equal(nextChartVersion('1.6.8', '1.6.8', breaking), '1.7.0')
 })
 
 test('uses patch bumps after the breaking entry has been released', () => {

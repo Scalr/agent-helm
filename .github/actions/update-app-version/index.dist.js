@@ -37825,8 +37825,7 @@ function nextChartVersion (currentVersion, latestReleased, changelog) {
     : currentVersion
   const unreleased = changelog.split('## [UNRELEASED]')[1]?.split('\n## ')[0] || ''
   const breaking = /^\s*-\s+\*\*BREAKING:\*\*/m.test(unreleased)
-  const increment = breaking ? (semver.major(base) === 0 ? 'minor' : 'major') : 'patch'
-  return semver.inc(base, increment)
+  return semver.inc(base, breaking ? 'minor' : 'patch')
 }
 
 module.exports = { nextChartVersion }

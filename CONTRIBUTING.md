@@ -32,8 +32,8 @@ Add changes that affect chart users under `## [UNRELEASED]` in each affected cha
 `CHANGELOG.md`. Describe the effect on users and explain any migration needed for breaking changes.
 
 Release automation handles chart `version` and `appVersion` bumps and creates release notes.
-Mark breaking entries with `**BREAKING:**`. These trigger a minor bump for 0.x charts and
-a major bump from 1.0 onward. Other releases use a patch bump.
+Mark breaking entries with `**BREAKING:**`. These trigger a minor bump.
+Other releases use a patch bump.
 
 ## Pull requests
 
