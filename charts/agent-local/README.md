@@ -270,9 +270,11 @@ Use `claimName` to select an existing claim in `persistentVolumeClaim` mode, as 
 A shared `ReadWriteOnce` claim requires all pods using it to run on the same node. Across
 nodes, use a separate claim for each pod or a shared `ReadWriteMany` claim.
 
-A shared `ReadWriteOncePod` claim needs `replicaCount: 1`. For a Deployment, set
-`strategy.type: Recreate` so the old pod releases the claim before its replacement starts.
-When using an existing claim, check its actual access mode.
+A shared `ReadWriteOncePod` claim allows at most one replica. For Deployment, set
+`strategy.type: Recreate` or
+`strategy.rollingUpdate.maxSurge: 0` with `strategy.rollingUpdate.maxUnavailable: 1`
+so the old pod releases the claim before its replacement starts. The chart checks the
+configured `accessMode`. When using an existing claim, check its actual access mode too.
 
 ### Cache volume persistence
 
@@ -290,8 +292,8 @@ persistence:
 See [Provider Cache](https://docs.scalr.io/docs/providers-cache) and
 [Module Cache](https://docs.scalr.io/docs/modules-cache) for cache configuration.
 
-The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated.
-Use `persistence.cache.*` instead.
+For upgrades that use the old top-level persistence settings, see
+[Migrate legacy cache settings](#migrate-legacy-cache-settings).
 
 ### Data volume persistence
 
@@ -318,6 +320,24 @@ the claim. A `Retain` policy requires manual cleanup. See [generic ephemeral vol
 With a [StatefulSet](#workload-selection), a replacement pod uses the same PVC name and may
 wait for Kubernetes to delete the old ephemeral PVC. Use `volumeClaimTemplate` to keep each
 replica's storage instead.
+
+### Migrate legacy cache settings
+
+The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys were
+deprecated in [v0.6.1](CHANGELOG.md#v061) and are now removed. Move `persistence.enabled` to
+`persistence.cache.enabled` and `persistence.persistentVolumeClaim.*` to
+`persistence.cache.persistentVolumeClaim.*`. Remove the old keys, even if `enabled` is `false`.
+
+`--reuse-values` can retain removed keys from the old chart defaults. Put all settings you
+want to keep, including agent credentials, in your migrated values file. Upgrade with the
+new defaults and that file:
+
+```console
+helm upgrade scalr-agent scalr-charts/agent-local --reset-values -f migrated-values.yaml
+```
+
+Use your release name in place of `scalr-agent`. New chart-managed cache claims use
+`<release-fullname>-cache` and start empty. The agent rebuilds its cache as it runs.
 
 ## Workload selection
 
@@ -677,7 +697,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | persistence.cache.emptyDir | object | <pre>{<br>&nbsp;&nbsp;"sizeLimit":&nbsp;"20Gi"<br>}</pre> | EmptyDir volume configuration. |
 | persistence.cache.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. Set to null or "" to leave it unlimited. |
 | persistence.cache.enabled | bool | `false` | Enable persistent storage for the cache directory. When false, uses emptyDir (survives container restarts, lost when the pod is replaced). When true, uses a shared PVC. Only used when mode is empty. |
-| persistence.cache.mode | string | `""` | Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod), or volumeClaimTemplate (a persistent PVC per StatefulSet replica). When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true). An explicit mode takes precedence over enabled. Legacy top-level settings retain precedence for claim options until removed. See [Storage modes](#storage-modes) for examples. |
+| persistence.cache.mode | string | `""` | Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod), or volumeClaimTemplate (a persistent PVC per StatefulSet replica). When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true). An explicit mode takes precedence over enabled. All PVC modes use persistentVolumeClaim settings. See [Storage modes](#storage-modes) for examples. |
 | persistence.cache.persistentVolumeClaim | object | <pre>{<br>&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteOnce",<br>&nbsp;&nbsp;"annotations":&nbsp;{},<br>&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;"storage":&nbsp;"20Gi",<br>&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;"subPath":&nbsp;""<br>}</pre> | Claim settings for shared, generic ephemeral, and StatefulSet per-replica PVCs. |
 | persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for per-pod/per-replica claims or a shared claim on one node. Use "ReadWriteMany" to share the cache across multiple agent pods (requires a compatible storage class). |
 | persistence.cache.persistentVolumeClaim.annotations | object | <pre>{}</pre> | Annotations on chart-created PVCs or claim templates. helm.sh/resource-policy applies only to shared chart-managed PVCs. |
@@ -697,14 +717,6 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | persistence.data.persistentVolumeClaim.storage | string | `"4Gi"` | Storage size for the PVC. |
 | persistence.data.persistentVolumeClaim.storageClassName | string | `""` | Storage class for the PVC. Leave empty to use the cluster's default storage class. Set to "-" to disable dynamic provisioning and bind a matching pre-provisioned PV. |
 | persistence.data.persistentVolumeClaim.subPath | string | `""` | Optional subPath for mounting a specific subdirectory of the volume. |
-| persistence.enabled | bool | `false` | DEPRECATED: Use `persistence.cache.enabled` instead. Kept for backward compatibility; will be removed in a future release. When set to `true`, behaves as `persistence.cache.enabled: true` and emits a deprecation warning. |
-| persistence.persistentVolumeClaim | object | <pre>{<br>&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteOnce",<br>&nbsp;&nbsp;"annotations":&nbsp;{},<br>&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;"storage":&nbsp;"20Gi",<br>&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;"subPath":&nbsp;""<br>}</pre> | DEPRECATED: Use `persistence.cache.persistentVolumeClaim` instead. Kept for backward compatibility; will be removed in a future release. When the legacy `persistence.enabled` (top-level) is `true`, these values are used for the cache PVC and a deprecation warning is emitted. |
-| persistence.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.accessMode`. |
-| persistence.persistentVolumeClaim.annotations | object | <pre>{}</pre> | DEPRECATED: see `persistence.cache.persistentVolumeClaim.annotations`. |
-| persistence.persistentVolumeClaim.claimName | string | `""` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.claimName`. |
-| persistence.persistentVolumeClaim.storage | string | `"20Gi"` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.storage`. |
-| persistence.persistentVolumeClaim.storageClassName | string | `""` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.storageClassName`. |
-| persistence.persistentVolumeClaim.subPath | string | `""` | DEPRECATED: see `persistence.cache.persistentVolumeClaim.subPath`. |
 
 ### Resource Management
 

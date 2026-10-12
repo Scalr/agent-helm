@@ -28,42 +28,33 @@ spec:
   {{- end }}
 {{- end }}
 
-{{- $cachePvc := .Values.persistence.cache.persistentVolumeClaim -}}
-{{- /* Legacy cache settings retain their claim options and resource name. */ -}}
-{{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" -}}
-{{-   $cachePvc = .Values.persistence.persistentVolumeClaim -}}
-{{- end -}}
 {{- if and
   (or
     (eq .Values.persistence.cache.mode "persistentVolumeClaim")
-    (and (not .Values.persistence.cache.mode) (or .Values.persistence.cache.enabled .Values.persistence.enabled))
+    (and (not .Values.persistence.cache.mode) .Values.persistence.cache.enabled)
   )
-  (not $cachePvc.claimName)
+  (not .Values.persistence.cache.persistentVolumeClaim.claimName)
 }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  {{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" }}
-  name: {{ include "agent-local.fullname" . }}
-  {{- else }}
   name: {{ include "agent-local.fullname" . }}-cache
-  {{- end }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
     app.kubernetes.io/component: cache
-  {{- with $cachePvc.annotations }}
+  {{- with .Values.persistence.cache.persistentVolumeClaim.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   accessModes:
-    - {{ $cachePvc.accessMode }}
+    - {{ .Values.persistence.cache.persistentVolumeClaim.accessMode }}
   resources:
     requests:
-      storage: {{ $cachePvc.storage }}
-  {{- with $cachePvc.storageClassName }}
+      storage: {{ .Values.persistence.cache.persistentVolumeClaim.storage }}
+  {{- with .Values.persistence.cache.persistentVolumeClaim.storageClassName }}
   storageClassName: {{ ternary "" . (eq . "-") | quote }}
   {{- end }}
 {{- end }}

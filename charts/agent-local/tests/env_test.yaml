@@ -91,45 +91,33 @@ tests:
             - name: SSL_CERT_FILE
               value: /etc/ssl/certs/scalr-ca-bundle.crt
 
-  - it: allows custom TLS paths when certificates are mounted through extraVolumes
+  - it: rejects a cache directory override through extraEnv
     set:
-      extraEnv:
-        SCALR_AGENT_TLS_CERT_FILE: /custom/tls.crt
-        SCALR_AGENT_TLS_KEY_FILE: /custom/tls.key
-      extraVolumes:
-        - name: custom-tls
-          secret:
-            secretName: custom-tls
-      extraVolumeMounts:
-        - name: custom-tls
-          mountPath: /custom
+      extraEnv.SCALR_AGENT_CACHE_DIR: /custom/cache
     asserts:
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SCALR_AGENT_TLS_CERT_FILE
-            value: /custom/tls.crt
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SCALR_AGENT_TLS_KEY_FILE
-            value: /custom/tls.key
-      - contains:
-          path: spec.template.spec.volumes
-          content:
-            name: custom-tls
-            secret:
-              secretName: custom-tls
+      - failedTemplate:
+          errorPattern: SCALR_AGENT_CACHE_DIR
 
-  - it: allows a drain timeout when the chart uses graceful shutdown
+  - it: reserves the TLS certificate path even when TLS is disabled
+    set:
+      extraEnv.SCALR_AGENT_TLS_CERT_FILE: /custom/tls.crt
+    asserts:
+      - failedTemplate:
+          errorPattern: SCALR_AGENT_TLS_CERT_FILE
+
+  - it: reserves the TLS key path even when TLS is disabled
+    set:
+      extraEnv.SCALR_AGENT_TLS_KEY_FILE: /custom/tls.key
+    asserts:
+      - failedTemplate:
+          errorPattern: SCALR_AGENT_TLS_KEY_FILE
+
+  - it: reserves the drain timeout even when the chart uses graceful shutdown
     set:
       extraEnv.SCALR_AGENT_WORKER_DRAIN_TIMEOUT: "90"
     asserts:
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
-            value: "90"
+      - failedTemplate:
+          errorPattern: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
 
   - it: keeps SSL_CERT_FILE reserved when no CA bundle is configured
     set:
@@ -157,8 +145,12 @@ tests:
               - SCALR_AGENT_DISCONNECT_ON_STOP
               - SCALR_AGENT_WORKER_ON_STOP_ACTION
               - SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              - SCALR_AGENT_WORKER_DRAIN_TIMEOUT
               - SCALR_AGENT_DATA_DIR
+              - SCALR_AGENT_CACHE_DIR
               - SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
               - SCALR_AGENT_TOKEN
+              - SCALR_AGENT_TLS_CERT_FILE
+              - SCALR_AGENT_TLS_KEY_FILE
               - SCALR_AGENT_CA_CERT
               - SSL_CERT_FILE\s*$

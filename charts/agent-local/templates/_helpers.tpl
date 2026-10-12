@@ -81,13 +81,3 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
-
-{{/*
-Returns "true" if the deprecated top-level persistence keys are in use.
-Triggered when `persistence.enabled` is true or the legacy `persistence.persistentVolumeClaim.claimName` is non-empty.
-*/}}
-{{- define "agent-local.persistence.usingDeprecated" -}}
-{{- if or .Values.persistence.enabled (ne (default "" .Values.persistence.persistentVolumeClaim.claimName) "") -}}
-true
-{{- end -}}
-{{- end }}

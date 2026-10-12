@@ -4,6 +4,37 @@ templates:
 set:
   agent.token: dummy
 tests:
+  - it: rejects the removed top-level persistence flag
+    set:
+      persistence.enabled: true
+    asserts: &removed_persistence
+      - failedTemplate:
+          errorPattern: |-
+            Move the old settings under persistence.cache and remove the old keys. For example:
+
+            persistence:
+              cache:
+                enabled: true
+                persistentVolumeClaim:
+                  storage: 20Gi
+
+  - it: rejects the removed persistence flag even when disabled
+    set:
+      persistence.enabled: false
+    asserts: *removed_persistence
+
+  - it: rejects removed PVC settings even when the cache is disabled
+    set:
+      persistence.persistentVolumeClaim.storage: 7Gi
+    asserts: *removed_persistence
+
+  - it: rejects removed settings alongside current cache settings
+    set:
+      workload.kind: StatefulSet
+      persistence.cache.mode: volumeClaimTemplate
+      persistence.persistentVolumeClaim.claimName: legacy-cache
+    asserts: *removed_persistence
+
   - it: rejects unsupported workload kinds
     set:
       workload.kind: DaemonSet
@@ -56,7 +87,70 @@ tests:
       persistence.cache.mode: volumeClaimTemplate
     asserts: *invalid_cache_mode
 
-  - it: preserves the reserved keys when rejecting a chart-controlled variable
+  - it: rejects a shared cache RWOP claim across StatefulSet replicas
+    set:
+      workload.kind: StatefulSet
+      replicaCount: 2
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: &shared_rwop_replicas
+      - failedTemplate:
+          errorPattern: shared ReadWriteOncePod claim requires replicaCount <= 1
+
+  - it: rejects a shared data RWOP claim across Deployment replicas even with Recreate
+    set:
+      replicaCount: "2"
+      strategy.type: Recreate
+      persistence.data.mode: persistentVolumeClaim
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_rwop_replicas
+
+  - it: rejects the default surge for a shared cache RWOP claim
+    set:
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: &shared_rwop_surge
+      - failedTemplate:
+          errorPattern: shared ReadWriteOncePod claim requires strategy.type=Recreate or strategy.rollingUpdate.maxSurge=0
+
+  - it: rejects an integer surge for an existing data RWOP claim
+    set:
+      strategy.rollingUpdate.maxSurge: 1
+      persistence.data.enabled: "true"
+      persistence.data.persistentVolumeClaim.claimName: existing-data
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_rwop_surge
+
+  - it: rejects surge when enabled selects a shared cache RWOP claim
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_rwop_surge
+
+  - it: rejects surge for a shared cache RWOP claim with old workload values
+    set:
+      workload: null
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_rwop_surge
+
+  - it: rejects an existing cache RWOP claim across StatefulSet replicas
+    set:
+      workload.kind: StatefulSet
+      replicaCount: 2
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.claimName: existing-cache
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_rwop_replicas
+
+  - it: rejects Kubernetes default surge when maxSurge is unset
+    set:
+      strategy.rollingUpdate.maxSurge: null
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_rwop_surge
+
+  - it: lists all reserved keys when rejecting a chart-controlled variable
     set:
       extraEnv.SCALR_AGENT_NAME: custom
     asserts: &reserved_keys
@@ -70,9 +164,13 @@ tests:
               - SCALR_AGENT_DISCONNECT_ON_STOP
               - SCALR_AGENT_WORKER_ON_STOP_ACTION
               - SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              - SCALR_AGENT_WORKER_DRAIN_TIMEOUT
               - SCALR_AGENT_DATA_DIR
+              - SCALR_AGENT_CACHE_DIR
               - SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
               - SCALR_AGENT_TOKEN
+              - SCALR_AGENT_TLS_CERT_FILE
+              - SCALR_AGENT_TLS_KEY_FILE
               - SCALR_AGENT_CA_CERT
               - SSL_CERT_FILE\s*$
 

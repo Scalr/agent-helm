@@ -314,9 +314,11 @@ Use `claimName` to select an existing claim in `persistentVolumeClaim` mode, as 
 A shared `ReadWriteOnce` claim requires all pods using it to run on the same node. Across
 nodes, use a separate claim for each pod or a shared `ReadWriteMany` claim.
 
-A shared `ReadWriteOncePod` claim needs `replicaCount: 1`. For a Deployment, set
-`strategy.type: Recreate` so the old pod releases the claim before its replacement starts.
-When using an existing claim, check its actual access mode.
+A shared `ReadWriteOncePod` claim allows at most one replica. For Deployment, set
+`strategy.type: Recreate` or
+`strategy.rollingUpdate.maxSurge: 0` with `strategy.rollingUpdate.maxUnavailable: 1`
+so the old pod releases the claim before its replacement starts. The chart checks the
+configured `accessMode`. When using an existing claim, check its actual access mode too.
 
 ### Cache volume persistence
 
@@ -334,8 +336,8 @@ persistence:
 See [Provider Cache](https://docs.scalr.io/docs/providers-cache) and
 [Module Cache](https://docs.scalr.io/docs/modules-cache) for cache configuration.
 
-The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated.
-Use `persistence.cache.*` instead.
+For upgrades that use the old top-level persistence settings, see
+[Migrate legacy cache settings](#migrate-legacy-cache-settings).
 
 ### Data volume persistence
 
@@ -362,6 +364,24 @@ the claim. A `Retain` policy requires manual cleanup. See [generic ephemeral vol
 With a [StatefulSet](#workload-selection), a replacement pod uses the same PVC name and may
 wait for Kubernetes to delete the old ephemeral PVC. Use `volumeClaimTemplate` to keep each
 replica's storage instead.
+
+### Migrate legacy cache settings
+
+The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys were
+deprecated in [v0.6.1](CHANGELOG.md#v061) and are now removed. Move `persistence.enabled` to
+`persistence.cache.enabled` and `persistence.persistentVolumeClaim.*` to
+`persistence.cache.persistentVolumeClaim.*`. Remove the old keys, even if `enabled` is `false`.
+
+`--reuse-values` can retain removed keys from the old chart defaults. Put all settings you
+want to keep, including agent credentials, in your migrated values file. Upgrade with the
+new defaults and that file:
+
+```console
+helm upgrade scalr-agent scalr-charts/agent-local --reset-values -f migrated-values.yaml
+```
+
+Use your release name in place of `scalr-agent`. New chart-managed cache claims use
+`<release-fullname>-cache` and start empty. The agent rebuilds its cache as it runs.
 
 ## Workload selection
 

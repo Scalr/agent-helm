@@ -15,7 +15,6 @@ tests:
       persistence.cache.mode: null
       persistence.data.persistentVolumeClaim.annotations: null
       persistence.cache.persistentVolumeClaim.annotations: null
-      persistence.persistentVolumeClaim.annotations: null
     asserts:
       - isKind:
           of: Deployment
@@ -80,7 +79,6 @@ tests:
 
   - it: treats null persistence flags as disabled
     set:
-      persistence.enabled: null
       persistence.data.enabled: null
       persistence.cache.enabled: null
     template: workload.yaml
@@ -131,7 +129,6 @@ tests:
   - it: honors explicit storage modes when enabled flags are null
     set:
       <<: *existing_claims
-      persistence.enabled: null
       persistence.data.enabled: null
       persistence.cache.enabled: null
       persistence.data.mode: persistentVolumeClaim
@@ -152,51 +149,16 @@ tests:
       persistence.cache.emptyDir: null
     asserts: *existing_mounts
 
-  - it: preserves legacy cache claim names and provisioning settings
+  - it: creates a cache claim when enabled is set without a mode
     set:
-      workload: null
-      persistence.enabled: true
-      persistence.persistentVolumeClaim.storage: 7Gi
+      persistence.cache.mode: null
+      persistence.cache.enabled: true
       persistence.cache.persistentVolumeClaim.storage: 99Gi
     asserts:
       - equal:
           path: spec.template.spec.volumes[?(@.name == "cache-dir")].persistentVolumeClaim.claimName
-          value: storage-test-agent-local
+          value: storage-test-agent-local-cache
         template: workload.yaml
-      - equal:
-          path: metadata.name
-          value: storage-test-agent-local
-        template: pvc.yaml
-      - equal:
-          path: spec.resources.requests.storage
-          value: 7Gi
-        template: pvc.yaml
-
-  - it: gives a legacy existing claim precedence over modern settings
-    set:
-      replicaCount: 2
-      persistence.persistentVolumeClaim:
-        claimName: legacy-existing
-        storage: null
-        accessMode: null
-      persistence.cache.enabled: true
-      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
-    asserts:
-      - equal:
-          path: spec.template.spec.volumes[?(@.name == "cache-dir")].persistentVolumeClaim.claimName
-          value: legacy-existing
-        template: workload.yaml
-      - hasDocuments:
-          count: 0
-        template: pvc.yaml
-
-  - it: uses modern cache settings when legacy persistence is disabled
-    set:
-      persistence.enabled: false
-      persistence.persistentVolumeClaim.storage: 7Gi
-      persistence.cache.enabled: true
-      persistence.cache.persistentVolumeClaim.storage: 99Gi
-    asserts:
       - equal:
           path: metadata.name
           value: storage-test-agent-local-cache
@@ -204,21 +166,6 @@ tests:
       - equal:
           path: spec.resources.requests.storage
           value: 99Gi
-        template: pvc.yaml
-
-  - it: keeps legacy provisioning settings when an explicit mode overrides enabled
-    set:
-      persistence.enabled: true
-      persistence.persistentVolumeClaim.storage: 7Gi
-      persistence.cache.mode: ephemeral
-      persistence.cache.persistentVolumeClaim.storage: 99Gi
-    asserts:
-      - equal:
-          path: spec.template.spec.volumes[?(@.name == "cache-dir")].ephemeral.volumeClaimTemplate.spec.resources.requests.storage
-          value: 7Gi
-        template: workload.yaml
-      - hasDocuments:
-          count: 0
         template: pvc.yaml
 
   - it: accepts string replicas and numeric storage quantities

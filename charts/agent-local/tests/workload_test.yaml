@@ -149,3 +149,43 @@ tests:
           path: spec.strategy
           value:
             type: Recreate
+
+  - it: supports zero surge for a shared single-pod claim
+    template: workload.yaml
+    set: &zero_surge_rwop
+      strategy.rollingUpdate.maxSurge: 0
+      strategy.rollingUpdate.maxUnavailable: 1
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - equal:
+          path: spec.strategy.rollingUpdate
+          value:
+            maxSurge: 0
+            maxUnavailable: 1
+
+  - it: supports zero percent surge for a shared single-pod claim
+    template: workload.yaml
+    set:
+      <<: *zero_surge_rwop
+      strategy.rollingUpdate.maxSurge: 0%
+    asserts:
+      - equal:
+          path: spec.strategy.rollingUpdate
+          value:
+            maxSurge: 0%
+            maxUnavailable: 1
+
+  - it: supports one StatefulSet replica using a shared RWOP claim
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")].persistentVolumeClaim.claimName
+          value: storage-test-agent-local-cache

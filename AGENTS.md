@@ -32,7 +32,7 @@ See [Testing](TESTING.md#installation-and-upgrade-testing) for cluster setup.
 Each chart owns its templates, values, documentation, and changelog. In `agent-local`,
 `templates/workload.yaml` shares pod configuration between Deployment and StatefulSet,
 selected by `workload.kind`. Storage modes use explicit data and cache blocks in
-`templates/workload.yaml` and `templates/pvc.yaml`, including legacy cache values.
+`templates/workload.yaml` and `templates/pvc.yaml`.
 
 `.ct/` holds chart-testing and kind configuration. `.github/workflows/` handles CI and releases.
 The custom action in `.github/actions/update-app-version/` updates chart versions and changelogs.

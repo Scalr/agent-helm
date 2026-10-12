@@ -96,6 +96,7 @@ tests:
   - it: ignores existing claim names and subpaths in emptyDir mode
     template: workload.yaml
     set:
+      persistence.data.persistentVolumeClaim: null
       persistence.cache.mode: emptyDir
       persistence.cache.persistentVolumeClaim: *custom_claim
     asserts:

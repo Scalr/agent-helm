@@ -18,11 +18,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared
   `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate`
   storage. Set `persistence.cache.mode: ephemeral` to give each Deployment pod its own cache PVC,
-  deleted with the pod. Existing `enabled` settings and legacy cache PVC names remain unchanged
-  when mode is omitted.
+  deleted with the pod. `persistence.data.enabled` and `persistence.cache.enabled` still select
+  shared PVCs when mode is omitted.
 - PVC annotations for chart-managed claims and claim templates, allowing metadata for storage
   or backup tooling. Set `persistence.data.persistentVolumeClaim.annotations` or
   `persistence.cache.persistentVolumeClaim.annotations`.
+
+### Changed
+
+- **BREAKING:** Reject shared `ReadWriteOncePod` claims with multiple replicas or Deployment
+  rolling updates that allow extra pods, preventing stuck pods and rollouts. Use at most one
+  replica and `strategy.type: Recreate` or `strategy.rollingUpdate.maxSurge: 0`, or switch to
+  per-pod storage for multiple replicas. Applies to both data and cache storage.
+
+### Removed
+
+- **BREAKING:** Remove the top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*`
+  keys, deprecated in [v0.6.1](#v061). Move them under `persistence.cache` and remove the old keys
+  before upgrading. See [Migrate legacy cache settings](README.md#migrate-legacy-cache-settings).
+
+  Before:
+
+  ```yaml
+  persistence:
+    enabled: true
+    persistentVolumeClaim:
+      storage: 20Gi
+  ```
+
+  After:
+
+  ```yaml
+  persistence:
+    cache:
+      enabled: true
+      persistentVolumeClaim:
+        storage: 20Gi
+  ```
+
+### Fixed
+
+- **BREAKING:** Reject `SCALR_AGENT_CACHE_DIR`, `SCALR_AGENT_WORKER_DRAIN_TIMEOUT`,
+  `SCALR_AGENT_TLS_CERT_FILE`, and `SCALR_AGENT_TLS_KEY_FILE` in `extraEnv` to prevent duplicate
+  chart-controlled variables. These names are reserved even when drain or TLS is disabled.
+  Use `agent.cacheDir`, `agent.shutdownMode` with `terminationGracePeriodSeconds`, and
+  `agent.tls.*` instead.
 
 ## [v0.6.8]
 
