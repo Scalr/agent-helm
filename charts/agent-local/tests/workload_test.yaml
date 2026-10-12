@@ -94,6 +94,7 @@ tests:
       workload.statefulSet.podManagementPolicy: OrderedReady
       workload.statefulSet.updateStrategy.type: OnDelete
       workload.statefulSet.persistentVolumeClaimRetentionPolicy.whenScaled: Delete
+      persistence.cache.enabled: true
       persistence.cache.mode: volumeClaimTemplate
     asserts:
       - equal:
@@ -155,6 +156,7 @@ tests:
     set: &zero_surge_rwop
       strategy.rollingUpdate.maxSurge: 0
       strategy.rollingUpdate.maxUnavailable: 1
+      persistence.cache.enabled: true
       persistence.cache.mode: persistentVolumeClaim
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
@@ -176,10 +178,23 @@ tests:
             maxSurge: 0%
             maxUnavailable: 1
 
+  - it: allows surge when the single-pod claim rollout permits downtime
+    template: workload.yaml
+    set:
+      <<: *zero_surge_rwop
+      strategy.rollingUpdate.maxSurge: 1
+    asserts:
+      - equal:
+          path: spec.strategy.rollingUpdate
+          value:
+            maxSurge: 1
+            maxUnavailable: 1
+
   - it: supports one StatefulSet replica using a shared RWOP claim
     template: workload.yaml
     set:
       workload.kind: StatefulSet
+      persistence.cache.enabled: true
       persistence.cache.mode: persistentVolumeClaim
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:

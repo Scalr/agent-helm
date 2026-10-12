@@ -8,14 +8,21 @@ release:
 set:
   agent.token: dummy
 tests:
-  - it: defaults to Deployment when reused values lack the new settings
+  - it: reuses old defaults with unused legacy cache settings
     set:
       workload: null
       persistence.data.mode: null
       persistence.cache.mode: null
       persistence.data.persistentVolumeClaim.annotations: null
       persistence.cache.persistentVolumeClaim.annotations: null
-    asserts:
+      persistence.enabled: false
+      persistence.persistentVolumeClaim:
+        claimName: ""
+        storageClassName: ""
+        storage: 20Gi
+        accessMode: ReadWriteOnce
+        subPath: ""
+    asserts: &default_workload
       - isKind:
           of: Deployment
         template: workload.yaml
@@ -36,12 +43,21 @@ tests:
               emptyDir:
                 sizeLimit: 20Gi
         template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: ignores an explicitly disabled legacy persistence flag
+    set:
+      persistence.enabled: false
+    asserts: *default_workload
 
   - it: supplies StatefulSet defaults when reused values only set the kind
     template: workload.yaml
     set:
       workload.kind: StatefulSet
       workload.statefulSet: null
+      persistence.cache.enabled: true
       persistence.cache.mode: volumeClaimTemplate
     asserts:
       - isSubset:
@@ -82,7 +98,7 @@ tests:
       persistence.data.enabled: null
       persistence.cache.enabled: null
     template: workload.yaml
-    asserts:
+    asserts: &disabled_volumes
       - equal:
           path: spec.template.spec.volumes
           value:
@@ -126,14 +142,23 @@ tests:
       workload.kind: StatefulSet
     asserts: *existing_mounts
 
-  - it: honors explicit storage modes when enabled flags are null
+  - it: ignores provisioning access modes when mounting existing claims
+    set:
+      <<: *existing_claims
+      replicaCount: 2
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *existing_mounts
+
+  - it: keeps explicit storage modes disabled when enabled flags are null
     set:
       <<: *existing_claims
       persistence.data.enabled: null
       persistence.cache.enabled: null
       persistence.data.mode: persistentVolumeClaim
       persistence.cache.mode: persistentVolumeClaim
-    asserts: *existing_mounts
+    template: workload.yaml
+    asserts: *disabled_volumes
 
   - it: preserves truthy string persistence flags
     set:
@@ -149,8 +174,10 @@ tests:
       persistence.cache.emptyDir: null
     asserts: *existing_mounts
 
-  - it: creates a cache claim when enabled is set without a mode
+  - it: uses current cache settings despite unused legacy PVC options
     set:
+      persistence.enabled: false
+      persistence.persistentVolumeClaim.storage: 7Gi
       persistence.cache.mode: null
       persistence.cache.enabled: true
       persistence.cache.persistentVolumeClaim.storage: 99Gi

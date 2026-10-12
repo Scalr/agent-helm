@@ -12,10 +12,12 @@ resources:
     memory: 128Mi
 persistence:
   data:
+    enabled: true
     mode: ephemeral
     persistentVolumeClaim:
       storage: 128Mi
   cache:
+    enabled: true
     mode: ephemeral
     persistentVolumeClaim:
       storage: 128Mi

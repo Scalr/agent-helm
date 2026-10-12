@@ -9,6 +9,8 @@ set:
   agent.dataDir: /custom/data
   agent.cacheDir: /custom/cache
   replicaCount: 3
+  persistence.data.enabled: true
+  persistence.cache.enabled: true
 tests:
   - it: renders Deployment with emptyDir data and emptyDir cache
     template: workload.yaml

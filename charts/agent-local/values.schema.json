@@ -84,18 +84,26 @@
             "persistence": {
                 "properties": {
                     "data": {
-                        "properties": {
-                            "mode": {
-                                "not": {
+                        "not": {
+                            "required": ["enabled", "mode"],
+                            "properties": {
+                                "enabled": {
+                                    "not": {"enum": [false, null]}
+                                },
+                                "mode": {
                                     "const": "volumeClaimTemplate"
                                 }
                             }
                         }
                     },
                     "cache": {
-                        "properties": {
-                            "mode": {
-                                "not": {
+                        "not": {
+                            "required": ["enabled", "mode"],
+                            "properties": {
+                                "enabled": {
+                                    "not": {"enum": [false, null]}
+                                },
+                                "mode": {
                                     "const": "volumeClaimTemplate"
                                 }
                             }

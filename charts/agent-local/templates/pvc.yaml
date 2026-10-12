@@ -1,10 +1,22 @@
+{{- if or (.Values.persistence).enabled ((.Values.persistence).persistentVolumeClaim).claimName -}}
+{{-   fail `persistence.enabled and persistence.persistentVolumeClaim were removed after deprecation in v0.6.1.
+Move the old settings under persistence.cache and remove the old keys. For example:
+
+persistence:
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      storage: 20Gi` -}}
+{{- end -}}
+
 {{- if and
-  (or
-    (eq .Values.persistence.data.mode "persistentVolumeClaim")
-    (and (not .Values.persistence.data.mode) .Values.persistence.data.enabled)
-  )
+  .Values.persistence.data.enabled
+  (eq (.Values.persistence.data.mode | default "persistentVolumeClaim") "persistentVolumeClaim")
   (not .Values.persistence.data.persistentVolumeClaim.claimName)
 }}
+{{- if and (gt (.Values.replicaCount | int) 1) (eq .Values.persistence.data.persistentVolumeClaim.accessMode "ReadWriteOncePod") -}}
+{{-   fail "A shared ReadWriteOncePod claim requires replicaCount <= 1. Use per-pod claims for multiple replicas." -}}
+{{- end }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -29,12 +41,13 @@ spec:
 {{- end }}
 
 {{- if and
-  (or
-    (eq .Values.persistence.cache.mode "persistentVolumeClaim")
-    (and (not .Values.persistence.cache.mode) .Values.persistence.cache.enabled)
-  )
+  .Values.persistence.cache.enabled
+  (eq (.Values.persistence.cache.mode | default "persistentVolumeClaim") "persistentVolumeClaim")
   (not .Values.persistence.cache.persistentVolumeClaim.claimName)
 }}
+{{- if and (gt (.Values.replicaCount | int) 1) (eq .Values.persistence.cache.persistentVolumeClaim.accessMode "ReadWriteOncePod") -}}
+{{-   fail "A shared ReadWriteOncePod claim requires replicaCount <= 1. Use per-pod claims for multiple replicas." -}}
+{{- end }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

@@ -1,6 +1,7 @@
 suite: Workload and storage validation
 templates:
   - workload.yaml
+  - pvc.yaml
 set:
   agent.token: dummy
 tests:
@@ -17,20 +18,18 @@ tests:
                 enabled: true
                 persistentVolumeClaim:
                   storage: 20Gi
+        template: pvc.yaml
 
-  - it: rejects the removed persistence flag even when disabled
+  - it: rejects a legacy claim name even when legacy persistence is disabled
     set:
       persistence.enabled: false
-    asserts: *removed_persistence
-
-  - it: rejects removed PVC settings even when the cache is disabled
-    set:
-      persistence.persistentVolumeClaim.storage: 7Gi
+      persistence.persistentVolumeClaim.claimName: legacy-cache
     asserts: *removed_persistence
 
   - it: rejects removed settings alongside current cache settings
     set:
       workload.kind: StatefulSet
+      persistence.cache.enabled: true
       persistence.cache.mode: volumeClaimTemplate
       persistence.persistentVolumeClaim.claimName: legacy-cache
     asserts: *removed_persistence
@@ -62,28 +61,31 @@ tests:
       persistence.data.mode: invalid
     asserts: &invalid_data_mode
       - failedTemplate:
-          errorPattern: persistence.data.mode
+          errorPattern: persistence.data
 
   - it: rejects an unknown cache storage mode
     set:
       persistence.cache.mode: invalid
     asserts: &invalid_cache_mode
       - failedTemplate:
-          errorPattern: persistence.cache.mode
+          errorPattern: persistence.cache
 
   - it: rejects data claim templates on a Deployment
     set:
+      persistence.data.enabled: true
       persistence.data.mode: volumeClaimTemplate
     asserts: *invalid_data_mode
 
   - it: rejects cache claim templates on a Deployment
     set:
+      persistence.cache.enabled: true
       persistence.cache.mode: volumeClaimTemplate
     asserts: *invalid_cache_mode
 
   - it: rejects claim templates when old values omit the workload
     set:
       workload: null
+      persistence.cache.enabled: true
       persistence.cache.mode: volumeClaimTemplate
     asserts: *invalid_cache_mode
 
@@ -91,64 +93,37 @@ tests:
     set:
       workload.kind: StatefulSet
       replicaCount: 2
+      persistence.cache.enabled: true
       persistence.cache.mode: persistentVolumeClaim
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts: &shared_rwop_replicas
       - failedTemplate:
           errorPattern: shared ReadWriteOncePod claim requires replicaCount <= 1
+        template: pvc.yaml
 
   - it: rejects a shared data RWOP claim across Deployment replicas even with Recreate
     set:
       replicaCount: "2"
       strategy.type: Recreate
+      persistence.data.enabled: true
       persistence.data.mode: persistentVolumeClaim
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts: *shared_rwop_replicas
 
-  - it: rejects the default surge for a shared cache RWOP claim
+  - it: rejects multiple replicas when enabled selects a shared data RWOP claim
     set:
-      persistence.cache.mode: persistentVolumeClaim
-      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
-    asserts: &shared_rwop_surge
-      - failedTemplate:
-          errorPattern: shared ReadWriteOncePod claim requires strategy.type=Recreate or strategy.rollingUpdate.maxSurge=0
-
-  - it: rejects an integer surge for an existing data RWOP claim
-    set:
-      strategy.rollingUpdate.maxSurge: 1
-      persistence.data.enabled: "true"
-      persistence.data.persistentVolumeClaim.claimName: existing-data
-      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
-    asserts: *shared_rwop_surge
-
-  - it: rejects surge when enabled selects a shared cache RWOP claim
-    set:
-      persistence.cache.enabled: true
-      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
-    asserts: *shared_rwop_surge
-
-  - it: rejects surge for a shared cache RWOP claim with old workload values
-    set:
-      workload: null
-      persistence.cache.enabled: true
-      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
-    asserts: *shared_rwop_surge
-
-  - it: rejects an existing cache RWOP claim across StatefulSet replicas
-    set:
-      workload.kind: StatefulSet
       replicaCount: 2
-      persistence.cache.mode: persistentVolumeClaim
-      persistence.cache.persistentVolumeClaim.claimName: existing-cache
-      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.data.enabled: "true"
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts: *shared_rwop_replicas
 
-  - it: rejects Kubernetes default surge when maxSurge is unset
+  - it: rejects multiple replicas when enabled selects a shared cache RWOP claim
     set:
-      strategy.rollingUpdate.maxSurge: null
-      persistence.cache.mode: persistentVolumeClaim
+      workload: null
+      replicaCount: 2
+      persistence.cache.enabled: true
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
-    asserts: *shared_rwop_surge
+    asserts: *shared_rwop_replicas
 
   - it: lists all reserved keys when rejecting a chart-controlled variable
     set:
@@ -173,6 +148,7 @@ tests:
               - SCALR_AGENT_TLS_KEY_FILE
               - SCALR_AGENT_CA_CERT
               - SSL_CERT_FILE\s*$
+        template: workload.yaml
 
   - it: keeps the same reserved keys with drain TLS CA and mirror settings
     set:

@@ -12,30 +12,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `podLabels` value to add custom labels to Scalr Agent pods.
-- StatefulSet support via `workload.kind: StatefulSet`. Pair with
+- StatefulSet support via `workload.kind: StatefulSet`. Set `persistence.cache.enabled: true` and
   `persistence.cache.mode: volumeClaimTemplate` to give each replica its own cache that survives
   pod replacement. Deployment remains the default.
 - Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared
   `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate`
-  storage. Set `persistence.cache.mode: ephemeral` to give each Deployment pod its own cache PVC,
-  deleted with the pod. `persistence.data.enabled` and `persistence.cache.enabled` still select
-  shared PVCs when mode is omitted.
+  storage. Set `persistence.cache.enabled: true` and `persistence.cache.mode: ephemeral` to give each
+  Deployment pod its own cache PVC, deleted with the pod. Each volume's `enabled` flag controls
+  persistence. When enabled, an omitted mode selects a shared PVC.
 - PVC annotations for chart-managed claims and claim templates, allowing metadata for storage
   or backup tooling. Set `persistence.data.persistentVolumeClaim.annotations` or
   `persistence.cache.persistentVolumeClaim.annotations`.
 
 ### Changed
 
-- **BREAKING:** Reject shared `ReadWriteOncePod` claims with multiple replicas or Deployment
-  rolling updates that allow extra pods, preventing stuck pods and rollouts. Use at most one
-  replica and `strategy.type: Recreate` or `strategy.rollingUpdate.maxSurge: 0`, or switch to
-  per-pod storage for multiple replicas. Applies to both data and cache storage.
+- **BREAKING:** Reject multiple replicas when the chart creates a shared `ReadWriteOncePod`
+  claim for data or cache. Use at most one replica or switch to per-pod storage. Existing
+  claims and rollout settings are not checked.
 
 ### Removed
 
-- **BREAKING:** Remove the top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*`
-  keys, deprecated in [v0.6.1](#v061). Move them under `persistence.cache` and remove the old keys
-  before upgrading. See [Migrate legacy cache settings](README.md#migrate-legacy-cache-settings).
+- **BREAKING:** Remove support for the top-level `persistence.enabled` and
+  `persistence.persistentVolumeClaim.*` keys, deprecated in [v0.6.1](#v061). If legacy
+  `persistence.enabled` is true or a legacy `claimName` is set, move these settings under
+  `persistence.cache` before upgrading. Unused legacy settings are ignored, including during
+  `--reuse-values` upgrades.
 
   Before:
 

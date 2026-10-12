@@ -14,10 +14,12 @@ resources:
     memory: 128Mi
 persistence:
   data:
+    enabled: true
     mode: volumeClaimTemplate
     persistentVolumeClaim:
       storage: 128Mi
   cache:
+    enabled: true
     mode: volumeClaimTemplate
     persistentVolumeClaim:
       storage: 128Mi

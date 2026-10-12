@@ -8,8 +8,68 @@ set:
   agent.token: dummy
   replicaCount: 3
 tests:
+  - it: uses emptyDir when shared data and ephemeral cache persistence are disabled
+    set: &disabled_persistence
+      persistence.data.enabled: false
+      persistence.cache.enabled: false
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: ephemeral
+      persistence.data.persistentVolumeClaim.subPath: data
+      persistence.cache.persistentVolumeClaim.subPath: cache
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: &disabled_claims
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              emptyDir:
+                sizeLimit: 4Gi
+            - name: cache-dir
+              emptyDir:
+                sizeLimit: 20Gi
+        template: workload.yaml
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == "data-dir")].subPath
+        template: workload.yaml
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == "cache-dir")].subPath
+        template: workload.yaml
+      - notExists:
+          path: spec.volumeClaimTemplates
+        template: workload.yaml
+      - notExists:
+          path: spec.persistentVolumeClaimRetentionPolicy
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: uses emptyDir when ephemeral data and shared cache persistence are disabled
+    set:
+      <<: *disabled_persistence
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: persistentVolumeClaim
+    asserts: *disabled_claims
+
+  - it: omits StatefulSet claim templates when persistence is disabled
+    set:
+      <<: *disabled_persistence
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: volumeClaimTemplate
+    asserts: *disabled_claims
+
+  - it: ignores disabled claim template modes on a Deployment
+    set:
+      <<: *disabled_persistence
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: volumeClaimTemplate
+    asserts: *disabled_claims
+
   - it: preserves shared claim annotations and allows disabling dynamic provisioning
     set:
+      persistence.cache.enabled: true
       persistence.cache.mode: persistentVolumeClaim
       persistence.cache.persistentVolumeClaim.storageClassName: "-"
       persistence.cache.persistentVolumeClaim.annotations:
@@ -67,6 +127,7 @@ tests:
       appVersion: 99.0.0
     set:
       workload.kind: StatefulSet
+      persistence.cache.enabled: true
       persistence.cache.mode: volumeClaimTemplate
       persistence.cache.persistentVolumeClaim: *custom_claim
     asserts:
@@ -97,6 +158,7 @@ tests:
     template: workload.yaml
     set:
       persistence.data.persistentVolumeClaim: null
+      persistence.cache.enabled: true
       persistence.cache.mode: emptyDir
       persistence.cache.persistentVolumeClaim: *custom_claim
     asserts:
