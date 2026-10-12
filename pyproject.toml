@@ -1,0 +1,21 @@
+[project]
+name = "agent-helm-scripts"
+version = "0.0.0"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6"]
+
+[dependency-groups]
+dev = ["ruff", "ty", "types-pyyaml"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+include = ["scripts/**/*.py"]
+line-length = 79
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ty.src]
+include = ["scripts"]

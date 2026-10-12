@@ -19,6 +19,15 @@ Both must pass in the [CI workflow](.github/workflows/lint-test-chart.yaml).
 and run Helm lint. Configuration lives in [.ct/](.ct/). Version-increment checks are disabled
 because release automation handles chart versions.
 
+Pre-commit also runs Ruff and ty when Python scripts or their tooling configuration change.
+Run these checks directly with:
+
+```console
+uv run ruff check
+uv run ruff format --check
+uv run ty check
+```
+
 ## Unit testing
 
 `just test` uses helm-unittest to render templates with test values and assert resource fields

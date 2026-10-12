@@ -24,6 +24,24 @@ repos:
         language: system
         pass_filenames: false
         files: ^(charts/|justfile$|\.pre-commit-config\.yaml$)
+      - id: ruff-check
+        name: Lint Python scripts
+        entry: uv run --locked ruff check --fix
+        language: system
+        pass_filenames: false
+        files: &python_files ^(scripts/.*\.py$|pyproject\.toml$|uv\.lock$|\.pre-commit-config\.yaml$)
+      - id: ruff-format
+        name: Format Python scripts
+        entry: uv run --locked ruff format
+        language: system
+        pass_filenames: false
+        files: *python_files
+      - id: ty
+        name: Type-check Python scripts
+        entry: uv run --locked ty check
+        language: system
+        pass_filenames: false
+        files: *python_files
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

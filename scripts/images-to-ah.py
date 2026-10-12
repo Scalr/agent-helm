@@ -36,7 +36,9 @@ from dataclasses import dataclass
 try:
     import yaml
 except ImportError:
-    sys.stderr.write("ERROR: PyYAML is required. Install with: pip install pyyaml\n")
+    sys.stderr.write(
+        "ERROR: PyYAML is required. Install with: pip install pyyaml\n"
+    )
     raise SystemExit(1)
 
 log = logging.getLogger("images-to-ah")
@@ -96,7 +98,9 @@ CHART_IMAGES: dict[str, tuple[ImageSpec, ...]] = {
 }
 
 
-APP_VERSION_RE: re.Pattern[str] = re.compile(r"^appVersion:\s*(\S+)\s*$", re.MULTILINE)
+APP_VERSION_RE: re.Pattern[str] = re.compile(
+    r"^appVersion:\s*(\S+)\s*$", re.MULTILINE
+)
 ANNOTATIONS_HEADER_RE: re.Pattern[str] = re.compile(r"^annotations:\s*$")
 IMAGES_KEY_RE: re.Pattern[str] = re.compile(r"^\s+artifacthub\.io/images:\s*")
 
@@ -159,7 +163,10 @@ def resolve_image(spec: ImageSpec, values: dict, app_version: str) -> str:
 
 
 def render_images_block(
-    specs: Iterable[ImageSpec], values: dict, app_version: str, indent: str = "    "
+    specs: Iterable[ImageSpec],
+    values: dict,
+    app_version: str,
+    indent: str = "    ",
 ) -> str:
     """Render image references as a YAML block scalar payload."""
     out: list[str] = []
@@ -179,11 +186,20 @@ def inject_images_annotation(chart_yaml: str, ah_block: str) -> str:
     block_lines = ["  artifacthub.io/images: |", *ah_block.splitlines()]
 
     ann_idx = next(
-        (i for i, line in enumerate(lines) if ANNOTATIONS_HEADER_RE.match(line)),
+        (
+            i
+            for i, line in enumerate(lines)
+            if ANNOTATIONS_HEADER_RE.match(line)
+        ),
         None,
     )
     if ann_idx is None:
-        return chart_yaml.rstrip() + "\n\nannotations:\n" + "\n".join(block_lines) + "\n"
+        return (
+            chart_yaml.rstrip()
+            + "\n\nannotations:\n"
+            + "\n".join(block_lines)
+            + "\n"
+        )
 
     end_idx = len(lines)
     for j in range(ann_idx + 1, len(lines)):
@@ -241,7 +257,9 @@ def process_chart(chart_dir: pathlib.Path, *, dry_run: bool) -> int:
     if loaded is None:
         loaded = {}
     if not isinstance(loaded, dict):
-        raise ImagesError(f"{values_yaml_path} top-level YAML is not a mapping")
+        raise ImagesError(
+            f"{values_yaml_path} top-level YAML is not a mapping"
+        )
 
     app_version = read_app_version(chart_yaml)
 
@@ -251,12 +269,16 @@ def process_chart(chart_dir: pathlib.Path, *, dry_run: bool) -> int:
         raise ImagesError(f"{chart_name}: {e}") from None
 
     if dry_run:
-        sys.stdout.write(f"# {len(specs)} image refs for {chart_name} (appVersion={app_version})\n")
+        sys.stdout.write(
+            f"# {len(specs)} image refs for {chart_name} (appVersion={app_version})\n"
+        )
         sys.stdout.write("annotations:\n  artifacthub.io/images: |\n")
         sys.stdout.write(block + "\n")
         return 0
 
-    chart_yaml_path.write_text(inject_images_annotation(chart_yaml, block), encoding="utf-8")
+    chart_yaml_path.write_text(
+        inject_images_annotation(chart_yaml, block), encoding="utf-8"
+    )
     log.info("Injected %d image refs into %s", len(specs), chart_yaml_path)
     return 0
 
@@ -265,7 +287,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Inject artifacthub.io/images into a chart's Chart.yaml.",
     )
-    parser.add_argument("chart_dir", type=pathlib.Path, help="path to the chart directory")
+    parser.add_argument(
+        "chart_dir", type=pathlib.Path, help="path to the chart directory"
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",

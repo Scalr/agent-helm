@@ -53,13 +53,21 @@ KIND_MAP: dict[str, str] = {
     "security": "security",
 }
 
-PR_LINK_RE: re.Pattern[str] = re.compile(r"\[#(?P<num>\d+)\]\((?P<url>https?://[^\s)]+)\)")
-USER_LINK_RE: re.Pattern[str] = re.compile(r"\[@(?P<user>[\w-]+)\]\((?P<url>https?://[^\s)]+)\)")
-VERSION_RE: re.Pattern[str] = re.compile(r"^version:\s*(\S+)\s*$", re.MULTILINE)
+PR_LINK_RE: re.Pattern[str] = re.compile(
+    r"\[#(?P<num>\d+)\]\((?P<url>https?://[^\s)]+)\)"
+)
+USER_LINK_RE: re.Pattern[str] = re.compile(
+    r"\[@(?P<user>[\w-]+)\]\((?P<url>https?://[^\s)]+)\)"
+)
+VERSION_RE: re.Pattern[str] = re.compile(
+    r"^version:\s*(\S+)\s*$", re.MULTILINE
+)
 SECTION_HEADING_RE: re.Pattern[str] = re.compile(r"^###\s+(\w+)")
 BULLET_RE: re.Pattern[str] = re.compile(r"^[-*]\s+(.+)")
 ANNOTATIONS_HEADER_RE: re.Pattern[str] = re.compile(r"^annotations:\s*$")
-CHANGES_KEY_RE: re.Pattern[str] = re.compile(r"^\s+artifacthub\.io/changes:\s*")
+CHANGES_KEY_RE: re.Pattern[str] = re.compile(
+    r"^\s+artifacthub\.io/changes:\s*"
+)
 
 
 @dataclass(frozen=True)
@@ -136,10 +144,14 @@ def parse_release(text: str) -> list[ChangeItem]:
             return
         links: list[Link] = []
         for m in PR_LINK_RE.finditer(body):
-            links.append(Link(name=f"PR #{m.group('num')}", url=m.group("url")))
+            links.append(
+                Link(name=f"PR #{m.group('num')}", url=m.group("url"))
+            )
         for m in USER_LINK_RE.finditer(body):
             links.append(Link(name=f"@{m.group('user')}", url=m.group("url")))
-        items.append(ChangeItem(kind=current_kind, description=body, links=tuple(links)))
+        items.append(
+            ChangeItem(kind=current_kind, description=body, links=tuple(links))
+        )
 
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
@@ -150,7 +162,10 @@ def parse_release(text: str) -> list[ChangeItem]:
             if heading in KIND_MAP:
                 current_kind = KIND_MAP[heading]
             else:
-                log.warning("Unrecognized section heading '%s', defaulting to 'changed'", heading)
+                log.warning(
+                    "Unrecognized section heading '%s', defaulting to 'changed'",
+                    heading,
+                )
                 current_kind = "changed"
             continue
         bullet_match = BULLET_RE.match(line)
@@ -195,11 +210,20 @@ def inject_annotation(chart_yaml: str, ah_block: str) -> str:
     block_lines = ["  artifacthub.io/changes: |", *ah_block.splitlines()]
 
     ann_idx = next(
-        (i for i, line in enumerate(lines) if ANNOTATIONS_HEADER_RE.match(line)),
+        (
+            i
+            for i, line in enumerate(lines)
+            if ANNOTATIONS_HEADER_RE.match(line)
+        ),
         None,
     )
     if ann_idx is None:
-        return chart_yaml.rstrip() + "\n\nannotations:\n" + "\n".join(block_lines) + "\n"
+        return (
+            chart_yaml.rstrip()
+            + "\n\nannotations:\n"
+            + "\n".join(block_lines)
+            + "\n"
+        )
 
     # End of the annotations block: first subsequent line that isn't indented (or EOF).
     end_idx = len(lines)
@@ -281,8 +305,16 @@ def process_chart(chart_dir: pathlib.Path, *, dry_run: bool) -> int:
         sys.stdout.write(block + "\n")
         return 0
 
-    chart_yaml_path.write_text(inject_annotation(chart_yaml, block), encoding="utf-8")
-    log.info("Injected %d entr%s from %s into %s", len(items), plural, source, chart_yaml_path)
+    chart_yaml_path.write_text(
+        inject_annotation(chart_yaml, block), encoding="utf-8"
+    )
+    log.info(
+        "Injected %d entr%s from %s into %s",
+        len(items),
+        plural,
+        source,
+        chart_yaml_path,
+    )
     return 0
 
 
@@ -290,7 +322,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Inject CHANGELOG entries as artifacthub.io/changes into a chart's Chart.yaml.",
     )
-    parser.add_argument("chart_dir", type=pathlib.Path, help="path to the chart directory")
+    parser.add_argument(
+        "chart_dir", type=pathlib.Path, help="path to the chart directory"
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
