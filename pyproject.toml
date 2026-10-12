@@ -1,14 +1,15 @@
 [project]
 name = "agent-helm-scripts"
 version = "0.0.0"
-requires-python = ">=3.10"
+requires-python = ">=3.15"
 dependencies = ["pyyaml>=6"]
 
 [dependency-groups]
-dev = ["ruff", "ty", "types-pyyaml"]
+dev = ["ruff==0.17.0", "ty==0.0.86", "types-pyyaml"]
 
 [tool.uv]
 package = false
+required-version = ">=0.13"
 
 [tool.ruff]
 include = ["scripts/**/*.py"]

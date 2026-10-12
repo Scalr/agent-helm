@@ -29,7 +29,7 @@ repos:
         entry: uv run --locked ruff check --fix
         language: system
         pass_filenames: false
-        files: &python_files ^(scripts/.*\.py$|pyproject\.toml$|uv\.lock$|\.pre-commit-config\.yaml$)
+        files: &python_files ^(scripts/.*\.py$|pyproject\.toml$|uv\.lock$|\.python-version$|\.pre-commit-config\.yaml$)
       - id: ruff-format
         name: Format Python scripts
         entry: uv run --locked ruff format

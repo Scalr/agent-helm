@@ -39,7 +39,7 @@ Install these tools using their installation guides or your package manager:
 - [chart-testing](https://github.com/helm/chart-testing#installation) (`ct`) >= 3.15.0 for chart linting and installation tests.
 - [helm-docs](https://github.com/norwoodj/helm-docs#installation) >= 1.14 for generated documentation.
 - [pre-commit](https://pre-commit.com/#install) and [lychee](https://github.com/lycheeverse/lychee#installation) for Git hooks and link checks.
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) for Python script tooling.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) >= 0.13 for Python 3.15 script tooling.
 
 Pre-commit manages ct's Python dependencies.
 
