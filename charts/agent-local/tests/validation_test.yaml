@@ -16,6 +16,11 @@ tests:
       workload.kind: statefulset
     asserts: *invalid_kind
 
+  - it: rejects non-string workload kinds
+    set:
+      workload.kind: 1
+    asserts: *invalid_kind
+
   - it: rejects an explicitly empty workload kind
     set:
       workload.kind: ""
@@ -60,6 +65,7 @@ tests:
 
   - it: prevents duplicate drain timeout environment variables
     set:
+      agent.shutdownMode: drain
       extraEnv.SCALR_AGENT_WORKER_DRAIN_TIMEOUT: custom
     asserts:
       - failedTemplate:
@@ -67,6 +73,7 @@ tests:
 
   - it: prevents duplicate TLS certificate environment variables
     set:
+      agent.tls.clientCertSecret.name: client-cert
       extraEnv.SCALR_AGENT_TLS_CERT_FILE: custom
     asserts:
       - failedTemplate:
@@ -74,6 +81,7 @@ tests:
 
   - it: prevents duplicate TLS key environment variables
     set:
+      agent.tls.clientCertSecret.name: client-cert
       extraEnv.SCALR_AGENT_TLS_KEY_FILE: custom
     asserts:
       - failedTemplate:

@@ -24,6 +24,9 @@ tests:
           path: metadata.name
           value: storage-test-agent-local
         template: workload.yaml
+      - notExists:
+          path: spec.template.metadata.annotations
+        template: workload.yaml
       - equal:
           path: spec.template.spec.volumes
           value:
@@ -75,6 +78,23 @@ tests:
     template: workload.yaml
     asserts: *unlimited
 
+  - it: treats null persistence flags as disabled
+    set:
+      persistence.enabled: null
+      persistence.data.enabled: null
+      persistence.cache.enabled: null
+    template: workload.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              emptyDir:
+                sizeLimit: 4Gi
+            - name: cache-dir
+              emptyDir:
+                sizeLimit: 20Gi
+
   - it: mounts existing claims without requiring provisioning settings
     set: &existing_claims
       persistence.data.enabled: true
@@ -106,6 +126,30 @@ tests:
     set:
       <<: *existing_claims
       workload.kind: StatefulSet
+    asserts: *existing_mounts
+
+  - it: honors explicit storage modes when enabled flags are null
+    set:
+      <<: *existing_claims
+      persistence.enabled: null
+      persistence.data.enabled: null
+      persistence.cache.enabled: null
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: persistentVolumeClaim
+    asserts: *existing_mounts
+
+  - it: preserves truthy string persistence flags
+    set:
+      <<: *existing_claims
+      persistence.data.enabled: "true"
+      persistence.cache.enabled: "true"
+    asserts: *existing_mounts
+
+  - it: mounts claims when unused emptyDir settings are null
+    set:
+      <<: *existing_claims
+      persistence.data.emptyDir: null
+      persistence.cache.emptyDir: null
     asserts: *existing_mounts
 
   - it: preserves legacy cache claim names and provisioning settings

@@ -1,0 +1,506 @@
+suite: Storage mode combinations
+templates:
+  - workload.yaml
+  - pvc.yaml
+release:
+  name: storage-test
+set:
+  agent.token: dummy
+  replicaCount: 3
+tests:
+  - it: renders Deployment with emptyDir data and emptyDir cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: emptyDir
+      persistence.cache.mode: emptyDir
+    asserts:
+      - &Deployment
+        isKind:
+          of: Deployment
+      - &data_emptyDir
+        equal:
+          path: spec.template.spec.volumes[?(@.name == "data-dir")]
+          value:
+            name: data-dir
+            emptyDir:
+              sizeLimit: 4Gi
+      - &cache_emptyDir
+        equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")]
+          value:
+            name: cache-dir
+            emptyDir:
+              sizeLimit: 20Gi
+      - &pod_volumes_2
+        lengthEqual:
+          path: spec.template.spec.volumes
+          count: 2
+      - &claim_templates_0
+        notExists:
+          path: spec.volumeClaimTemplates
+      - &shared_claims_0
+        hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: renders Deployment with emptyDir data and persistentVolumeClaim cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: emptyDir
+      persistence.cache.mode: persistentVolumeClaim
+    asserts:
+      - *Deployment
+      - *data_emptyDir
+      - &cache_persistentVolumeClaim
+        equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")]
+          value:
+            name: cache-dir
+            persistentVolumeClaim:
+              claimName: storage-test-agent-local-cache
+      - &cache_claim
+        equal:
+          path: spec
+          value:
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 20Gi
+        template: pvc.yaml
+        documentSelector:
+          path: metadata.name
+          value: storage-test-agent-local-cache
+      - *pod_volumes_2
+      - *claim_templates_0
+      - &shared_claims_1
+        hasDocuments:
+          count: 1
+        template: pvc.yaml
+
+  - it: renders Deployment with emptyDir data and ephemeral cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: emptyDir
+      persistence.cache.mode: ephemeral
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *Deployment
+      - *data_emptyDir
+      - &cache_ephemeral
+        equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")]
+          value:
+            name: cache-dir
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: [ReadWriteOncePod]
+                  resources:
+                    requests:
+                      storage: 20Gi
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_0
+
+  - it: renders Deployment with persistentVolumeClaim data and emptyDir cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: emptyDir
+    asserts:
+      - *Deployment
+      - &data_persistentVolumeClaim
+        equal:
+          path: spec.template.spec.volumes[?(@.name == "data-dir")]
+          value:
+            name: data-dir
+            persistentVolumeClaim:
+              claimName: storage-test-agent-local-data
+      - &data_claim
+        equal:
+          path: spec
+          value:
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 4Gi
+        template: pvc.yaml
+        documentSelector:
+          path: metadata.name
+          value: storage-test-agent-local-data
+      - *cache_emptyDir
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_1
+
+  - it: renders Deployment with persistentVolumeClaim data and persistentVolumeClaim cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: persistentVolumeClaim
+    asserts:
+      - *Deployment
+      - *data_persistentVolumeClaim
+      - *data_claim
+      - *cache_persistentVolumeClaim
+      - *cache_claim
+      - *pod_volumes_2
+      - *claim_templates_0
+      - &shared_claims_2
+        hasDocuments:
+          count: 2
+        template: pvc.yaml
+
+  - it: renders Deployment with persistentVolumeClaim data and ephemeral cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: ephemeral
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *Deployment
+      - *data_persistentVolumeClaim
+      - *data_claim
+      - *cache_ephemeral
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_1
+
+  - it: renders Deployment with ephemeral data and emptyDir cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: emptyDir
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *Deployment
+      - &data_ephemeral
+        equal:
+          path: spec.template.spec.volumes[?(@.name == "data-dir")]
+          value:
+            name: data-dir
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: [ReadWriteOncePod]
+                  resources:
+                    requests:
+                      storage: 4Gi
+      - *cache_emptyDir
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_0
+
+  - it: renders Deployment with ephemeral data and persistentVolumeClaim cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *Deployment
+      - *data_ephemeral
+      - *cache_persistentVolumeClaim
+      - *cache_claim
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_1
+
+  - it: renders Deployment with ephemeral data and ephemeral cache
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: ephemeral
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *Deployment
+      - *data_ephemeral
+      - *cache_ephemeral
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_0
+
+  - it: renders StatefulSet with emptyDir data and emptyDir cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: emptyDir
+      persistence.cache.mode: emptyDir
+    asserts:
+      - &StatefulSet
+        isKind:
+          of: StatefulSet
+      - *data_emptyDir
+      - *cache_emptyDir
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_0
+
+  - it: renders StatefulSet with emptyDir data and persistentVolumeClaim cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: emptyDir
+      persistence.cache.mode: persistentVolumeClaim
+    asserts:
+      - *StatefulSet
+      - *data_emptyDir
+      - *cache_persistentVolumeClaim
+      - *cache_claim
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_1
+
+  - it: renders StatefulSet with emptyDir data and ephemeral cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: emptyDir
+      persistence.cache.mode: ephemeral
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_emptyDir
+      - *cache_ephemeral
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_0
+
+  - it: renders StatefulSet with emptyDir data and volumeClaimTemplate cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: emptyDir
+      persistence.cache.mode: volumeClaimTemplate
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_emptyDir
+      - &cache_volumeClaimTemplate
+        equal:
+          path: spec.volumeClaimTemplates[?(@.metadata.name == "cache-dir")].spec
+          value:
+            accessModes: [ReadWriteOncePod]
+            resources:
+              requests:
+                storage: 20Gi
+      - &pod_volumes_1
+        lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - &claim_templates_1
+        lengthEqual:
+          path: spec.volumeClaimTemplates
+          count: 1
+      - *shared_claims_0
+
+  - it: renders StatefulSet with persistentVolumeClaim data and emptyDir cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: emptyDir
+    asserts:
+      - *StatefulSet
+      - *data_persistentVolumeClaim
+      - *data_claim
+      - *cache_emptyDir
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_1
+
+  - it: renders StatefulSet with persistentVolumeClaim data and persistentVolumeClaim cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: persistentVolumeClaim
+    asserts:
+      - *StatefulSet
+      - *data_persistentVolumeClaim
+      - *data_claim
+      - *cache_persistentVolumeClaim
+      - *cache_claim
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_2
+
+  - it: renders StatefulSet with persistentVolumeClaim data and ephemeral cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: ephemeral
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_persistentVolumeClaim
+      - *data_claim
+      - *cache_ephemeral
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_1
+
+  - it: renders StatefulSet with persistentVolumeClaim data and volumeClaimTemplate cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: volumeClaimTemplate
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_persistentVolumeClaim
+      - *data_claim
+      - *cache_volumeClaimTemplate
+      - *pod_volumes_1
+      - *claim_templates_1
+      - *shared_claims_1
+
+  - it: renders StatefulSet with ephemeral data and emptyDir cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: emptyDir
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_ephemeral
+      - *cache_emptyDir
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_0
+
+  - it: renders StatefulSet with ephemeral data and persistentVolumeClaim cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_ephemeral
+      - *cache_persistentVolumeClaim
+      - *cache_claim
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_1
+
+  - it: renders StatefulSet with ephemeral data and ephemeral cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: ephemeral
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_ephemeral
+      - *cache_ephemeral
+      - *pod_volumes_2
+      - *claim_templates_0
+      - *shared_claims_0
+
+  - it: renders StatefulSet with ephemeral data and volumeClaimTemplate cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: volumeClaimTemplate
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_ephemeral
+      - *cache_volumeClaimTemplate
+      - *pod_volumes_1
+      - *claim_templates_1
+      - *shared_claims_0
+
+  - it: renders StatefulSet with volumeClaimTemplate data and emptyDir cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: emptyDir
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - &data_volumeClaimTemplate
+        equal:
+          path: spec.volumeClaimTemplates[?(@.metadata.name == "data-dir")].spec
+          value:
+            accessModes: [ReadWriteOncePod]
+            resources:
+              requests:
+                storage: 4Gi
+      - *cache_emptyDir
+      - *pod_volumes_1
+      - *claim_templates_1
+      - *shared_claims_0
+
+  - it: renders StatefulSet with volumeClaimTemplate data and persistentVolumeClaim cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_volumeClaimTemplate
+      - *cache_persistentVolumeClaim
+      - *cache_claim
+      - *pod_volumes_1
+      - *claim_templates_1
+      - *shared_claims_1
+
+  - it: renders StatefulSet with volumeClaimTemplate data and ephemeral cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: ephemeral
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_volumeClaimTemplate
+      - *cache_ephemeral
+      - *pod_volumes_1
+      - *claim_templates_1
+      - *shared_claims_0
+
+  - it: renders StatefulSet with volumeClaimTemplate data and volumeClaimTemplate cache
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: volumeClaimTemplate
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - *StatefulSet
+      - *data_volumeClaimTemplate
+      - *cache_volumeClaimTemplate
+      - &pod_volumes_0
+        notExists:
+          path: spec.template.spec.volumes
+      - &claim_templates_2
+        lengthEqual:
+          path: spec.volumeClaimTemplates
+          count: 2
+      - *shared_claims_0

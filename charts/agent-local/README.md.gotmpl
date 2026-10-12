@@ -62,7 +62,6 @@
 - [Volumes](#volumes)
 - [Workload Selection](#workload-selection)
 - [Migrate to StatefulSet](#migrate-to-statefulset)
-- [Migrate legacy cache settings](#migrate-legacy-cache-settings)
 - [Security](#security)
 - [Metrics and Observability](#metrics-and-observability)
 - [Provider Network Mirrors](#provider-network-mirrors)
@@ -332,7 +331,9 @@ persistence:
 
 See [Provider Cache](https://docs.scalr.io/docs/providers-cache) and
 [Module Cache](https://docs.scalr.io/docs/modules-cache) for cache configuration.
-For deprecated top-level persistence settings, follow [Migrate legacy cache settings](#migrate-legacy-cache-settings).
+
+The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated.
+Use `persistence.cache.*` instead.
 
 ### Data volume persistence
 
@@ -354,6 +355,9 @@ Replacement pods get a fresh cache. Kubernetes deletes each PVC with its pod.
 The StorageClass reclaim policy controls backing-volume cleanup. A `Retain` policy requires
 manual cleanup. See [generic ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes).
 
+StatefulSet replacement pods reuse PVC names and may wait for the previous pod's ephemeral PVCs
+to be garbage-collected. Use `volumeClaimTemplate` to reuse each replica's existing storage.
+
 ## Workload selection
 
 `workload.kind` defaults to `Deployment`, including upgrades using `--reuse-values`.
@@ -369,7 +373,8 @@ persistence:
 ```
 
 This creates three 20Gi cache PVCs named `cache-dir-<statefulset-name>-<ordinal>`.
-The StatefulSet name is normalized for Kubernetes and limited to 52 characters.
+The StatefulSet name is limited to 52 characters. Names that need normalization or shortening
+include a hash of the full name to avoid collisions.
 Agent names follow `<statefulset-name>-<ordinal>`. Use distinct release names or
 `fullnameOverride` values within each Scalr agent pool, including across namespaces and clusters.
 
@@ -388,43 +393,13 @@ Retained PVCs need manual cleanup. See [StatefulSet retention](https://kubernete
 Changing `workload.kind` from `Deployment` to `StatefulSet` replaces the controller and its
 pods. Plan for a capacity interruption.
 
-1. Preserve any chart-managed shared claims you need. Add `helm.sh/resource-policy: keep` under
-   `persistence.<volume>.persistentVolumeClaim.annotations`, then upgrade **before changing modes**.
-   For legacy cache settings, use `persistence.persistentVolumeClaim.annotations`.
-   Verify the annotation in the stored Helm release manifest. Otherwise Helm may delete the old
-   claim when its manifest is removed. The annotation applies only to shared chart-managed PVCs.
-2. Stop assigning work to the old agents, wait for active runs to finish, and scale to zero.
-3. Upgrade with `workload.kind: StatefulSet`, your storage modes, and replica count. Per-pod claims
-   start empty. Rebuild caches or copy any data you need to retain.
-4. Verify agent connections and mounted claims before resuming work. Clean up retained old
-   claims after verifying the migration.
+1. Stop assigning work to the old agents, wait for active runs to finish, and scale to zero.
+2. Upgrade with `workload.kind: StatefulSet`, your storage modes, and replica count. Per-pod claims
+   start empty.
+3. Verify agent connections and mounted claims before resuming work.
 
 For a gradual migration, install a separate release with distinct names and verify it before
 draining the old agents.
-
-## Migrate legacy cache settings
-
-Deprecated top-level persistence settings keep precedence for cache claim options until removed.
-To keep a chart-managed cache PVC, add `helm.sh/resource-policy: keep` under
-`persistence.persistentVolumeClaim.annotations` and perform a separate Helm upgrade first.
-Verify the annotation in the stored release manifest. Then upgrade with the following values,
-preserving any existing `subPath`:
-
-```yaml
-persistence:
-  enabled: false
-  persistentVolumeClaim:
-    claimName: ""
-  cache:
-    mode: persistentVolumeClaim
-    persistentVolumeClaim:
-      claimName: "<existing-cache-pvc-name>"
-      subPath: ""
-```
-
-Use the exact PVC name. The legacy chart-created claim is named `<fullname>`.
-Leaving the new `claimName` empty creates `<fullname>-cache` with empty storage.
-The explicit legacy resets also work with `--reuse-values`. The retained claim needs manual cleanup.
 
 ## Security
 

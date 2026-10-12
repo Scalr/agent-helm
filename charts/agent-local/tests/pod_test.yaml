@@ -26,10 +26,7 @@ tests:
       - equal:
           path: spec.template.metadata.annotations
           value:
-            cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
-            karpenter.sh/do-not-evict: "true"
             karpenter.sh/do-not-disrupt: "false"
-            autopilot.gke.io/priority: high
             example.com/annotation: present
       - isSubset:
           path: spec.template.metadata.labels

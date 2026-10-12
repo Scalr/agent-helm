@@ -12,16 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `podLabels` value to add custom labels to Scalr Agent pods.
-- `workload.kind` to select Deployment (the existing default) or StatefulSet, with shared pod configuration, a headless Service, and StatefulSet update and PVC retention settings.
+- StatefulSet support via `workload.kind: StatefulSet`. Deployment remains the default.
 - Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate` storage. Existing `enabled` settings and legacy cache PVC names remain unchanged when mode is omitted.
-- PVC annotations for chart-managed claims and claim templates, including retention annotations for migrating existing shared claims.
-- Helm schema validation for workload kinds, storage modes, and StatefulSet-only claim templates.
+- PVC annotations for chart-managed claims and claim templates.
 
-### Fixed
+### Changed
 
-- Place eviction annotations on agent pods, with overrides through `podAnnotations`.
-- Reserve cache, drain timeout, and TLS environment variables managed by the chart.
-- Preserve legacy cache PVCs in the documented migration to per-volume settings.
+- **BREAKING:** Reject `extraEnv` entries that duplicate variables emitted by the chart.
+  This now includes `SCALR_AGENT_CACHE_DIR`, `SCALR_AGENT_WORKER_DRAIN_TIMEOUT`,
+  `SCALR_AGENT_TLS_CERT_FILE`, and `SCALR_AGENT_TLS_KEY_FILE` when set by the chart.
+  Use `agent.cacheDir`, shutdown settings, or `agent.tls` for those values.
+  Custom TLS paths and drain timeouts remain allowed when the chart does not emit them.
 
 ## [v0.6.8]
 

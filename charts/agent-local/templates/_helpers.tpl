@@ -11,14 +11,19 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "agent-local.fullname" -}}
+{{- include "agent-local.fullnameRaw" . | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
+{{/* Preserve the full input for name hashing before applying resource limits. */}}
+{{- define "agent-local.fullnameRaw" -}}
 {{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- .Values.fullnameOverride }}
 {{- else }}
 {{- $name := default .Chart.Name .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- .Release.Name }}
 {{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Release.Name $name }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -31,11 +36,16 @@ If release name contains chart name it will be used as a full name.
 
 {{/* Leave room for the revision hash label and use a valid governing Service name. */}}
 {{- define "agent-local.statefulSetName" -}}
-{{- $name := include "agent-local.fullname" . | replace "." "-" -}}
+{{- $fullName := include "agent-local.fullnameRaw" . -}}
+{{- $name := $fullName | replace "." "-" -}}
 {{- if regexMatch "^[0-9]" $name -}}
 {{- $name = printf "agent-%s" $name -}}
 {{- end -}}
-{{- $name | trunc 52 | trimSuffix "-" -}}
+{{- if or (ne $name $fullName) (gt (len $name) 52) -}}
+{{- printf "%s-%s" ($name | trunc 43 | trimSuffix "-") ($fullName | sha256sum | trunc 8) -}}
+{{- else -}}
+{{- $name | trimSuffix "-" -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -62,7 +72,7 @@ Selector labels
 */}}
 {{- define "agent-local.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "agent-local.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end }}
 
 {{/*
@@ -93,17 +103,20 @@ Parameters: root (chart context), name (data or cache).
 */}}
 {{- define "agent-local.persistence.volume" -}}
 {{- $volume := index .root.Values.persistence .name -}}
-{{- $enabled := $volume.enabled -}}
+{{- $enabled := $volume.enabled | default false -}}
 {{- $pvc := $volume.persistentVolumeClaim -}}
 {{- $defaultClaimName := printf "%s-%s" (include "agent-local.fullname" .root) .name -}}
 {{- if eq .name "cache" -}}
-  {{- $enabled = or $enabled .root.Values.persistence.enabled -}}
+  {{- $enabled = or $enabled (.root.Values.persistence.enabled | default false) -}}
   {{- if eq (include "agent-local.persistence.usingDeprecated" .root) "true" -}}
     {{- $pvc = .root.Values.persistence.persistentVolumeClaim -}}
     {{- $defaultClaimName = include "agent-local.fullname" .root -}}
   {{- end -}}
 {{- end -}}
-{{- $mode := default (ternary "persistentVolumeClaim" "emptyDir" $enabled) $volume.mode -}}
+{{- $mode := $volume.mode | default "emptyDir" -}}
+{{- if and (not $volume.mode) $enabled -}}
+  {{- $mode = "persistentVolumeClaim" -}}
+{{- end -}}
 {{- $out := dict
     "name" .name
     "mode" $mode
@@ -113,9 +126,11 @@ Parameters: root (chart context), name (data or cache).
     "accessMode" $pvc.accessMode
     "subPath" (default "" $pvc.subPath)
     "annotations" (default (dict) $pvc.annotations)
-    "emptyDirSizeLimit" $volume.emptyDir.sizeLimit
     "defaultClaimName" $defaultClaimName
 -}}
+{{- if eq $mode "emptyDir" -}}
+  {{- $_ := set $out "emptyDirSizeLimit" ($volume.emptyDir | default dict).sizeLimit -}}
+{{- end -}}
 {{- toYaml $out -}}
 {{- end }}
 

@@ -1,0 +1,55 @@
+suite: Conditional environment variables
+templates:
+  - workload.yaml
+set:
+  agent.token: dummy
+tests:
+  - it: allows custom TLS paths when certificates are mounted through extraVolumes
+    set:
+      extraEnv:
+        SCALR_AGENT_TLS_CERT_FILE: /custom/tls.crt
+        SCALR_AGENT_TLS_KEY_FILE: /custom/tls.key
+      extraVolumes:
+        - name: custom-tls
+          secret:
+            secretName: custom-tls
+      extraVolumeMounts:
+        - name: custom-tls
+          mountPath: /custom
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SCALR_AGENT_TLS_CERT_FILE
+            value: /custom/tls.crt
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SCALR_AGENT_TLS_KEY_FILE
+            value: /custom/tls.key
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: custom-tls
+            secret:
+              secretName: custom-tls
+
+  - it: allows a drain timeout when the chart uses graceful shutdown
+    set:
+      extraEnv.SCALR_AGENT_WORKER_DRAIN_TIMEOUT: "90"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+            value: "90"
+
+  - it: allows a custom CA path when no CA bundle is configured
+    set:
+      extraEnv.SSL_CERT_FILE: /custom/ca.crt
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SSL_CERT_FILE
+            value: /custom/ca.crt
