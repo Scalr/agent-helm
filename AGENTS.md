@@ -31,8 +31,8 @@ See [Testing](TESTING.md#installation-and-upgrade-testing) for cluster setup.
 
 Each chart owns its templates, values, documentation, and changelog. In `agent-local`,
 `templates/workload.yaml` shares pod configuration between Deployment and StatefulSet,
-selected by `workload.kind`. Storage helpers in `templates/_helpers.tpl` resolve the
-independent cache and data modes, including legacy values.
+selected by `workload.kind`. Storage modes use explicit data and cache blocks in
+`templates/workload.yaml` and `templates/pvc.yaml`, including legacy cache values.
 
 `.ct/` holds chart-testing and kind configuration. `.github/workflows/` handles CI and releases.
 The custom action in `.github/actions/update-app-version/` updates chart versions and changelogs.
@@ -40,6 +40,8 @@ The custom action in `.github/actions/update-app-version/` updates chart version
 ## Values and templates
 
 - Keep templates simple and value names consistent across charts.
+- Prefer explicit YAML and some duplication over extra variables or template helpers.
+  Keep helpers when they are broadly reused and add clear value.
 - Preserve defaults, resource names, and upgrade behavior. New optional values need
   fallbacks for `helm upgrade --reuse-values`.
 - Edit `values.schema.json` directly. Keep validation minimal and define each rule in one place.

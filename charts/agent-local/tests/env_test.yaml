@@ -131,17 +131,14 @@ tests:
             name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
             value: "90"
 
-  - it: allows a custom CA path when no CA bundle is configured
+  - it: keeps SSL_CERT_FILE reserved when no CA bundle is configured
     set:
       extraEnv.SSL_CERT_FILE: /custom/ca.crt
     asserts:
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SSL_CERT_FILE
-            value: /custom/ca.crt
+      - failedTemplate:
+          errorPattern: "SSL_CERT_FILE"
 
-  - it: accepts previously reserved variables when their chart settings are disabled
+  - it: keeps reserved variables listed when their chart settings are disabled
     set:
       agent.shutdownMode: force
       extraEnv:
@@ -150,23 +147,18 @@ tests:
         SCALR_AGENT_PROVIDER_NETWORK_MIRRORS: '[{"url":"https://mirror.example.com"}]'
         SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT: "90"
     asserts:
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SCALR_AGENT_CA_CERT
-            value: /custom/ca.crt
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SSL_CERT_FILE
-            value: /custom/ca.crt
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
-            value: '[{"url":"https://mirror.example.com"}]'
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
-            value: "90"
+      - failedTemplate:
+          errorPattern: |-
+            ^\s*Reserved keys are:
+              - SCALR_AGENT_NAME
+              - SCALR_URL
+              - SCALR_AGENT_DRIVER
+              - SCALR_AGENT_CONCURRENCY
+              - SCALR_AGENT_DISCONNECT_ON_STOP
+              - SCALR_AGENT_WORKER_ON_STOP_ACTION
+              - SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              - SCALR_AGENT_DATA_DIR
+              - SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
+              - SCALR_AGENT_TOKEN
+              - SCALR_AGENT_CA_CERT
+              - SSL_CERT_FILE\s*$

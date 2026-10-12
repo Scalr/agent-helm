@@ -16,18 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate` storage. Existing `enabled` settings and legacy cache PVC names remain unchanged when mode is omitted.
 - PVC annotations for chart-managed claims and claim templates.
 
-### Changed
-
-- **BREAKING:** Reject `extraEnv` entries that duplicate variables emitted by the chart.
-  Errors list the reserved keys for the current configuration.
-  This now includes `SCALR_AGENT_CACHE_DIR`, `SCALR_AGENT_WORKER_DRAIN_TIMEOUT`,
-  `SCALR_AGENT_TLS_CERT_FILE`, and `SCALR_AGENT_TLS_KEY_FILE` when set by the chart.
-  Use `agent.cacheDir`, shutdown settings, or `agent.tls` for those values.
-  Custom TLS paths and drain timeouts remain allowed when the corresponding chart settings are disabled.
-- Allow `extraEnv` to supply `SCALR_AGENT_CA_CERT`, `SSL_CERT_FILE`,
-  `SCALR_AGENT_PROVIDER_NETWORK_MIRRORS`, and `SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`
-  when the corresponding chart settings are disabled.
-
 ## [v0.6.8]
 
 ### Updated

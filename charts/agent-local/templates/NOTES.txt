@@ -30,7 +30,7 @@ WARNING: Default agent image changed from `scalr/agent-runner` to `scalr/agent`.
 {{- end }}
 {{- end }}
 
-{{- if or .Values.persistence.enabled (ne (default "" .Values.persistence.persistentVolumeClaim.claimName) "") }}
+{{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" }}
 
 WARNING: Deprecated persistence configuration detected.
   The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated
