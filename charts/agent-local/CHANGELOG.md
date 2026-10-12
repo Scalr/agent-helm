@@ -12,9 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `podLabels` value to add custom labels to Scalr Agent pods.
-- StatefulSet support via `workload.kind: StatefulSet`. Deployment remains the default.
-- Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate` storage. Existing `enabled` settings and legacy cache PVC names remain unchanged when mode is omitted.
-- PVC annotations for chart-managed claims and claim templates.
+- StatefulSet support via `workload.kind: StatefulSet`. Pair with
+  `persistence.cache.mode: volumeClaimTemplate` to give each replica its own cache that survives
+  pod replacement. Deployment remains the default.
+- Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared
+  `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate`
+  storage. Set `persistence.cache.mode: ephemeral` to give each Deployment pod its own cache PVC,
+  deleted with the pod. Existing `enabled` settings and legacy cache PVC names remain unchanged
+  when mode is omitted.
+- PVC annotations for chart-managed claims and claim templates, allowing metadata for storage
+  or backup tooling. Set `persistence.data.persistentVolumeClaim.annotations` or
+  `persistence.cache.persistentVolumeClaim.annotations`.
 
 ## [v0.6.8]
 
