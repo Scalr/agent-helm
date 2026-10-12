@@ -31,7 +31,7 @@ Deploys a static number of agents and executes runs in shared agent pods.
 
 - Kubernetes 1.33+
 - Helm 3.5+
-- A compatible StorageClass or pre-provisioned PVs for PVC-backed storage (optional)
+- A compatible StorageClass or existing persistent volumes for [PVC storage](#storage-modes) (optional)
 - Scalr Agent >= 0.45.0
 
 ## Installation
@@ -43,32 +43,32 @@ $ helm repo add scalr-charts https://scalr.github.io/agent-helm/
 $ helm install scalr-agent scalr-charts/agent-local --set agent.token="<agent-token>"
 ```
 
-_See [configuration](#configuration) below._
-
-_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+See [Configuration](#configuration) for chart settings and [helm install](https://helm.sh/docs/helm/helm_install/) for command options.
 
 ## Overview
 
-The agent-local chart deploys the Scalr Agent as a Deployment by default, with `emptyDir` storage
-for workspace data and caching. You can select a StatefulSet and configure shared PVCs,
-generic ephemeral PVCs, or persistent PVCs per StatefulSet replica.
+The agent-local chart runs Scalr agents in a Deployment by default. Each pod uses `emptyDir`
+storage for temporary run data and its cache. You can also use a [StatefulSet](#workload-selection)
+and choose a [storage mode](#storage-modes) for each volume.
 
-The chart uses the `local` Scalr Agent driver, where all operations are executed in local subprocesses.
-As a result, it uses the `scalr/agent` image as the base environment for runs instead of [scalr/runner](https://docs.scalr.io/docs/run-environment#runner-image) image.
+The chart uses the `local` driver, which runs all tasks inside the agent container.
+It uses the `scalr/agent` image instead of the [scalr/runner](https://docs.scalr.io/docs/run-environment#runner-image) image.
 
-The concurrency of each agent instance is limited to 1. To scale concurrency, the recommended approach is to increase the `replicaCount`.
+Each agent handles one task at a time. Increase `replicaCount` to run more tasks at once.
 
 ### Pros
 
-- Simple to deploy.
-- Scalr Agent service doesn’t require permissions to access the Kubernetes API.
-- Includes Provider Cache and Binary Cache by default.
+The chart is simple to deploy. Agents do not need access to the Kubernetes API.
+Provider and binary caching are enabled by default.
 
 ### Cons
 
-- Doesn’t support autoscaling out of the box. You need manually increase or decrease the number of replicas or configure Horizontal Pod Autoscaler.
-- Not cost-efficient for bursty workloads — e.g., deployments with high number of Runs during short periods and low activity otherwise, as resources remain allocated even when idle.
-- Low multi-tenant isolation. A sequence of Scalr Runs shares the same container and data storage. See [Multi-tenant Isolation](#multi-tenant-isolation)
+The chart does not configure autoscaling. Change `replicaCount` manually or configure a
+Horizontal Pod Autoscaler. Pods keep their resources while idle, which can increase costs
+during quiet periods.
+
+Runs share the same container and storage. See [Multi-tenant Isolation](#multi-tenant-isolation)
+before using one agent pool across teams.
 
 ## Architecture Diagram
 
@@ -82,24 +82,22 @@ This chart deploys the [Scalr Agent](https://docs.scalr.io/docs/agent-pools) usi
 
 Each new agent release triggers a new chart release with an updated `appVersion`. By default the chart deploys the matching agent image: `image.tag` is empty and falls back to `.Chart.AppVersion`. Upgrade the agent by upgrading the chart to a release that ships the agent version you want.
 
-The two changelogs cover different scopes:
-
-- [Scalr Agent changelog](https://docs.scalr.io/docs/changelog) — application-level changes and new Scalr platform functionality
-- [CHANGELOG.md](CHANGELOG.md) — chart-level changes: Kubernetes resources, values, and defaults
+The [Scalr Agent changelog](https://docs.scalr.io/docs/changelog) covers agent and platform changes.
+The chart's [CHANGELOG.md](CHANGELOG.md) covers Kubernetes resources, values, and defaults.
 
 > [!WARNING]
 > Setting `image.tag` to an agent version other than the chart's `appVersion` is not recommended. Each chart release is tested and coordinated with a specific agent version, and mismatched combinations may include breaking changes between the application and the chart's Kubernetes resources.
 
 ## Custom Certificate Authorities
 
-If your environment uses custom or self-signed certificates, you can configure the CA bundle used by the agent for TLS validation. This configuration sets the **primary CA bundle** for all agent HTTPS connections (to Scalr API, VCS providers, provider registries, etc.).
+If your environment uses custom or self-signed certificates, configure a CA bundle for the agent.
+The agent uses this bundle for all HTTPS connections, including the Scalr API, VCS providers,
+and provider registries.
 
 > [!IMPORTANT]
 > This replaces the system default CA certificates. If you need to trust both custom CAs and public CAs, include the complete certificate chain with both your custom certificates and standard root CAs in the bundle.
 
-You can provide the CA bundle in two ways:
-
-**Option 1: Inline CA bundle**
+Provide the CA bundle inline:
 
 ```yaml
 agent:
@@ -113,7 +111,7 @@ agent:
       -----END CERTIFICATE-----
 ```
 
-**Option 2: Reference existing secret**
+Or reference an existing secret:
 
 ```yaml
 agent:
@@ -152,11 +150,8 @@ openssl req -new -key scalr-agent.key -out scalr-agent.csr -subj "/CN=agent-pool
 
 Then submit the CSR via the Agent Pool UI when registering a new agent, or via the **Certificates** tab on the Agent Pool page. Scalr signs the CSR and returns a certificate. The private key never leaves the operator host.
 
-Once you have both the private key and the signed certificate, configure the chart using one of the following options:
-
-**Option 1: Reference existing secret**
-
-Works with both `kubernetes.io/tls` and `Opaque` secret types. A `kubernetes.io/tls` secret uses `tls.crt` and `tls.key` keys by default:
+Once you have the private key and signed certificate, store them in a `kubernetes.io/tls`
+or `Opaque` secret. A `kubernetes.io/tls` secret uses `tls.crt` and `tls.key` keys by default:
 
 ```yaml
 agent:
@@ -185,7 +180,7 @@ agent:
       keyKey: "client.key"
 ```
 
-**Option 2: Inline PEM values from files**
+You can also pass the PEM files directly to Helm:
 
 ```shell
 helm upgrade --install scalr-agent scalr-agent/agent-local \
@@ -218,8 +213,9 @@ By default the chart uses the [`scalr/agent`](https://hub.docker.com/r/scalr/age
 
 If your workflows require additional software, you can build your own image on top of `scalr/agent` with the extra tools pre-installed. Follow the contract from the [Scalr Build Custom Agent Image guide](https://docs.scalr.io/docs/run-environment#build-custom-agent-image):
 
-- Base the image on `scalr/agent` and **do not** modify the existing `ENTRYPOINT` / `CMD` — the image must keep running the agent service.
-- Only **additive** changes are supported: installing extra software, files, executables, configs, certificate bundles, or environment variables. Deeper modifications (changing module paths, replacing the entrypoint, etc.) are not supported across agent updates.
+Base the image on `scalr/agent` and keep its `ENTRYPOINT` and `CMD` so it still runs the agent
+service. You can add tools, files, configuration, certificates, and environment variables.
+Changing existing module paths or replacing the entrypoint is not supported across agent updates.
 
 Example:
 
@@ -242,35 +238,41 @@ image:
 
 ## Volumes
 
-Each agent has two writable volumes:
-
-- **Data:** temporary run files, mounted at `agent.dataDir`. Defaults to a 4Gi `emptyDir`.
-- **Cache:** binaries, providers, and modules, mounted at `agent.cacheDir`. Defaults to a 20Gi `emptyDir`.
+Each agent has two writable volumes. The data volume holds temporary run files at
+`agent.dataDir` and defaults to a 4Gi `emptyDir`. The cache volume holds binaries, providers,
+and modules at `agent.cacheDir` and defaults to a 20Gi `emptyDir`.
 
 ### Storage modes
 
-Set `persistence.data.mode` and `persistence.cache.mode` independently:
+Choose a storage mode for each volume with `persistence.data.mode` and `persistence.cache.mode`.
+A PersistentVolumeClaim (PVC) requests storage from Kubernetes.
 
-| Mode | Workload | Storage lifetime |
-|------|----------|------------------|
+| Mode | Workload | Storage |
+|------|----------|---------|
 | `emptyDir` | Either | Node storage, lost when the pod is deleted. |
 | `persistentVolumeClaim` | Either | One shared PVC per volume, created by Helm or supplied through `claimName`. |
-| `ephemeral` | Either | One PVC per pod, deleted with the pod. |
-| `volumeClaimTemplate` | StatefulSet | One PVC per replica, reused after pod replacement. |
+| `ephemeral` | Either | One [PVC per pod](#generic-ephemeral-pvcs), deleted with the pod. |
+| `volumeClaimTemplate` | [StatefulSet](#workload-selection) | One PVC per replica, reused after pod replacement. |
 
-All modes survive container restarts. An empty `mode` keeps the existing `enabled` behavior:
-`false` selects `emptyDir`, and `true` selects a shared PVC. An explicit mode overrides `enabled`.
-Set `emptyDir.sizeLimit` to `null` or `""` for unlimited storage.
+All modes keep data across container restarts. If `mode` is empty, `enabled: false` selects
+`emptyDir` and `enabled: true` selects a shared PVC. Setting `mode` overrides `enabled`.
+Set `emptyDir.sizeLimit` to `null` or `""` to remove the volume's size limit.
 
-PVC modes use the corresponding `persistentVolumeClaim` settings. `storage` is the size of
-**each claim**. An empty `storageClassName` uses the cluster default. `"-"` requires a
-pre-provisioned volume. For dynamic provisioning, prefer `WaitForFirstConsumer`.
-`claimName` selects an existing claim only in shared PVC mode.
+Configure PVCs under `persistence.data.persistentVolumeClaim` or
+`persistence.cache.persistentVolumeClaim`. The `storage` value sets the size of each claim.
+An empty `storageClassName` uses the cluster's default StorageClass. Set it to `"-"` to use
+a volume created in advance. For dynamically created volumes, prefer a StorageClass with
+`volumeBindingMode: WaitForFirstConsumer`.
 
-Both volumes need writable storage. A shared `ReadWriteOnce` claim requires pods on one node.
-Use per-pod claims or `ReadWriteMany` across nodes. A shared `ReadWriteOncePod` claim needs
-`replicaCount: 1` and, for Deployment, `strategy.type: Recreate` to let the old pod release it.
-Check the actual access mode when using an existing claim.
+Use `claimName` to select an existing claim in `persistentVolumeClaim` mode, as shown in the
+[shared cache example](#cache-volume-persistence). Other modes ignore `claimName`.
+
+A shared `ReadWriteOnce` claim requires all pods using it to run on the same node. Across
+nodes, use a separate claim for each pod or a shared `ReadWriteMany` claim.
+
+A shared `ReadWriteOncePod` claim needs `replicaCount: 1`. For a Deployment, set
+`strategy.type: Recreate` so the old pod releases the claim before its replacement starts.
+When using an existing claim, check its actual access mode.
 
 ### Cache volume persistence
 
@@ -293,8 +295,10 @@ Use `persistence.cache.*` instead.
 
 ### Data volume persistence
 
-Keep the default `emptyDir` for temporary run data. Use `persistence.data.mode: ephemeral`
-for a dedicated disk, or `volumeClaimTemplate` to retain data across StatefulSet pod replacements.
+Keep the default `emptyDir` for temporary run data. Set `persistence.data.mode: ephemeral`
+to give each pod a separate PVC, as in the [ephemeral cache example](#generic-ephemeral-pvcs).
+Use `volumeClaimTemplate` with a [StatefulSet](#workload-selection) to keep run data when a pod
+is replaced.
 
 ### Generic ephemeral PVCs
 
@@ -308,16 +312,18 @@ persistence:
 ```
 
 Replacement pods get a fresh cache. Kubernetes deletes each PVC with its pod.
-The StorageClass reclaim policy controls backing-volume cleanup. A `Retain` policy requires
-manual cleanup. See [generic ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes).
+The StorageClass reclaim policy controls whether Kubernetes also deletes the storage behind
+the claim. A `Retain` policy requires manual cleanup. See [generic ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes).
 
-StatefulSet replacement pods reuse PVC names and may wait for the previous pod's ephemeral PVCs
-to be garbage-collected. Use `volumeClaimTemplate` to reuse each replica's existing storage.
+With a [StatefulSet](#workload-selection), a replacement pod uses the same PVC name and may
+wait for Kubernetes to delete the old ephemeral PVC. Use `volumeClaimTemplate` to keep each
+replica's storage instead.
 
 ## Workload selection
 
 `workload.kind` defaults to `Deployment`, including upgrades using `--reuse-values`.
-Use `StatefulSet` with `volumeClaimTemplate` to retain each replica's cache across pod replacements:
+Use `StatefulSet` with the `volumeClaimTemplate` [storage mode](#storage-modes) to keep each
+replica's cache when its pod is replaced:
 
 ```yaml
 replicaCount: 3
@@ -328,47 +334,51 @@ persistence:
     mode: volumeClaimTemplate
 ```
 
-This creates three 20Gi cache PVCs named `cache-dir-<statefulset-name>-<ordinal>`.
-The StatefulSet name is limited to 52 characters. Names that need normalization or shortening
-include a hash of the full name to avoid collisions.
-Agent names follow `<statefulset-name>-<ordinal>`. Use distinct release names or
-`fullnameOverride` values within each Scalr agent pool, including across namespaces and clusters.
+This creates three 20Gi cache PVCs named `cache-dir-<statefulset-name>-<number>`, starting at 0.
+Agent names follow `<statefulset-name>-<number>`. Give each release in a Scalr agent pool a
+unique name or `fullnameOverride`, even across namespaces and clusters.
+
+The chart limits StatefulSet names to 52 characters. If a name needs shortening or contains
+characters that must be replaced, the chart adds a hash of the full name to keep names distinct.
 
 Deployment uses `strategy`. StatefulSet uses `workload.statefulSet.updateStrategy`.
-Its default `Parallel` policy scales agents together, while rolling updates replace one pod
-at a time. Set `podManagementPolicy` before installation because it is immutable.
-Claim templates are also immutable, including their size, storage class, and annotations.
-Switching a volume to or from `volumeClaimTemplate` requires recreating the StatefulSet.
-Use a separate release for storage-mode changes, then drain the old agents.
+The default `workload.statefulSet.podManagementPolicy: Parallel` lets pods start or stop
+together when scaling. Rolling updates replace one pod at a time.
 
-StatefulSet PVCs are retained after scale-down and uninstall by default. Configure
-`workload.statefulSet.persistentVolumeClaimRetentionPolicy` to change this behavior.
-Retained PVCs need manual cleanup. See [StatefulSet retention](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention).
+Choose the pod management policy and claim templates before installation. Kubernetes does
+not let you change them on an existing StatefulSet. This includes claim size, storage class,
+and annotations. Switching to or from `volumeClaimTemplate` also requires a new StatefulSet.
+For these changes, install a separate release, then let the old agents finish their runs.
+See [Migrate to StatefulSet](#migrate-to-statefulset) for the migration steps.
+
+By default, StatefulSet PVCs remain after you reduce the replica count or uninstall the chart.
+Change this with `workload.statefulSet.persistentVolumeClaimRetentionPolicy`. Delete any retained
+PVCs manually when you no longer need them. See [StatefulSet retention](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention).
 
 ## Migrate to StatefulSet
 
 Changing `workload.kind` from `Deployment` to `StatefulSet` replaces the controller and its
-pods. Plan for a capacity interruption.
+pods. Agents will be unavailable during the switch. Choose your [StatefulSet settings](#workload-selection)
+and [storage modes](#storage-modes) before starting.
 
-1. Stop assigning work to the old agents, wait for active runs to finish, and scale to zero.
-2. Upgrade with `workload.kind: StatefulSet`, your storage modes, and replica count. Per-pod claims
-   start empty.
-3. Verify agent connections and mounted claims before resuming work.
+1. Stop assigning work to the old agents, wait for active runs to finish, and set `replicaCount: 0`.
+2. Upgrade with `workload.kind: StatefulSet`, your storage modes, and the desired replica count.
+   New PVCs start empty.
+3. Check that agents connect to Scalr and mount the expected claims before resuming work.
 
-For a gradual migration, install a separate release with distinct names and verify it before
-draining the old agents.
+For a gradual migration, install a separate release with unique names. Check that the new
+agents work, then let the old agents finish their runs before removing them.
 
 ## Security
 
 ### Multi-tenant Isolation
 
-This chart deploys a set of static agent workers that process runs sequentially within the same container, which provides a simple and easy-to-maintain architecture but has important security implications for multi-tenant environments:
+Agents process runs one at a time in the same container. Runs can share files left by earlier
+runs, and they share the agent's filesystem. A run can change cached providers or modules
+that later runs use without verification.
 
-- **Container reuse**: Multiple runs may execute in the same container without cleanup between executions.
-- **Shared filesystem**: The agent process and Scalr Run commands (OpenTofu/Terraform) execute in the same container without filesystem isolation, allowing runs to write to shared cache storage that will be reused by subsequent runs.
-- **Cache tampering risk**: Runs can potentially modify cached providers or modules directly without verification.
-
-This chart is suitable when deploying separate agent deployments (agent pools) for each RBAC perimeter (e.g., Scalr Environment). For example, you can ensure each team in your organization works on individual agent pools without having access to each other's resources.
+Use separate agent pools for groups with different access permissions, such as teams or
+Scalr Environments. Give each pool access only to the resources its group needs.
 
 If you want to manage a single agent deployment across different teams within your organization, consider using the [`agent-job`](../agent-job) chart.
 
@@ -506,8 +516,8 @@ The `terminationGracePeriodSeconds` must be at least 10 seconds for `force` mode
 ### Pod Eviction
 
 Set `podAnnotations` to configure eviction protection for your autoscaler.
-The chart's default eviction annotations apply to the workload controller and leave pod
-eviction behavior unchanged.
+The chart puts its default eviction annotations on the Deployment or StatefulSet itself.
+These annotations do not protect its pods from eviction.
 
 Monitor node resource pressure and eviction events to ensure stable operation.
 
@@ -667,7 +677,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | persistence.cache.emptyDir | object | <pre>{<br>&nbsp;&nbsp;"sizeLimit":&nbsp;"20Gi"<br>}</pre> | EmptyDir volume configuration. |
 | persistence.cache.emptyDir.sizeLimit | string | `"20Gi"` | Size limit for the emptyDir volume. Set to null or "" to leave it unlimited. |
 | persistence.cache.enabled | bool | `false` | Enable persistent storage for the cache directory. When false, uses emptyDir (survives container restarts, lost when the pod is replaced). When true, uses a shared PVC. Only used when mode is empty. |
-| persistence.cache.mode | string | `""` | Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod), or volumeClaimTemplate (a persistent PVC per StatefulSet replica). When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true). An explicit mode takes precedence over enabled. Legacy top-level settings retain precedence for claim options until removed. |
+| persistence.cache.mode | string | `""` | Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod), or volumeClaimTemplate (a persistent PVC per StatefulSet replica). When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true). An explicit mode takes precedence over enabled. Legacy top-level settings retain precedence for claim options until removed. See [Storage modes](#storage-modes) for examples. |
 | persistence.cache.persistentVolumeClaim | object | <pre>{<br>&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteOnce",<br>&nbsp;&nbsp;"annotations":&nbsp;{},<br>&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;"storage":&nbsp;"20Gi",<br>&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;"subPath":&nbsp;""<br>}</pre> | Claim settings for shared, generic ephemeral, and StatefulSet per-replica PVCs. |
 | persistence.cache.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for per-pod/per-replica claims or a shared claim on one node. Use "ReadWriteMany" to share the cache across multiple agent pods (requires a compatible storage class). |
 | persistence.cache.persistentVolumeClaim.annotations | object | <pre>{}</pre> | Annotations on chart-created PVCs or claim templates. helm.sh/resource-policy applies only to shared chart-managed PVCs. |
@@ -679,7 +689,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | persistence.data.emptyDir | object | <pre>{<br>&nbsp;&nbsp;"sizeLimit":&nbsp;"4Gi"<br>}</pre> | EmptyDir volume configuration. |
 | persistence.data.emptyDir.sizeLimit | string | `"4Gi"` | Size limit for the emptyDir volume. Set to null or "" to leave it unlimited. |
 | persistence.data.enabled | bool | `false` | Enable persistent storage for the data directory. When false, uses emptyDir (ephemeral, recommended for most use cases as each pod gets fresh workspace). When true, uses a shared PVC. Only used when mode is empty. |
-| persistence.data.mode | string | `""` | Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod), or volumeClaimTemplate (a persistent PVC per StatefulSet replica). When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true). An explicit mode takes precedence over enabled. All PVC modes use persistentVolumeClaim settings. |
+| persistence.data.mode | string | `""` | Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod), or volumeClaimTemplate (a persistent PVC per StatefulSet replica). When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true). An explicit mode takes precedence over enabled. All PVC modes use persistentVolumeClaim settings. See [Storage modes](#storage-modes) for examples. |
 | persistence.data.persistentVolumeClaim | object | <pre>{<br>&nbsp;&nbsp;"accessMode":&nbsp;"ReadWriteOnce",<br>&nbsp;&nbsp;"annotations":&nbsp;{},<br>&nbsp;&nbsp;"claimName":&nbsp;"",<br>&nbsp;&nbsp;"storage":&nbsp;"4Gi",<br>&nbsp;&nbsp;"storageClassName":&nbsp;"",<br>&nbsp;&nbsp;"subPath":&nbsp;""<br>}</pre> | Claim settings for shared, generic ephemeral, and StatefulSet per-replica PVCs. |
 | persistence.data.persistentVolumeClaim.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. Use "ReadWriteOnce" for per-pod/per-replica claims or a shared claim on one node. Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS). |
 | persistence.data.persistentVolumeClaim.annotations | object | <pre>{}</pre> | Annotations on chart-created PVCs or claim templates. helm.sh/resource-policy applies only to shared chart-managed PVCs. |
@@ -717,13 +727,13 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | terminationGracePeriodSeconds | int | `120` | Termination grace period (in seconds) for pod shutdown. <br>Exports [`SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT`](https://docs.scalr.io/docs/configuration#scalr_agent_worker_grace_shutdown_timeout). |
-| workload.kind | string | `"Deployment"` | Workload controller. Supported values: Deployment, StatefulSet. Changing the kind replaces the controller and its pods. See the migration guide. |
-| workload.statefulSet.persistentVolumeClaimRetentionPolicy | object | <pre>{<br>&nbsp;&nbsp;"whenDeleted":&nbsp;"Retain",<br>&nbsp;&nbsp;"whenScaled":&nbsp;"Retain"<br>}</pre> | Retention of StatefulSet volumeClaimTemplate PVCs. |
+| workload.kind | string | `"Deployment"` | Workload controller: Deployment or StatefulSet. See [Workload selection](#workload-selection). Changing the kind replaces the controller and its pods. See [Migrate to StatefulSet](#migrate-to-statefulset). |
+| workload.statefulSet.persistentVolumeClaimRetentionPolicy | object | <pre>{<br>&nbsp;&nbsp;"whenDeleted":&nbsp;"Retain",<br>&nbsp;&nbsp;"whenScaled":&nbsp;"Retain"<br>}</pre> | Whether to keep StatefulSet volumeClaimTemplate PVCs. See [Workload selection](#workload-selection). |
 | workload.statefulSet.persistentVolumeClaimRetentionPolicy.whenDeleted | string | `"Retain"` | Retain or Delete per-replica PVCs when the StatefulSet is deleted. |
 | workload.statefulSet.persistentVolumeClaimRetentionPolicy.whenScaled | string | `"Retain"` | Retain or Delete per-replica PVCs when replicas are scaled down. |
 | workload.statefulSet.podManagementPolicy | string | `"Parallel"` | StatefulSet scaling policy: Parallel or OrderedReady. Agents can scale independently. Choose before installation. Changing this value requires recreating the StatefulSet. |
 | workload.statefulSet.updateStrategy | object | <pre>{<br>&nbsp;&nbsp;"rollingUpdate":&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"partition":&nbsp;0<br>&nbsp;&nbsp;},<br>&nbsp;&nbsp;"type":&nbsp;"RollingUpdate"<br>}</pre> | StatefulSet update strategy. Deployment uses the top-level strategy instead. |
-| workload.statefulSet.updateStrategy.rollingUpdate.partition | int | `0` | Lowest pod ordinal to update during a StatefulSet rolling update. |
+| workload.statefulSet.updateStrategy.rollingUpdate.partition | int | `0` | Lowest pod number to update during a StatefulSet rolling update. |
 | workload.statefulSet.updateStrategy.type | string | `"RollingUpdate"` | StatefulSet update type: RollingUpdate or OnDelete. |
 
 ### Other Values
@@ -740,7 +750,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 
 ---
 
-**Homepage:** <https://github.com/Scalr/agent-helm/tree/master/charts/agent-local>
+Homepage: <https://github.com/Scalr/agent-helm/tree/master/charts/agent-local>
 
 ## Maintainers
 

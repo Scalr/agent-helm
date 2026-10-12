@@ -7,8 +7,8 @@ replicaCount: 1
 
 # Workload controller configuration.
 workload:
-  # -- Workload controller. Supported values: Deployment, StatefulSet.
-  # Changing the kind replaces the controller and its pods. See the migration guide.
+  # -- Workload controller: Deployment or StatefulSet. See [Workload selection](#workload-selection).
+  # Changing the kind replaces the controller and its pods. See [Migrate to StatefulSet](#migrate-to-statefulset).
   # @section -- Deployment & Scaling
   kind: Deployment
   statefulSet:
@@ -23,10 +23,10 @@ workload:
       # @section -- Deployment & Scaling
       type: RollingUpdate
       rollingUpdate:
-        # -- Lowest pod ordinal to update during a StatefulSet rolling update.
+        # -- Lowest pod number to update during a StatefulSet rolling update.
         # @section -- Deployment & Scaling
         partition: 0
-    # -- Retention of StatefulSet volumeClaimTemplate PVCs.
+    # -- Whether to keep StatefulSet volumeClaimTemplate PVCs. See [Workload selection](#workload-selection).
     # @section -- Deployment & Scaling
     persistentVolumeClaimRetentionPolicy:
       # -- Retain or Delete per-replica PVCs when the StatefulSet is deleted.
@@ -332,6 +332,7 @@ persistence:
     # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
     # When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true).
     # An explicit mode takes precedence over enabled. All PVC modes use persistentVolumeClaim settings.
+    # See [Storage modes](#storage-modes) for examples.
     # @section -- Persistence
     mode: ""
     # -- Enable persistent storage for the data directory.
@@ -381,6 +382,7 @@ persistence:
     # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
     # When empty, enabled selects emptyDir (false) or persistentVolumeClaim (true).
     # An explicit mode takes precedence over enabled. Legacy top-level settings retain precedence for claim options until removed.
+    # See [Storage modes](#storage-modes) for examples.
     # @section -- Persistence
     mode: ""
     # -- Enable persistent storage for the cache directory.
