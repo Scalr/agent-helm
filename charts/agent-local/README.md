@@ -601,6 +601,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | extraVolumeMounts | list | <pre>[]</pre> | Additional volume mounts for the Scalr Agent container. Must reference volumes declared in `extraVolumes` (or other pod-level volumes). |
 | extraVolumes | list | <pre>[]</pre> | Additional volumes mounted into the Scalr Agent pod. Use to mount extra secrets, configMaps, or other volumes alongside the chart-managed ones. |
 | podAnnotations | object | <pre>{}</pre> | Annotations for Scalr Agent pods (e.g., for monitoring or logging). |
+| podLabels | object | <pre>{}</pre> | Labels for Scalr Agent pods. Selector labels take precedence over duplicate keys. |
 
 ### Image
 
