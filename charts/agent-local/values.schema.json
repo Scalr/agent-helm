@@ -52,63 +52,10 @@
                 "mode": {
                     "enum": [
                         "",
-                        "emptyDir",
                         "persistentVolumeClaim",
                         "ephemeral",
                         "volumeClaimTemplate"
                     ]
-                }
-            }
-        }
-    },
-    "if": {
-        "required": [
-            "workload"
-        ],
-        "properties": {
-            "workload": {
-                "required": [
-                    "kind"
-                ],
-                "properties": {
-                    "kind": {
-                        "const": "StatefulSet"
-                    }
-                }
-            }
-        }
-    },
-    "else": {
-        "description": "volumeClaimTemplate requires workload.kind=StatefulSet. An omitted kind defaults to Deployment.",
-        "properties": {
-            "persistence": {
-                "properties": {
-                    "data": {
-                        "not": {
-                            "required": ["enabled", "mode"],
-                            "properties": {
-                                "enabled": {
-                                    "not": {"enum": [false, null]}
-                                },
-                                "mode": {
-                                    "const": "volumeClaimTemplate"
-                                }
-                            }
-                        }
-                    },
-                    "cache": {
-                        "not": {
-                            "required": ["enabled", "mode"],
-                            "properties": {
-                                "enabled": {
-                                    "not": {"enum": [false, null]}
-                                },
-                                "mode": {
-                                    "const": "volumeClaimTemplate"
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }

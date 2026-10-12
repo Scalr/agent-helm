@@ -8,12 +8,10 @@ set:
   agent.token: dummy
   replicaCount: 3
 tests:
-  - it: uses emptyDir when shared data and ephemeral cache persistence are disabled
+  - it: uses emptyDir when persistence is disabled
     set: &disabled_persistence
       persistence.data.enabled: false
       persistence.cache.enabled: false
-      persistence.data.mode: persistentVolumeClaim
-      persistence.cache.mode: ephemeral
       persistence.data.persistentVolumeClaim.subPath: data
       persistence.cache.persistentVolumeClaim.subPath: cache
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
@@ -45,30 +43,121 @@ tests:
           count: 0
         template: pvc.yaml
 
-  - it: uses emptyDir when ephemeral data and shared cache persistence are disabled
-    set:
-      <<: *disabled_persistence
-      persistence.data.mode: ephemeral
-      persistence.cache.mode: persistentVolumeClaim
-    asserts: *disabled_claims
-
   - it: omits StatefulSet claim templates when persistence is disabled
     set:
       <<: *disabled_persistence
       workload.kind: StatefulSet
-      persistence.data.mode: volumeClaimTemplate
-      persistence.cache.mode: volumeClaimTemplate
     asserts: *disabled_claims
 
-  - it: ignores disabled claim template modes on a Deployment
+  - it: allows shared RWO and RWOP claims with one replica
+    set: &single_replica_claims
+      replicaCount: 1
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    template: pvc.yaml
+    asserts: &shared_claims
+      - hasDocuments:
+          count: 2
+
+  - it: allows shared RWO and RWOP claims when scaled to zero
     set:
-      <<: *disabled_persistence
+      <<: *single_replica_claims
+      replicaCount: 0
+    template: pvc.yaml
+    asserts: *shared_claims
+
+  - it: allows multiple replicas with separate ephemeral RWO claims
+    set:
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: ephemeral
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "data-dir")].ephemeral.volumeClaimTemplate.spec.accessModes
+          value: [ReadWriteOnce]
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")].ephemeral.volumeClaimTemplate.spec.accessModes
+          value: [ReadWriteOnce]
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: allows multiple StatefulSet replicas with separate persistent RWO claims
+    set:
+      workload.kind: StatefulSet
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
       persistence.data.mode: volumeClaimTemplate
       persistence.cache.mode: volumeClaimTemplate
-    asserts: *disabled_claims
+    asserts: &replica_claims
+      - lengthEqual:
+          path: spec.volumeClaimTemplates
+          count: 2
+        template: workload.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[?(@.metadata.name == "data-dir")].spec.accessModes
+          value: [ReadWriteOnce]
+        template: workload.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[?(@.metadata.name == "cache-dir")].spec.accessModes
+          value: [ReadWriteOnce]
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: defaults enabled StatefulSet volumes to a persistent RWO claim per replica
+    set:
+      workload.kind: StatefulSet
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+    asserts: *replica_claims
+
+  - it: defaults null StatefulSet modes to a persistent RWO claim per replica
+    set:
+      workload.kind: StatefulSet
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+      persistence.data.mode: null
+      persistence.cache.mode: null
+    asserts: *replica_claims
+
+  - it: defaults StatefulSet cache persistence without enabling data persistence
+    set:
+      workload.kind: StatefulSet
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.subPath: providers
+    asserts:
+      - lengthEqual:
+          path: spec.volumeClaimTemplates
+          count: 1
+        template: workload.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: cache-dir
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              emptyDir:
+                sizeLimit: 4Gi
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == "cache-dir")].subPath
+          value: providers
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
 
   - it: preserves shared claim annotations and allows disabling dynamic provisioning
     set:
+      replicaCount: 1
       persistence.cache.enabled: true
       persistence.cache.mode: persistentVolumeClaim
       persistence.cache.persistentVolumeClaim.storageClassName: "-"
@@ -154,12 +243,11 @@ tests:
           count: 0
         template: pvc.yaml
 
-  - it: ignores existing claim names and subpaths in emptyDir mode
+  - it: ignores existing claim names and subpaths when persistence is disabled
     template: workload.yaml
     set:
       persistence.data.persistentVolumeClaim: null
-      persistence.cache.enabled: true
-      persistence.cache.mode: emptyDir
+      persistence.cache.enabled: false
       persistence.cache.persistentVolumeClaim: *custom_claim
     asserts:
       - equal:

@@ -4,6 +4,34 @@ Release name: {{ .Release.Name }}
 Namespace:    {{ .Release.Namespace }}
 Chart:        {{ .Chart.Name }}-{{ .Chart.Version }} (appVersion {{ .Chart.AppVersion }})
 
+{{- if and
+  (gt (.Values.replicaCount | int) 1)
+  .Values.persistence.data.enabled
+  (eq (.Values.persistence.data.mode | default (ternary "volumeClaimTemplate" "persistentVolumeClaim" (eq (.Values.workload).kind "StatefulSet"))) "persistentVolumeClaim")
+  (not .Values.persistence.data.persistentVolumeClaim.claimName)
+  (eq .Values.persistence.data.persistentVolumeClaim.accessMode "ReadWriteOnce")
+}}
+
+WARNING: persistence.data uses one ReadWriteOnce PVC for multiple replicas.
+  Keep all replicas on the same node to avoid volume attachment failures.
+  For separate PVCs, use persistence.data.mode=ephemeral (deleted with each pod),
+  or workload.kind=StatefulSet with persistence.data.mode=volumeClaimTemplate.
+{{- end }}
+
+{{- if and
+  (gt (.Values.replicaCount | int) 1)
+  .Values.persistence.cache.enabled
+  (eq (.Values.persistence.cache.mode | default (ternary "volumeClaimTemplate" "persistentVolumeClaim" (eq (.Values.workload).kind "StatefulSet"))) "persistentVolumeClaim")
+  (not .Values.persistence.cache.persistentVolumeClaim.claimName)
+  (eq .Values.persistence.cache.persistentVolumeClaim.accessMode "ReadWriteOnce")
+}}
+
+WARNING: persistence.cache uses one ReadWriteOnce PVC for multiple replicas.
+  Keep all replicas on the same node to avoid volume attachment failures.
+  For separate PVCs, use persistence.cache.mode=ephemeral (deleted with each pod),
+  or workload.kind=StatefulSet with persistence.cache.mode=volumeClaimTemplate.
+{{- end }}
+
 {{- if .Release.IsUpgrade }}
 {{- $existing := or
   (lookup "apps/v1" "Deployment" .Release.Namespace (include "agent-local.fullname" .))

@@ -9,7 +9,7 @@ set:
   agent.token: dummy
 tests:
   - it: reuses old defaults with unused legacy cache settings
-    set:
+    set: &old_defaults
       workload: null
       persistence.data.mode: null
       persistence.cache.mode: null
@@ -52,13 +52,51 @@ tests:
       persistence.enabled: false
     asserts: *default_workload
 
+  - it: upgrades reused shared RWO data and cache settings with two replicas
+    set:
+      <<: *old_defaults
+      replicaCount: 2
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+    asserts:
+      - isKind:
+          of: Deployment
+        template: workload.yaml
+      - equal:
+          path: spec.replicas
+          value: 2
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              persistentVolumeClaim:
+                claimName: storage-test-agent-local-data
+            - name: cache-dir
+              persistentVolumeClaim:
+                claimName: storage-test-agent-local-cache
+        template: workload.yaml
+      - hasDocuments:
+          count: 2
+        template: pvc.yaml
+      - equal:
+          path: spec.accessModes
+          value: [ReadWriteOnce]
+        template: pvc.yaml
+        documentIndex: 0
+      - equal:
+          path: spec.accessModes
+          value: [ReadWriteOnce]
+        template: pvc.yaml
+        documentIndex: 1
+
   - it: supplies StatefulSet defaults when reused values only set the kind
     template: workload.yaml
     set:
       workload.kind: StatefulSet
       workload.statefulSet: null
       persistence.cache.enabled: true
-      persistence.cache.mode: volumeClaimTemplate
+      persistence.cache.mode: null
     asserts:
       - isSubset:
           path: spec
@@ -140,6 +178,8 @@ tests:
     set:
       <<: *existing_claims
       workload.kind: StatefulSet
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: persistentVolumeClaim
     asserts: *existing_mounts
 
   - it: ignores provisioning access modes when mounting existing claims
@@ -150,13 +190,11 @@ tests:
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts: *existing_mounts
 
-  - it: keeps explicit storage modes disabled when enabled flags are null
+  - it: ignores existing claims when persistence flags are null and mode is unset
     set:
       <<: *existing_claims
       persistence.data.enabled: null
       persistence.cache.enabled: null
-      persistence.data.mode: persistentVolumeClaim
-      persistence.cache.mode: persistentVolumeClaim
     template: workload.yaml
     asserts: *disabled_volumes
 
@@ -199,6 +237,7 @@ tests:
     set:
       replicaCount: "2"
       persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteMany
       persistence.cache.persistentVolumeClaim.storage: 4294967296
     asserts:
       - equal:

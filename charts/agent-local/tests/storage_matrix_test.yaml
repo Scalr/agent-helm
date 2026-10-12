@@ -11,13 +11,15 @@ set:
   replicaCount: 3
   persistence.data.enabled: true
   persistence.cache.enabled: true
+  persistence.data.persistentVolumeClaim.accessMode: ReadWriteMany
+  persistence.cache.persistentVolumeClaim.accessMode: ReadWriteMany
 tests:
   - it: renders Deployment with emptyDir data and emptyDir cache
     template: workload.yaml
     set:
       workload.kind: Deployment
-      persistence.data.mode: emptyDir
-      persistence.cache.mode: emptyDir
+      persistence.data.enabled: false
+      persistence.cache.enabled: false
     asserts:
       - &data_mount
         equal:
@@ -64,7 +66,7 @@ tests:
     template: workload.yaml
     set:
       workload.kind: Deployment
-      persistence.data.mode: emptyDir
+      persistence.data.enabled: false
       persistence.cache.mode: persistentVolumeClaim
     asserts:
       - *data_mount
@@ -82,7 +84,7 @@ tests:
         equal:
           path: spec
           value:
-            accessModes: [ReadWriteOnce]
+            accessModes: [ReadWriteMany]
             resources:
               requests:
                 storage: 20Gi
@@ -101,7 +103,7 @@ tests:
     template: workload.yaml
     set:
       workload.kind: Deployment
-      persistence.data.mode: emptyDir
+      persistence.data.enabled: false
       persistence.cache.mode: ephemeral
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
@@ -130,7 +132,7 @@ tests:
     set:
       workload.kind: Deployment
       persistence.data.mode: persistentVolumeClaim
-      persistence.cache.mode: emptyDir
+      persistence.cache.enabled: false
     asserts:
       - *data_mount
       - *cache_mount
@@ -146,7 +148,7 @@ tests:
         equal:
           path: spec
           value:
-            accessModes: [ReadWriteOnce]
+            accessModes: [ReadWriteMany]
             resources:
               requests:
                 storage: 4Gi
@@ -203,7 +205,7 @@ tests:
     set:
       workload.kind: Deployment
       persistence.data.mode: ephemeral
-      persistence.cache.mode: emptyDir
+      persistence.cache.enabled: false
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
       - *data_mount
@@ -266,8 +268,8 @@ tests:
     template: workload.yaml
     set:
       workload.kind: StatefulSet
-      persistence.data.mode: emptyDir
-      persistence.cache.mode: emptyDir
+      persistence.data.enabled: false
+      persistence.cache.enabled: false
     asserts:
       - *data_mount
       - *cache_mount
@@ -284,7 +286,7 @@ tests:
     template: workload.yaml
     set:
       workload.kind: StatefulSet
-      persistence.data.mode: emptyDir
+      persistence.data.enabled: false
       persistence.cache.mode: persistentVolumeClaim
     asserts:
       - *data_mount
@@ -301,7 +303,7 @@ tests:
     template: workload.yaml
     set:
       workload.kind: StatefulSet
-      persistence.data.mode: emptyDir
+      persistence.data.enabled: false
       persistence.cache.mode: ephemeral
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
@@ -318,7 +320,7 @@ tests:
     template: workload.yaml
     set:
       workload.kind: StatefulSet
-      persistence.data.mode: emptyDir
+      persistence.data.enabled: false
       persistence.cache.mode: volumeClaimTemplate
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
@@ -349,7 +351,7 @@ tests:
     set:
       workload.kind: StatefulSet
       persistence.data.mode: persistentVolumeClaim
-      persistence.cache.mode: emptyDir
+      persistence.cache.enabled: false
     asserts:
       - *data_mount
       - *cache_mount
@@ -420,7 +422,7 @@ tests:
     set:
       workload.kind: StatefulSet
       persistence.data.mode: ephemeral
-      persistence.cache.mode: emptyDir
+      persistence.cache.enabled: false
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
       - *data_mount
@@ -491,7 +493,7 @@ tests:
     set:
       workload.kind: StatefulSet
       persistence.data.mode: volumeClaimTemplate
-      persistence.cache.mode: emptyDir
+      persistence.cache.enabled: false
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
       - *data_mount

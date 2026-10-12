@@ -1,0 +1,120 @@
+suite: Shared storage warnings
+templates:
+  - NOTES.txt
+  - pvc.yaml
+set:
+  agent.token: dummy
+  replicaCount: 2
+tests:
+  - it: warns about a shared RWO cache on Deployment
+    set:
+      persistence.cache.enabled: true
+    template: NOTES.txt
+    asserts: &cache_warning
+      - matchRegexRaw:
+          pattern: 'WARNING: persistence.cache uses one ReadWriteOnce PVC for multiple replicas.'
+      - matchRegexRaw:
+          pattern: Keep all replicas on the same node
+      - matchRegexRaw:
+          pattern: persistence.cache.mode=ephemeral
+      - matchRegexRaw:
+          pattern: persistence.cache.mode=volumeClaimTemplate
+
+  - it: warns when upgrading reused cache values without a workload kind or mode
+    release:
+      upgrade: true
+    set:
+      workload: null
+      replicaCount: "2"
+      persistence.cache.enabled: true
+      persistence.cache.mode: null
+    template: NOTES.txt
+    asserts: *cache_warning
+
+  - it: warns about shared RWO data on Deployment
+    set:
+      persistence.data.enabled: true
+    template: NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: 'WARNING: persistence.data uses one ReadWriteOnce PVC for multiple replicas.'
+      - matchRegexRaw:
+          pattern: Keep all replicas on the same node
+      - matchRegexRaw:
+          pattern: persistence.data.mode=ephemeral
+      - matchRegexRaw:
+          pattern: persistence.data.mode=volumeClaimTemplate
+
+  - it: allows explicit shared RWO data and cache on StatefulSet with warnings
+    set:
+      workload.kind: StatefulSet
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: persistentVolumeClaim
+    asserts:
+      - matchRegexRaw:
+          pattern: 'WARNING: persistence.data uses one ReadWriteOnce PVC for multiple replicas.'
+        template: NOTES.txt
+      - matchRegexRaw:
+          pattern: 'WARNING: persistence.cache uses one ReadWriteOnce PVC for multiple replicas.'
+        template: NOTES.txt
+      - hasDocuments:
+          count: 2
+        template: pvc.yaml
+
+  - it: omits shared storage warnings for disabled persistence
+    template: NOTES.txt
+    asserts: &no_warning
+      - notMatchRegexRaw:
+          pattern: 'WARNING: persistence\.'
+
+  - it: omits shared storage warnings for one replica
+    set: &one_replica
+      replicaCount: 1
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+    template: NOTES.txt
+    asserts: *no_warning
+
+  - it: omits shared storage warnings when scaled to zero
+    set:
+      <<: *one_replica
+      replicaCount: 0
+    template: NOTES.txt
+    asserts: *no_warning
+
+  - it: omits shared storage warnings for per-pod ephemeral claims
+    set:
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: ephemeral
+    template: NOTES.txt
+    asserts: *no_warning
+
+  - it: omits shared storage warnings for default StatefulSet claims
+    set:
+      workload.kind: StatefulSet
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+    template: NOTES.txt
+    asserts: *no_warning
+
+  - it: omits shared storage warnings for RWX claims
+    set:
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteMany
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteMany
+    template: NOTES.txt
+    asserts: *no_warning
+
+  - it: ignores provisioning access modes when using existing claims
+    set:
+      persistence.data.enabled: true
+      persistence.cache.enabled: true
+      persistence.data.persistentVolumeClaim.claimName: existing-data
+      persistence.cache.persistentVolumeClaim.claimName: existing-cache
+    template: NOTES.txt
+    asserts: *no_warning

@@ -56,14 +56,14 @@ spec:
       partition: {{ dig "updateStrategy" "rollingUpdate" "partition" 0 (default dict .Values.workload.statefulSet) }}
     {{- end }}
   {{- if or
-    (and .Values.persistence.data.enabled (eq .Values.persistence.data.mode "volumeClaimTemplate"))
-    (and .Values.persistence.cache.enabled (eq .Values.persistence.cache.mode "volumeClaimTemplate"))
+    (and .Values.persistence.data.enabled (eq (.Values.persistence.data.mode | default "volumeClaimTemplate") "volumeClaimTemplate"))
+    (and .Values.persistence.cache.enabled (eq (.Values.persistence.cache.mode | default "volumeClaimTemplate") "volumeClaimTemplate"))
   }}
   persistentVolumeClaimRetentionPolicy:
     whenDeleted: {{ dig "persistentVolumeClaimRetentionPolicy" "whenDeleted" "Retain" (default dict .Values.workload.statefulSet) }}
     whenScaled: {{ dig "persistentVolumeClaimRetentionPolicy" "whenScaled" "Retain" (default dict .Values.workload.statefulSet) }}
   volumeClaimTemplates:
-    {{- if and .Values.persistence.data.enabled (eq .Values.persistence.data.mode "volumeClaimTemplate") }}
+    {{- if and .Values.persistence.data.enabled (eq (.Values.persistence.data.mode | default "volumeClaimTemplate") "volumeClaimTemplate") }}
     - metadata:
         name: data-dir
         labels:
@@ -84,7 +84,7 @@ spec:
         storageClassName: {{ ternary "" . (eq . "-") | quote }}
         {{- end }}
     {{- end }}
-    {{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.mode "volumeClaimTemplate") }}
+    {{- if and .Values.persistence.cache.enabled (eq (.Values.persistence.cache.mode | default "volumeClaimTemplate") "volumeClaimTemplate") }}
     - metadata:
         name: cache-dir
         labels:
@@ -216,7 +216,6 @@ spec:
               mountPath: {{ .Values.agent.dataDir }}
               {{- if and
                 .Values.persistence.data.enabled
-                (eq (.Values.persistence.data.mode | default "persistentVolumeClaim") "persistentVolumeClaim" "ephemeral" "volumeClaimTemplate")
                 .Values.persistence.data.persistentVolumeClaim.subPath
               }}
               subPath: {{ .Values.persistence.data.persistentVolumeClaim.subPath }}
@@ -225,7 +224,6 @@ spec:
               mountPath: {{ .Values.agent.cacheDir }}
               {{- if and
                 .Values.persistence.cache.enabled
-                (eq (.Values.persistence.cache.mode | default "persistentVolumeClaim") "persistentVolumeClaim" "ephemeral" "volumeClaimTemplate")
                 (.Values.persistence.cache.persistentVolumeClaim).subPath
               }}
               subPath: {{ .Values.persistence.cache.persistentVolumeClaim.subPath }}
@@ -245,14 +243,14 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
       {{- if or
-        (not (and .Values.persistence.data.enabled (eq .Values.persistence.data.mode "volumeClaimTemplate")))
-        (not (and .Values.persistence.cache.enabled (eq .Values.persistence.cache.mode "volumeClaimTemplate")))
+        (not (and .Values.persistence.data.enabled (eq $kind "StatefulSet") (eq (.Values.persistence.data.mode | default "volumeClaimTemplate") "volumeClaimTemplate")))
+        (not (and .Values.persistence.cache.enabled (eq $kind "StatefulSet") (eq (.Values.persistence.cache.mode | default "volumeClaimTemplate") "volumeClaimTemplate")))
         .Values.agent.tls.clientCertSecret.name (and .Values.agent.tls.clientCert .Values.agent.tls.clientKey)
         .Values.agent.tls.caBundleSecret.name .Values.agent.tls.caBundle
         .Values.extraVolumes
       }}
       volumes:
-        {{- if not (and .Values.persistence.data.enabled (eq .Values.persistence.data.mode "volumeClaimTemplate")) }}
+        {{- if not (and .Values.persistence.data.enabled (eq $kind "StatefulSet") (eq (.Values.persistence.data.mode | default "volumeClaimTemplate") "volumeClaimTemplate")) }}
         - name: data-dir
           {{- if and
             .Values.persistence.data.enabled
@@ -286,7 +284,7 @@ spec:
           {{- end }}
           {{- end }}
         {{- end }}
-        {{- if not (and .Values.persistence.cache.enabled (eq .Values.persistence.cache.mode "volumeClaimTemplate")) }}
+        {{- if not (and .Values.persistence.cache.enabled (eq $kind "StatefulSet") (eq (.Values.persistence.cache.mode | default "volumeClaimTemplate") "volumeClaimTemplate")) }}
         - name: cache-dir
           {{- if and
             .Values.persistence.cache.enabled

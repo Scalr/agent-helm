@@ -334,9 +334,10 @@ persistence:
     # @section -- Persistence
     enabled: false
 
-    # -- Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
+    # -- Storage mode: persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
     # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
-    # Used when enabled is true. An empty mode selects persistentVolumeClaim.
+    # Requires enabled: true. An empty mode selects volumeClaimTemplate for StatefulSet
+    # or persistentVolumeClaim for Deployment. Leave mode empty when persistence is disabled.
     # All PVC modes use persistentVolumeClaim settings.
     # See [Storage modes](#storage-modes) for examples.
     # @section -- Persistence
@@ -385,9 +386,10 @@ persistence:
     # @section -- Persistence
     enabled: false
 
-    # -- Storage mode: emptyDir, persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
+    # -- Storage mode: persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
     # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
-    # Used when enabled is true. An empty mode selects persistentVolumeClaim.
+    # Requires enabled: true. An empty mode selects volumeClaimTemplate for StatefulSet
+    # or persistentVolumeClaim for Deployment. Leave mode empty when persistence is disabled.
     # All PVC modes use persistentVolumeClaim settings.
     # See [Storage modes](#storage-modes) for examples.
     # @section -- Persistence

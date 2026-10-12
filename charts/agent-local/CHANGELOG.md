@@ -12,23 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `podLabels` value to add custom labels to Scalr Agent pods.
-- StatefulSet support via `workload.kind: StatefulSet`. Set `persistence.cache.enabled: true` and
-  `persistence.cache.mode: volumeClaimTemplate` to give each replica its own cache that survives
-  pod replacement. Deployment remains the default.
-- Independent `persistence.data.mode` and `persistence.cache.mode` options for `emptyDir`, a shared
+- StatefulSet support via `workload.kind: StatefulSet`. Set `persistence.cache.enabled: true`
+  to give each replica its own cache that survives pod replacement. Deployment remains the default.
+- Independent `persistence.data.mode` and `persistence.cache.mode` options for a shared
   `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate`
   storage. Set `persistence.cache.enabled: true` and `persistence.cache.mode: ephemeral` to give each
   Deployment pod its own cache PVC, deleted with the pod. Each volume's `enabled` flag controls
-  persistence. When enabled, an omitted mode selects a shared PVC.
+  persistence. When enabled, an omitted mode selects a PVC per replica for StatefulSet or a
+  shared PVC for Deployment. Explicit modes override this default. A mode requires `enabled: true`.
+  Leave it unset with `enabled: false` to use `emptyDir`.
 - PVC annotations for chart-managed claims and claim templates, allowing metadata for storage
   or backup tooling. Set `persistence.data.persistentVolumeClaim.annotations` or
   `persistence.cache.persistentVolumeClaim.annotations`.
+- A warning after installation or upgrade when multiple replicas share a chart-created
+  `ReadWriteOnce` PVC. These configurations remain supported when pods run on the same node.
 
 ### Changed
 
 - **BREAKING:** Reject multiple replicas when the chart creates a shared `ReadWriteOncePod`
-  claim for data or cache. Use at most one replica or switch to per-pod storage. Existing
-  claims and rollout settings are not checked.
+  claim for data or cache. Use at most one replica, switch to per-pod storage,
+  or use `ReadWriteMany` with a compatible storage class.
 
 ### Removed
 
