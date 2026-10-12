@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `persistence.cache.persistentVolumeClaim.annotations`.
 - A warning after installation or upgrade when multiple replicas share a chart-created
   `ReadWriteOnce` PVC. These configurations remain supported when pods run on the same node.
+- A warning after installation or upgrade when a Deployment rolling update can stall on a
+  chart-created shared `ReadWriteOnce` or `ReadWriteOncePod` PVC. Set `strategy.type: Recreate`
+  or `strategy.rollingUpdate.maxSurge: 0` to release the volume before the new pod starts.
+- Schema validation for `workload.statefulSet` options: `podManagementPolicy`,
+  `updateStrategy.type`, `updateStrategy.rollingUpdate.partition`, and
+  `persistentVolumeClaimRetentionPolicy`.
 
 ### Changed
 

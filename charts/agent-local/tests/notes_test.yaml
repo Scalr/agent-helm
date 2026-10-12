@@ -118,3 +118,91 @@ tests:
       persistence.cache.persistentVolumeClaim.claimName: existing-cache
     template: NOTES.txt
     asserts: *no_warning
+
+  - it: warns about Deployment rolling updates with a shared RWO cache
+    set: &rollout_cache
+      replicaCount: 1
+      persistence.cache.enabled: true
+    template: NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: 'WARNING: Deployment rolling updates can stall with the shared ReadWriteOnce PVC for persistence.cache.'
+      - matchRegexRaw:
+          pattern: strategy.type=Recreate
+      - notMatchRegexRaw:
+          pattern: 'persistence.data\.'
+
+  - it: warns about Deployment rolling updates with shared RWOP data
+    set:
+      replicaCount: 1
+      persistence.data.enabled: true
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    template: NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: 'WARNING: Deployment rolling updates can stall with the shared ReadWriteOncePod PVC for persistence.data.'
+
+  - it: warns about rolling updates when upgrading reused values without a workload kind
+    release:
+      upgrade: true
+    set:
+      <<: *rollout_cache
+      workload: null
+    template: NOTES.txt
+    asserts: &rollout_warning
+      - matchRegexRaw:
+          pattern: 'WARNING: Deployment rolling updates can stall'
+
+  - it: omits the rollout warning for the Recreate strategy
+    set:
+      <<: *rollout_cache
+      strategy.type: Recreate
+    template: NOTES.txt
+    asserts: &no_rollout_warning
+      - notMatchRegexRaw:
+          pattern: 'WARNING: Deployment rolling updates'
+
+  - it: omits the rollout warning when maxSurge is zero
+    set:
+      <<: *rollout_cache
+      strategy.rollingUpdate.maxSurge: 0
+    template: NOTES.txt
+    asserts: *no_rollout_warning
+
+  - it: omits the rollout warning when maxSurge is zero percent
+    set:
+      <<: *rollout_cache
+      strategy.rollingUpdate.maxSurge: 0%
+    template: NOTES.txt
+    asserts: *no_rollout_warning
+
+  - it: omits the rollout warning for StatefulSet
+    set:
+      <<: *rollout_cache
+      workload.kind: StatefulSet
+      persistence.cache.mode: persistentVolumeClaim
+    template: NOTES.txt
+    asserts: *no_rollout_warning
+
+  - it: omits the rollout warning for per-pod and existing claims
+    set:
+      replicaCount: 1
+      persistence.data.enabled: true
+      persistence.data.mode: ephemeral
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.claimName: existing-cache
+    template: NOTES.txt
+    asserts: *no_rollout_warning
+
+  - it: omits the rollout warning for RWX claims
+    set:
+      <<: *rollout_cache
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteMany
+    template: NOTES.txt
+    asserts: *no_rollout_warning
+
+  - it: omits the rollout warning without persistence
+    set:
+      replicaCount: 1
+    template: NOTES.txt
+    asserts: *no_rollout_warning

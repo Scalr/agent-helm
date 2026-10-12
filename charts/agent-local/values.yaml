@@ -39,7 +39,8 @@ workload:
 # -- Deployment strategy configuration. Only used with workload.kind=Deployment.
 strategy:
   # -- Type of deployment strategy. Options: RollingUpdate, Recreate.
-  # Use Recreate with replicaCount: 1 when sharing a ReadWriteOncePod claim.
+  # Set it to Recreate when using a shared PVC that only one node or pod can mount (ReadWriteOnce, ReadWriteOncePod).
+  # With RollingUpdate, the new pod waits for the volume that the old pod still uses.
   type: RollingUpdate
   # -- Rolling update parameters.
   rollingUpdate:

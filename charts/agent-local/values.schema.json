@@ -30,6 +30,54 @@
                         "Deployment",
                         "StatefulSet"
                     ]
+                },
+                "statefulSet": {
+                    "type": "object",
+                    "properties": {
+                        "podManagementPolicy": {
+                            "enum": [
+                                "Parallel",
+                                "OrderedReady"
+                            ]
+                        },
+                        "updateStrategy": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "enum": [
+                                        "RollingUpdate",
+                                        "OnDelete"
+                                    ]
+                                },
+                                "rollingUpdate": {
+                                    "type": "object",
+                                    "properties": {
+                                        "partition": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "persistentVolumeClaimRetentionPolicy": {
+                            "type": "object",
+                            "properties": {
+                                "whenDeleted": {
+                                    "enum": [
+                                        "Retain",
+                                        "Delete"
+                                    ]
+                                },
+                                "whenScaled": {
+                                    "enum": [
+                                        "Retain",
+                                        "Delete"
+                                    ]
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },

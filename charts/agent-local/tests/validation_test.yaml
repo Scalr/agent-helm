@@ -46,6 +46,38 @@ tests:
       workload.kind: statefulset
     asserts: *invalid_kind
 
+  - it: rejects unsupported StatefulSet pod management policies
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.podManagementPolicy: Foo
+    asserts:
+      - failedTemplate:
+          errorPattern: podManagementPolicy
+
+  - it: rejects unsupported StatefulSet update strategy types
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.updateStrategy.type: Recreate
+    asserts:
+      - failedTemplate:
+          errorPattern: updateStrategy
+
+  - it: rejects a negative StatefulSet rolling update partition
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.updateStrategy.rollingUpdate.partition: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: partition
+
+  - it: rejects unsupported StatefulSet PVC retention policies
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.persistentVolumeClaimRetentionPolicy.whenScaled: Keep
+    asserts:
+      - failedTemplate:
+          errorPattern: whenScaled
+
   - it: rejects non-string workload kinds
     set:
       workload.kind: 1

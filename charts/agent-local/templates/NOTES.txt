@@ -32,6 +32,28 @@ WARNING: persistence.cache uses one ReadWriteOnce PVC for multiple replicas.
   or workload.kind=StatefulSet with persistence.cache.mode=volumeClaimTemplate.
 {{- end }}
 
+{{- if and
+  (ne (.Values.workload).kind "StatefulSet")
+  (eq (.Values.strategy.type | default "RollingUpdate") "RollingUpdate")
+  (not (has ((.Values.strategy.rollingUpdate).maxSurge | toString) (list "0" "0%")))
+}}
+{{- range $name := list "data" "cache" }}
+{{- $volume := index $.Values.persistence $name }}
+{{- if and
+  $volume.enabled
+  (eq ($volume.mode | default "persistentVolumeClaim") "persistentVolumeClaim")
+  (not $volume.persistentVolumeClaim.claimName)
+  (has $volume.persistentVolumeClaim.accessMode (list "ReadWriteOnce" "ReadWriteOncePod"))
+}}
+
+WARNING: Deployment rolling updates can stall with the shared {{ $volume.persistentVolumeClaim.accessMode }} PVC for persistence.{{ $name }}.
+  A new pod waits for the volume while the old pod still uses it.
+  Set strategy.type=Recreate, or strategy.rollingUpdate.maxSurge=0, so the old pod releases the volume first.
+  For separate PVCs, use persistence.{{ $name }}.mode=ephemeral (deleted with each pod).
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- if .Release.IsUpgrade }}
 {{- $existing := or
   (lookup "apps/v1" "Deployment" .Release.Namespace (include "agent-local.fullname" .))

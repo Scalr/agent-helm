@@ -321,10 +321,12 @@ creates a shared `ReadWriteOnce` claim for multiple replicas. Across nodes, use
 [per-pod storage](#storage-modes) or a shared `ReadWriteMany` claim.
 
 A shared `ReadWriteOncePod` claim allows only one pod. The chart rejects multiple replicas
-when it creates such a claim. When using an existing claim, check its actual access mode.
-The chart does not inspect it.
-For Deployment, prefer `strategy.type: Recreate` so the old pod releases the claim before
-its replacement starts. The chart leaves rollout settings to you.
+when it creates such a claim. When using an existing claim, check its actual access mode yourself.
+
+With a shared `ReadWriteOnce` or `ReadWriteOncePod` claim, a Deployment rolling update can stall:
+the new pod waits for the volume while the old pod still uses it. Set `strategy.type: Recreate`
+or `strategy.rollingUpdate.maxSurge: 0` so the old pod releases the claim first. The chart prints
+a warning after install or upgrade when it creates such a claim with a surging rolling update.
 
 ### Cache volume persistence
 

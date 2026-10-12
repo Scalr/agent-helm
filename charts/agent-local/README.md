@@ -277,10 +277,12 @@ creates a shared `ReadWriteOnce` claim for multiple replicas. Across nodes, use
 [per-pod storage](#storage-modes) or a shared `ReadWriteMany` claim.
 
 A shared `ReadWriteOncePod` claim allows only one pod. The chart rejects multiple replicas
-when it creates such a claim. When using an existing claim, check its actual access mode.
-The chart does not inspect it.
-For Deployment, prefer `strategy.type: Recreate` so the old pod releases the claim before
-its replacement starts. The chart leaves rollout settings to you.
+when it creates such a claim. When using an existing claim, check its actual access mode yourself.
+
+With a shared `ReadWriteOnce` or `ReadWriteOncePod` claim, a Deployment rolling update can stall:
+the new pod waits for the volume while the old pod still uses it. Set `strategy.type: Recreate`
+or `strategy.rollingUpdate.maxSurge: 0` so the old pod releases the claim first. The chart prints
+a warning after install or upgrade when it creates such a claim with a surging rolling update.
 
 ### Cache volume persistence
 
@@ -752,7 +754,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | strategy.rollingUpdate | object | <pre>{<br>&nbsp;&nbsp;"maxSurge":&nbsp;"25%",<br>&nbsp;&nbsp;"maxUnavailable":&nbsp;"50%"<br>}</pre> | Rolling update parameters. |
 | strategy.rollingUpdate.maxSurge | string | `"25%"` | Maximum number of pods that can be created above the desired number during an update. |
 | strategy.rollingUpdate.maxUnavailable | string | `"50%"` | Maximum number of pods that can be unavailable during an update. |
-| strategy.type | string | `"RollingUpdate"` | Type of deployment strategy. Options: RollingUpdate, Recreate. Use Recreate with replicaCount: 1 when sharing a ReadWriteOncePod claim. |
+| strategy.type | string | `"RollingUpdate"` | Type of deployment strategy. Options: RollingUpdate, Recreate. Set it to Recreate when using a shared PVC that only one node or pod can mount (ReadWriteOnce, ReadWriteOncePod). With RollingUpdate, the new pod waits for the volume that the old pod still uses. |
 
 ---
 
