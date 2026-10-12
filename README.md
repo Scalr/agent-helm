@@ -55,7 +55,7 @@ See [GitHub Actions development](./CONTRIBUTING.md#github-actions-development) f
 Install the same [helm-unittest](https://github.com/helm-unittest/helm-unittest#install) release as CI, then enable Git hooks:
 
 ```console
-helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.2.1 --verify=false
+helm plugin install https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/unittest-1.2.1.tgz --verify=false
 pre-commit install
 ```
 

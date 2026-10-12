@@ -12,26 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `podLabels` value to add custom labels to Scalr Agent pods.
-- StatefulSet support via `workload.kind: StatefulSet`. Set `persistence.cache.enabled: true`
-  to give each replica its own cache that survives pod replacement. Deployment remains the default.
-- Independent `persistence.data.mode` and `persistence.cache.mode` options for a shared
-  `persistentVolumeClaim`, generic `ephemeral` PVCs, or StatefulSet per-replica `volumeClaimTemplate`
-  storage. Set `persistence.cache.enabled: true` and `persistence.cache.mode: ephemeral` to give each
-  Deployment pod its own cache PVC, deleted with the pod. Each volume's `enabled` flag controls
-  persistence. When enabled, an omitted mode selects a PVC per replica for StatefulSet or a
-  shared PVC for Deployment. Explicit modes override this default. A mode requires `enabled: true`.
-  Leave it unset with `enabled: false` to use `emptyDir`.
-- PVC annotations for chart-managed claims and claim templates, allowing metadata for storage
-  or backup tooling. Set `persistence.data.persistentVolumeClaim.annotations` or
+- StatefulSet support via `workload.kind: StatefulSet`, with persistent storage per replica.
+  Deployment remains the default. See [Workload selection](README.md#workload-selection).
+- `persistence.data.mode` and `persistence.cache.mode` to choose shared PVCs, generic ephemeral
+  PVCs, or StatefulSet claim templates. See [Storage modes](README.md#storage-modes).
+- PVC annotations via `persistence.data.persistentVolumeClaim.annotations` and
   `persistence.cache.persistentVolumeClaim.annotations`.
-- A warning after installation or upgrade when multiple replicas share a chart-created
-  `ReadWriteOnce` PVC. These configurations remain supported when pods run on the same node.
-- A warning after installation or upgrade when a Deployment rolling update can stall on a
-  chart-created shared `ReadWriteOnce` or `ReadWriteOncePod` PVC. Set `strategy.type: Recreate`
-  or `strategy.rollingUpdate.maxSurge: 0` to release the volume before the new pod starts.
-- Schema validation for `workload.statefulSet` options: `podManagementPolicy`,
-  `updateStrategy.type`, `updateStrategy.rollingUpdate.partition`, and
-  `persistentVolumeClaimRetentionPolicy`.
+- Warnings for shared chart-created PVCs that can block replica scheduling or Deployment rolling updates.
+- Validation of `workload.statefulSet` pod management, update, and PVC retention settings.
 
 ### Changed
 
@@ -44,8 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** Remove support for the top-level `persistence.enabled` and
   `persistence.persistentVolumeClaim.*` keys, deprecated in [v0.6.1](#v061). If legacy
   `persistence.enabled` is true or a legacy `claimName` is set, move these settings under
-  `persistence.cache` before upgrading. Unused legacy settings are ignored, including during
-  `--reuse-values` upgrades.
+  `persistence.cache` before upgrading. Migrating a chart-created cache replaces its PVC
+  with an empty claim; back up any cache data you need. Unused legacy settings are ignored.
 
   Before:
 
@@ -70,8 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING:** Reject `SCALR_AGENT_CACHE_DIR`, `SCALR_AGENT_WORKER_DRAIN_TIMEOUT`,
   `SCALR_AGENT_TLS_CERT_FILE`, and `SCALR_AGENT_TLS_KEY_FILE` in `extraEnv` to prevent duplicate
-  chart-controlled variables. These names are reserved even when drain or TLS is disabled.
-  Use `agent.cacheDir`, `agent.shutdownMode` with `terminationGracePeriodSeconds`, and
+  chart-controlled variables. Use `agent.cacheDir`, `agent.shutdownMode` with `terminationGracePeriodSeconds`, and
   `agent.tls.*` instead.
 
 ## [v0.6.9]

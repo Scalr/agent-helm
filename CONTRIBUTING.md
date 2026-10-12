@@ -22,7 +22,7 @@ then run `just docs` to regenerate chart READMEs.
 | Command | Checks |
 | --- | --- |
 | `just lychee` | Local Markdown links and anchors, offline |
-| `just lychee-online` | Local and external links and anchors (makes external HTTP calls) |
+| `just lychee-online` | Local and external links and anchors |
 
 The pre-commit link check runs offline.
 

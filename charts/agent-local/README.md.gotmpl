@@ -288,8 +288,9 @@ and modules at `agent.cacheDir` and defaults to a 20Gi `emptyDir`.
 
 ### Storage modes
 
-Choose a storage mode for each volume with `persistence.data.mode` and `persistence.cache.mode`.
-A PersistentVolumeClaim (PVC) requests storage from Kubernetes.
+Enable storage with `persistence.data.enabled` or `persistence.cache.enabled`, then choose
+the volume's `mode`. If mode is unset, Deployment uses `persistentVolumeClaim` and
+StatefulSet uses `volumeClaimTemplate`.
 
 | Mode | Workload | Storage |
 |------|----------|---------|
@@ -297,42 +298,20 @@ A PersistentVolumeClaim (PVC) requests storage from Kubernetes.
 | `ephemeral` | Either | One [PVC per pod](#generic-ephemeral-pvcs), deleted with the pod. |
 | `volumeClaimTemplate` | [StatefulSet](#workload-selection) | One PVC per replica, reused after pod replacement. |
 
-Set the volume's `enabled: true` to use persistent storage. When mode is unset, StatefulSet
-uses `volumeClaimTemplate` and Deployment uses `persistentVolumeClaim`. An explicit mode
-overrides this default.
-
-With `enabled: false`, leave mode unset to use `emptyDir`. Setting a mode while persistence
-is disabled is an error. All storage types keep data across container restarts. `emptyDir`
-data is lost when the pod is deleted.
-Set `emptyDir.sizeLimit` to `null` or `""` to remove the volume's size limit.
+To use `emptyDir`, keep `enabled: false` and leave mode unset.
 
 Configure PVCs under `persistence.data.persistentVolumeClaim` or
-`persistence.cache.persistentVolumeClaim`. The `storage` value sets the size of each claim.
-An empty `storageClassName` uses the cluster's default StorageClass. Set it to `"-"` to use
-a volume created in advance. For dynamically created volumes, prefer a StorageClass with
-`volumeBindingMode: WaitForFirstConsumer`.
+`persistence.cache.persistentVolumeClaim`. All modes use these settings, except `claimName`,
+which only applies to `persistentVolumeClaim` mode.
 
-Use `claimName` to select an existing claim in `persistentVolumeClaim` mode, as shown in the
-[shared cache example](#cache-volume-persistence). Other modes ignore `claimName`.
+For replicas on different nodes, use per-pod storage or a shared `ReadWriteMany` claim.
+The chart rejects multiple replicas with a chart-created shared `ReadWriteOncePod` claim.
 
-A shared `ReadWriteOnce` claim can only be mounted on one node. Multiple replicas can use it
-if they run on that node. The chart prints a warning after installation or upgrade when it
-creates a shared `ReadWriteOnce` claim for multiple replicas. Across nodes, use
-[per-pod storage](#storage-modes) or a shared `ReadWriteMany` claim.
-
-A shared `ReadWriteOncePod` claim allows only one pod. The chart rejects multiple replicas
-when it creates such a claim. When using an existing claim, check its actual access mode yourself.
-
-With a shared `ReadWriteOnce` or `ReadWriteOncePod` claim, a Deployment rolling update can stall:
-the new pod waits for the volume while the old pod still uses it. Set `strategy.type: Recreate`
-or `strategy.rollingUpdate.maxSurge: 0` so the old pod releases the claim first. The chart prints
-a warning after install or upgrade when it creates such a claim with a surging rolling update.
+Deployment rolling updates can stall with a shared `ReadWriteOnce` or `ReadWriteOncePod` claim.
+Use `strategy.type: Recreate` or `strategy.rollingUpdate.maxSurge: 0` to release the claim first.
 
 ### Cache volume persistence
 
-Set `persistence.cache.enabled: true` to keep a separate cache for each
-[StatefulSet replica](#workload-selection). For Deployment, this creates one shared PVC.
-Use `mode: ephemeral` for a separate PVC per Deployment pod, deleted with the pod.
 To use an existing shared cache:
 
 ```yaml
@@ -352,12 +331,11 @@ See [Provider Cache](https://docs.scalr.io/docs/providers-cache) and
 Keep the default `emptyDir` for temporary run data. Set `persistence.data.enabled: true` and
 `persistence.data.mode: ephemeral` to give each pod a separate PVC, as in the
 [ephemeral cache example](#generic-ephemeral-pvcs).
-With a [StatefulSet](#workload-selection), setting `persistence.data.enabled: true` defaults
-to `volumeClaimTemplate`, which keeps run data when a pod is replaced.
 
 ### Generic ephemeral PVCs
 
-Give each Deployment pod its own cache PVC:
+Use [generic ephemeral PVCs](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes)
+to give each Deployment pod a fresh cache:
 
 ```yaml
 replicaCount: 3
@@ -367,19 +345,11 @@ persistence:
     mode: ephemeral
 ```
 
-Replacement pods get a fresh cache. Kubernetes deletes each PVC with its pod.
-The StorageClass reclaim policy controls whether Kubernetes also deletes the storage behind
-the claim. A `Retain` policy requires manual cleanup. See [generic ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes).
-
-With a [StatefulSet](#workload-selection), a replacement pod uses the same PVC name and may
-wait for Kubernetes to delete the old ephemeral PVC. Use `volumeClaimTemplate` to keep each
-replica's storage instead.
-
 ## Workload selection
 
-`workload.kind` defaults to `Deployment`, including upgrades using `--reuse-values`.
+`workload.kind` defaults to `Deployment`.
 Use `StatefulSet` and enable cache persistence to keep each replica's cache when its pod is
-replaced. The default [storage mode](#storage-modes) is `volumeClaimTemplate`:
+replaced:
 
 ```yaml
 replicaCount: 3
@@ -390,43 +360,26 @@ persistence:
     enabled: true
 ```
 
-This creates three 20Gi cache PVCs named `cache-dir-<statefulset-name>-<number>`, starting at 0.
-Agent names follow `<statefulset-name>-<number>`. Give each release in a Scalr agent pool a
-unique name or `fullnameOverride`, even across namespaces and clusters.
-
-The chart limits StatefulSet names to 52 characters. If a name needs shortening or contains
-characters that must be replaced, the chart adds a hash of the full name to keep names distinct.
+Each replica gets its own 20Gi cache PVC.
 
 Deployment uses `strategy`. StatefulSet uses `workload.statefulSet.updateStrategy`.
-The default `workload.statefulSet.podManagementPolicy: Parallel` lets pods start or stop
-together when scaling. Rolling updates replace one pod at a time.
+Changing `workload.statefulSet.podManagementPolicy` or claim templates requires recreating
+the StatefulSet.
 
-Choose the pod management policy and claim templates before installation. Kubernetes does
-not let you change them on an existing StatefulSet. This includes claim size, storage class,
-and annotations. Switching to or from `volumeClaimTemplate` also requires a new StatefulSet.
-For these changes, install a separate release, then let the old agents finish their runs.
-See [Migrate to StatefulSet](#migrate-to-statefulset) for the migration steps.
-
-If an existing StatefulSet uses a shared PVC, set that volume's `mode: persistentVolumeClaim`
-explicitly to keep it. Leaving mode unset now selects a claim template and requires recreating
-the StatefulSet. This also applies to shared PVCs selected with `claimName`.
-
-By default, StatefulSet PVCs remain after you reduce the replica count or uninstall the chart.
-Change this with `workload.statefulSet.persistentVolumeClaimRetentionPolicy`. Delete any retained
-PVCs manually when you no longer need them. See [StatefulSet retention](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention).
+Per-replica StatefulSet PVCs are retained after scaling down or uninstalling. Configure this with
+`workload.statefulSet.persistentVolumeClaimRetentionPolicy`.
 
 ### Migrate to StatefulSet
 
 Changing `workload.kind` from `Deployment` to `StatefulSet` replaces the controller and its
-pods. Agents will be unavailable during the switch. Choose your [StatefulSet settings](#workload-selection)
-and [storage modes](#storage-modes) before starting.
+pods. Agents will be unavailable during the switch.
 
-1. Stop assigning work to the old agents, wait for active runs to finish, and set `replicaCount: 0`.
+1. Stop assigning work to the old agents, wait for active runs to finish, and upgrade with `replicaCount: 0`.
 2. Upgrade with `workload.kind: StatefulSet`, your storage modes, and the desired replica count.
-   New PVCs start empty.
+   New PVCs start empty. Switching from shared PVCs to claim templates can delete chart-managed shared claims.
 3. Check that agents connect to Scalr and mount the expected claims before resuming work.
 
-For a gradual migration, install a separate release with unique names. Check that the new
+For a gradual migration, install a separate release. Check that the new
 agents work, then let the old agents finish their runs before removing them.
 
 ## Security

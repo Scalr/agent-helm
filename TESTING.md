@@ -10,28 +10,26 @@ Complete [development setup](README.md#development) first. Run commands from the
 | [Unit testing](#unit-testing) | `just test` | No |
 | [Installation and upgrade testing](#installation-and-upgrade-testing) | `just test-install --charts charts/agent-local` | Disposable cluster |
 
-Static and unit checks run as separate pre-commit hooks for relevant changes and on every pull request.
-Both must pass in the [CI workflow](.github/workflows/lint-test-chart.yaml).
+Static and unit checks run through pre-commit for relevant changes and in [CI](.github/workflows/lint-test-chart.yaml).
 
 ## Static testing
 
 `just lint` uses chart-testing (`ct`) to validate chart metadata, check YAML formatting,
-and run Helm lint. Configuration lives in [.ct/](.ct/). Version-increment checks are disabled
-because release automation handles chart versions.
+and run Helm lint. Configuration lives in [.ct/](.ct/).
 
 Pre-commit also runs Ruff and ty when Python scripts or their tooling configuration change.
 Run these checks directly with:
 
 ```console
-uv run ruff check
-uv run ruff format --check
-uv run ty check
+uv run --locked ruff check
+uv run --locked ruff format --check
+uv run --locked ty check
 ```
 
 ## Unit testing
 
 `just test` uses helm-unittest to render templates with test values and assert resource fields
-and expected validation errors. Tests run without a cluster.
+and expected validation errors.
 
 Unit tests live in `charts/*/tests/*_test.yaml`. To run one suite:
 

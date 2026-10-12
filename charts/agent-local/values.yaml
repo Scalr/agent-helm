@@ -8,15 +8,14 @@ replicaCount: 1
 # Workload controller configuration.
 workload:
   # -- Workload controller: Deployment or StatefulSet. See [Workload selection](#workload-selection).
-  # Changing the kind replaces the controller and its pods. See [Migrate to StatefulSet](#migrate-to-statefulset).
+  # See [Migrate to StatefulSet](#migrate-to-statefulset) before changing an existing release.
   # @section -- Deployment & Scaling
   kind: Deployment
   statefulSet:
-    # -- StatefulSet scaling policy: Parallel or OrderedReady. Agents can scale independently.
-    # Choose before installation. Changing this value requires recreating the StatefulSet.
+    # -- StatefulSet pod management policy: Parallel or OrderedReady. Immutable after installation.
     # @section -- Deployment & Scaling
     podManagementPolicy: Parallel
-    # -- StatefulSet update strategy. Deployment uses the top-level strategy instead.
+    # -- StatefulSet update strategy.
     # @section -- Deployment & Scaling
     updateStrategy:
       # -- StatefulSet update type: RollingUpdate or OnDelete.
@@ -26,7 +25,7 @@ workload:
         # -- Lowest pod number to update during a StatefulSet rolling update.
         # @section -- Deployment & Scaling
         partition: 0
-    # -- Whether to keep StatefulSet volumeClaimTemplate PVCs. See [Workload selection](#workload-selection).
+    # -- Retention policy for StatefulSet per-replica PVCs.
     # @section -- Deployment & Scaling
     persistentVolumeClaimRetentionPolicy:
       # -- Retain or Delete per-replica PVCs when the StatefulSet is deleted.
@@ -36,11 +35,10 @@ workload:
       # @section -- Deployment & Scaling
       whenScaled: Retain
 
-# -- Deployment strategy configuration. Only used with workload.kind=Deployment.
+# -- Deployment update strategy.
 strategy:
   # -- Type of deployment strategy. Options: RollingUpdate, Recreate.
-  # Set it to Recreate when using a shared PVC that only one node or pod can mount (ReadWriteOnce, ReadWriteOncePod).
-  # With RollingUpdate, the new pod waits for the volume that the old pod still uses.
+  # See [Storage modes](#storage-modes) for shared PVC restrictions.
   type: RollingUpdate
   # -- Rolling update parameters.
   rollingUpdate:
@@ -329,18 +327,13 @@ persistence:
   # Stores workspace data including configuration versions, modules, and providers.
   # @section -- Persistence
   data:
-    # -- Enable persistent storage for the data directory.
-    # When false, uses emptyDir (ephemeral, recommended for most use cases as each pod gets fresh workspace).
-    # When true, uses the selected mode.
+    # -- Enable PVC storage for the data directory. Uses emptyDir when false.
     # @section -- Persistence
     enabled: false
 
-    # -- Storage mode: persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
-    # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
-    # Requires enabled: true. An empty mode selects volumeClaimTemplate for StatefulSet
-    # or persistentVolumeClaim for Deployment. Leave mode empty when persistence is disabled.
-    # All PVC modes use persistentVolumeClaim settings.
-    # See [Storage modes](#storage-modes) for examples.
+    # -- Storage mode: persistentVolumeClaim, ephemeral, or volumeClaimTemplate. Requires enabled: true.
+    # When empty, defaults to persistentVolumeClaim for Deployment or volumeClaimTemplate for StatefulSet.
+    # See [Storage modes](#storage-modes).
     # @section -- Persistence
     mode: ""
 
@@ -351,11 +344,10 @@ persistence:
       # @section -- Persistence
       sizeLimit: 4Gi
 
-    # -- Claim settings for shared, generic ephemeral, and StatefulSet per-replica PVCs.
+    # -- PVC settings for all storage modes.
     # @section -- Persistence
     persistentVolumeClaim:
-      # -- Existing shared PVC name. If empty in persistentVolumeClaim mode, creates `<fullname>-data`.
-      # Ignored by other storage modes.
+      # -- Existing PVC for persistentVolumeClaim mode. Leave empty to create a claim. Ignored by other modes.
       # @section -- Persistence
       claimName: ""
       # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
@@ -365,8 +357,7 @@ persistence:
       # -- Storage size for the PVC.
       # @section -- Persistence
       storage: 4Gi
-      # -- Access mode for the PVC. Use "ReadWriteOnce" for per-pod/per-replica claims or a shared claim on one node.
-      # Use "ReadWriteMany" only if the Scalr Agent supports shared storage (e.g., with NFS).
+      # -- PVC access mode. See [Storage modes](#storage-modes) for shared PVC restrictions.
       # @section -- Persistence
       accessMode: ReadWriteOnce
       # -- Optional subPath for mounting a specific subdirectory of the volume.
@@ -381,18 +372,13 @@ persistence:
   # Stores OpenTofu/Terraform providers, modules and binaries.
   # @section -- Persistence
   cache:
-    # -- Enable persistent storage for the cache directory.
-    # When false, uses emptyDir (survives container restarts, lost when the pod is replaced).
-    # When true, uses the selected mode.
+    # -- Enable PVC storage for the cache directory. Uses emptyDir when false.
     # @section -- Persistence
     enabled: false
 
-    # -- Storage mode: persistentVolumeClaim (one shared claim), ephemeral (a PVC per pod),
-    # or volumeClaimTemplate (a persistent PVC per StatefulSet replica).
-    # Requires enabled: true. An empty mode selects volumeClaimTemplate for StatefulSet
-    # or persistentVolumeClaim for Deployment. Leave mode empty when persistence is disabled.
-    # All PVC modes use persistentVolumeClaim settings.
-    # See [Storage modes](#storage-modes) for examples.
+    # -- Storage mode: persistentVolumeClaim, ephemeral, or volumeClaimTemplate. Requires enabled: true.
+    # When empty, defaults to persistentVolumeClaim for Deployment or volumeClaimTemplate for StatefulSet.
+    # See [Storage modes](#storage-modes).
     # @section -- Persistence
     mode: ""
 
@@ -403,11 +389,10 @@ persistence:
       # @section -- Persistence
       sizeLimit: 20Gi
 
-    # -- Claim settings for shared, generic ephemeral, and StatefulSet per-replica PVCs.
+    # -- PVC settings for all storage modes.
     # @section -- Persistence
     persistentVolumeClaim:
-      # -- Existing shared PVC name. If empty in persistentVolumeClaim mode, creates `<fullname>-cache`.
-      # Ignored by other storage modes.
+      # -- Existing PVC for persistentVolumeClaim mode. Leave empty to create a claim. Ignored by other modes.
       # @section -- Persistence
       claimName: ""
       # -- Storage class for the PVC. Leave empty to use the cluster's default storage class.
@@ -417,8 +402,7 @@ persistence:
       # -- Storage size for the PVC.
       # @section -- Persistence
       storage: 20Gi
-      # -- Access mode for the PVC. Use "ReadWriteOnce" for per-pod/per-replica claims or a shared claim on one node.
-      # Use "ReadWriteMany" to share the cache across multiple agent pods (requires a compatible storage class).
+      # -- PVC access mode. See [Storage modes](#storage-modes) for shared PVC restrictions.
       # @section -- Persistence
       accessMode: ReadWriteOnce
       # -- Optional subPath for mounting a specific subdirectory of the volume.
