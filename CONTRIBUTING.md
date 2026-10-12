@@ -1,28 +1,53 @@
-# Contributing Guidelines
+# Contributing Guide
 
-Contributions are welcome via GitHub pull requests. This document outlines the process to help get your contribution accepted.
+Contributions are welcome through GitHub pull requests. Start with [development setup](README.md#development).
 
-## How to Contribute
+## Helm chart guidelines
 
-1. Fork this repository, develop, and test your changes
-1. Submit a pull request
+- Follow [Helm chart best practices](https://helm.sh/docs/topics/chart_best_practices/).
+- Keep value names consistent across charts and document them in `values.yaml`.
+- Preserve existing defaults and upgrade behavior, including `helm upgrade --reuse-values`.
+- Include tests for behavior changes and bug fixes.
 
-### Technical Requirements
+## Testing
 
-* Must follow [Charts best practices](https://helm.sh/docs/topics/chart_best_practices/)
-* Must pass CI jobs for linting and installing changed charts with the [chart-testing](https://github.com/helm/chart-testing) tool
-* Variable naming and patterns should strive to be consistent across all charts. If certain options exist in a neighboring chart, they should be added or updated in sync to maintain consistency.
-* All Helm variable declarations must be documented, and the documentation must be kept up to date using [helm-docs](https://github.com/norwoodj/helm-docs) via `just docs`.
+Run `just lint` and `just test` for chart changes. See [Testing](TESTING.md) for test kinds,
+commands, and installation tests.
 
-The chart `version` follow [semver](https://semver.org/).
+## Documentation
 
-After [development setup](./README.md#development), run `just test` for the agent-local
-Helm rendering tests. They run without a cluster. Filter cases with
-`uv run --locked pytest -k statefulset`.
+Edit chart documentation in `README.md.gotmpl` and value descriptions in `values.yaml`,
+then run `just docs` to regenerate chart READMEs.
 
-Use `just fmt` to format tests with Ruff and `just lint-tests` to check formatting,
-lint, and types with Ruff and ty. `just lint` also lints changed charts.
-Install hooks with `pre-commit install` to run these Python checks and verify `uv.lock`.
-When changing test dependencies in `pyproject.toml`, run `uv lock` and include the lockfile.
+| Command | Checks |
+| --- | --- |
+| `just lychee` | Local Markdown links and anchors, offline |
+| `just lychee-online` | Local and external links and anchors (makes external HTTP calls) |
 
-There’s no need to manually change the chart version, as charts are released in sync with agent releases and version bumps are handled by automated workflows. After changes are merged, they may be further validated by internal end-to-end workflows that run before each release. Releases usually occur on a weekly basis.
+The pre-commit link check runs offline.
+
+## Changelog and releases
+
+Add changes that affect chart users under `## [UNRELEASED]` in each affected chart's
+`CHANGELOG.md`. Describe the effect on users and explain any migration needed for breaking changes.
+
+Release automation handles chart `version` and `appVersion` bumps and creates release notes.
+
+## Pull requests
+
+Keep each pull request focused on one change. Describe the problem, the resulting behavior,
+and the checks you ran. Link the related issue when one exists.
+
+## GitHub Actions development
+
+When editing `.github/actions/update-app-version`, install the shared ESLint configuration
+and the action's dependencies, then rebuild its bundle:
+
+```console
+npm --prefix .github/actions ci
+npm --prefix .github/actions/update-app-version ci
+npm --prefix .github/actions/update-app-version run all
+```
+
+Commit the updated `index.dist.js` with the source changes. The pre-commit hook rebuilds
+the bundle when files under `.github/actions/` change.

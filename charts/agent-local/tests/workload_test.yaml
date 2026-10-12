@@ -1,0 +1,151 @@
+suite: Workload selection and rollout
+templates:
+  - workload.yaml
+  - service.yaml
+  - pvc.yaml
+release:
+  name: storage-test
+set:
+  agent.token: dummy
+tests:
+  - it: keeps the default Deployment and emptyDir volumes
+    asserts:
+      - isKind:
+          of: Deployment
+        template: workload.yaml
+      - equal:
+          path: metadata.name
+          value: storage-test-agent-local
+        template: workload.yaml
+      - equal:
+          path: spec.strategy
+          value:
+            type: RollingUpdate
+            rollingUpdate:
+              maxSurge: 25%
+              maxUnavailable: 50%
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              emptyDir:
+                sizeLimit: 4Gi
+            - name: cache-dir
+              emptyDir:
+                sizeLimit: 20Gi
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: service.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: gives StatefulSets a headless governing Service and independent rollout settings
+    set:
+      workload.kind: StatefulSet
+      replicaCount: 3
+    asserts:
+      - isKind:
+          of: StatefulSet
+        template: workload.yaml
+      - isSubset:
+          path: spec
+          content:
+            replicas: 3
+            serviceName: storage-test-agent-local
+            podManagementPolicy: Parallel
+            updateStrategy:
+              type: RollingUpdate
+              rollingUpdate:
+                partition: 0
+        template: workload.yaml
+      - notExists:
+          path: spec.strategy
+        template: workload.yaml
+      - notExists:
+          path: spec.persistentVolumeClaimRetentionPolicy
+        template: workload.yaml
+      - equal:
+          path: metadata.name
+          value: storage-test-agent-local
+        template: service.yaml
+      - equal:
+          path: spec
+          value:
+            clusterIP: None
+            publishNotReadyAddresses: true
+            selector:
+              app.kubernetes.io/name: agent-local
+              app.kubernetes.io/instance: storage-test
+        template: service.yaml
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: agent-local
+            app.kubernetes.io/instance: storage-test
+        template: workload.yaml
+
+  - it: supports manual StatefulSet updates and claim retention on scale down
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.podManagementPolicy: OrderedReady
+      workload.statefulSet.updateStrategy.type: OnDelete
+      workload.statefulSet.persistentVolumeClaimRetentionPolicy.whenScaled: Delete
+      persistence.cache.mode: volumeClaimTemplate
+    asserts:
+      - equal:
+          path: spec.podManagementPolicy
+          value: OrderedReady
+      - equal:
+          path: spec.updateStrategy
+          value:
+            type: OnDelete
+      - equal:
+          path: spec.persistentVolumeClaimRetentionPolicy
+          value:
+            whenDeleted: Retain
+            whenScaled: Delete
+
+  - it: supports partitioned StatefulSet rollouts
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.updateStrategy.rollingUpdate.partition: 1
+    asserts:
+      - equal:
+          path: spec.updateStrategy
+          value:
+            type: RollingUpdate
+            rollingUpdate:
+              partition: 1
+
+  - it: allows scaling a Deployment to zero for migration
+    template: workload.yaml
+    set:
+      replicaCount: 0
+    asserts: &zero_replicas
+      - equal:
+          path: spec.replicas
+          value: 0
+
+  - it: allows scaling a StatefulSet to zero for migration
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      replicaCount: 0
+    asserts: *zero_replicas
+
+  - it: supports Recreate for a shared single-pod claim
+    template: workload.yaml
+    set:
+      strategy.type: Recreate
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - equal:
+          path: spec.strategy
+          value:
+            type: Recreate

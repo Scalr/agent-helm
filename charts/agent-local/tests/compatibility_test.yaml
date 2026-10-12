@@ -1,0 +1,193 @@
+suite: Existing release compatibility
+templates:
+  - workload.yaml
+  - pvc.yaml
+release:
+  name: storage-test
+  upgrade: true
+set:
+  agent.token: dummy
+tests:
+  - it: defaults to Deployment when reused values lack the new settings
+    set:
+      workload: null
+      persistence.data.mode: null
+      persistence.cache.mode: null
+      persistence.data.persistentVolumeClaim.annotations: null
+      persistence.cache.persistentVolumeClaim.annotations: null
+      persistence.persistentVolumeClaim.annotations: null
+    asserts:
+      - isKind:
+          of: Deployment
+        template: workload.yaml
+      - equal:
+          path: metadata.name
+          value: storage-test-agent-local
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              emptyDir:
+                sizeLimit: 4Gi
+            - name: cache-dir
+              emptyDir:
+                sizeLimit: 20Gi
+        template: workload.yaml
+
+  - it: supplies StatefulSet defaults when reused values only set the kind
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet: null
+      persistence.cache.mode: volumeClaimTemplate
+    asserts:
+      - isSubset:
+          path: spec
+          content:
+            podManagementPolicy: Parallel
+            updateStrategy:
+              type: RollingUpdate
+              rollingUpdate:
+                partition: 0
+            persistentVolumeClaimRetentionPolicy:
+              whenDeleted: Retain
+              whenScaled: Retain
+
+  - it: preserves unlimited emptyDir volumes set to null
+    set:
+      persistence.data.emptyDir.sizeLimit: null
+      persistence.cache.emptyDir.sizeLimit: null
+    template: workload.yaml
+    asserts: &unlimited
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              emptyDir: {}
+            - name: cache-dir
+              emptyDir: {}
+
+  - it: preserves unlimited emptyDir volumes set to an empty string
+    set:
+      persistence.data.emptyDir.sizeLimit: ""
+      persistence.cache.emptyDir.sizeLimit: ""
+    template: workload.yaml
+    asserts: *unlimited
+
+  - it: mounts existing claims without requiring provisioning settings
+    set: &existing_claims
+      persistence.data.enabled: true
+      persistence.data.persistentVolumeClaim:
+        claimName: data-existing
+        storage: null
+        accessMode: null
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim:
+        claimName: cache-existing
+        storage: null
+        accessMode: null
+    asserts: &existing_mounts
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              persistentVolumeClaim:
+                claimName: data-existing
+            - name: cache-dir
+              persistentVolumeClaim:
+                claimName: cache-existing
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: also mounts existing claims on StatefulSets
+    set:
+      <<: *existing_claims
+      workload.kind: StatefulSet
+    asserts: *existing_mounts
+
+  - it: preserves legacy cache claim names and provisioning settings
+    set:
+      workload: null
+      persistence.enabled: true
+      persistence.persistentVolumeClaim.storage: 7Gi
+      persistence.cache.persistentVolumeClaim.storage: 99Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")].persistentVolumeClaim.claimName
+          value: storage-test-agent-local
+        template: workload.yaml
+      - equal:
+          path: metadata.name
+          value: storage-test-agent-local
+        template: pvc.yaml
+      - equal:
+          path: spec.resources.requests.storage
+          value: 7Gi
+        template: pvc.yaml
+
+  - it: gives a legacy existing claim precedence over modern settings
+    set:
+      replicaCount: 2
+      persistence.persistentVolumeClaim:
+        claimName: legacy-existing
+        storage: null
+        accessMode: null
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")].persistentVolumeClaim.claimName
+          value: legacy-existing
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: uses modern cache settings when legacy persistence is disabled
+    set:
+      persistence.enabled: false
+      persistence.persistentVolumeClaim.storage: 7Gi
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.storage: 99Gi
+    asserts:
+      - equal:
+          path: metadata.name
+          value: storage-test-agent-local-cache
+        template: pvc.yaml
+      - equal:
+          path: spec.resources.requests.storage
+          value: 99Gi
+        template: pvc.yaml
+
+  - it: keeps legacy provisioning settings when an explicit mode overrides enabled
+    set:
+      persistence.enabled: true
+      persistence.persistentVolumeClaim.storage: 7Gi
+      persistence.cache.mode: ephemeral
+      persistence.cache.persistentVolumeClaim.storage: 99Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")].ephemeral.volumeClaimTemplate.spec.resources.requests.storage
+          value: 7Gi
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: accepts string replicas and numeric storage quantities
+    set:
+      replicaCount: "2"
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.storage: 4294967296
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 2
+        template: workload.yaml
+      - equal:
+          path: spec.resources.requests.storage
+          value: 4294967296.0
+        template: pvc.yaml

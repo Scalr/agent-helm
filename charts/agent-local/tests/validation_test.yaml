@@ -1,0 +1,80 @@
+suite: Workload and storage validation
+templates:
+  - workload.yaml
+set:
+  agent.token: dummy
+tests:
+  - it: rejects unsupported workload kinds
+    set:
+      workload.kind: DaemonSet
+    asserts: &invalid_kind
+      - failedTemplate:
+          errorPattern: workload.kind
+
+  - it: rejects incorrect workload capitalization
+    set:
+      workload.kind: statefulset
+    asserts: *invalid_kind
+
+  - it: rejects an explicitly empty workload kind
+    set:
+      workload.kind: ""
+    asserts: *invalid_kind
+
+  - it: rejects an unknown data storage mode
+    set:
+      persistence.data.mode: invalid
+    asserts: &invalid_data_mode
+      - failedTemplate:
+          errorPattern: persistence.data.mode
+
+  - it: rejects an unknown cache storage mode
+    set:
+      persistence.cache.mode: invalid
+    asserts: &invalid_cache_mode
+      - failedTemplate:
+          errorPattern: persistence.cache.mode
+
+  - it: rejects data claim templates on a Deployment
+    set:
+      persistence.data.mode: volumeClaimTemplate
+    asserts: *invalid_data_mode
+
+  - it: rejects cache claim templates on a Deployment
+    set:
+      persistence.cache.mode: volumeClaimTemplate
+    asserts: *invalid_cache_mode
+
+  - it: rejects claim templates when old values omit the workload
+    set:
+      workload: null
+      persistence.cache.mode: volumeClaimTemplate
+    asserts: *invalid_cache_mode
+
+  - it: prevents duplicate cache directory environment variables
+    set:
+      extraEnv.SCALR_AGENT_CACHE_DIR: custom
+    asserts:
+      - failedTemplate:
+          errorPattern: "SCALR_AGENT_CACHE_DIR"
+
+  - it: prevents duplicate drain timeout environment variables
+    set:
+      extraEnv.SCALR_AGENT_WORKER_DRAIN_TIMEOUT: custom
+    asserts:
+      - failedTemplate:
+          errorPattern: "SCALR_AGENT_WORKER_DRAIN_TIMEOUT"
+
+  - it: prevents duplicate TLS certificate environment variables
+    set:
+      extraEnv.SCALR_AGENT_TLS_CERT_FILE: custom
+    asserts:
+      - failedTemplate:
+          errorPattern: "SCALR_AGENT_TLS_CERT_FILE"
+
+  - it: prevents duplicate TLS key environment variables
+    set:
+      extraEnv.SCALR_AGENT_TLS_KEY_FILE: custom
+    asserts:
+      - failedTemplate:
+          errorPattern: "SCALR_AGENT_TLS_KEY_FILE"

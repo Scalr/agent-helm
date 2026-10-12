@@ -1,0 +1,272 @@
+suite: Per-pod and shared storage
+templates:
+  - workload.yaml
+  - pvc.yaml
+release:
+  name: storage-test
+set:
+  agent.token: dummy
+  replicaCount: 3
+tests:
+  - it: provisions independent ephemeral data and cache claims for each Deployment pod
+    set: &ephemeral_values
+      persistence.data.mode: ephemeral
+      persistence.cache.mode: ephemeral
+    asserts: &ephemeral_claims
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              ephemeral:
+                volumeClaimTemplate:
+                  spec:
+                    accessModes: [ReadWriteOnce]
+                    resources:
+                      requests:
+                        storage: 4Gi
+            - name: cache-dir
+              ephemeral:
+                volumeClaimTemplate:
+                  spec:
+                    accessModes: [ReadWriteOnce]
+                    resources:
+                      requests:
+                        storage: 20Gi
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: also supports ephemeral volumes on StatefulSets
+    set:
+      <<: *ephemeral_values
+      workload.kind: StatefulSet
+    asserts: *ephemeral_claims
+
+  - it: provisions persistent claims for both StatefulSet directories
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: volumeClaimTemplate
+    asserts:
+      - lengthEqual:
+          path: spec.volumeClaimTemplates
+          count: 2
+        template: workload.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[?(@.metadata.name == "data-dir")].spec
+          value:
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 4Gi
+        template: workload.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[?(@.metadata.name == "cache-dir")].spec
+          value:
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 20Gi
+        template: workload.yaml
+      - equal:
+          path: spec.persistentVolumeClaimRetentionPolicy
+          value:
+            whenDeleted: Retain
+            whenScaled: Retain
+        template: workload.yaml
+      - notExists:
+          path: spec.template.spec.volumes
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: data-dir
+              mountPath: /var/lib/scalr-agent/data
+            - name: cache-dir
+              mountPath: /var/lib/scalr-agent/cache
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: combines persistent data with ephemeral cache on a StatefulSet
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+      persistence.cache.mode: ephemeral
+    asserts:
+      - lengthEqual:
+          path: spec.volumeClaimTemplates
+          count: 1
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: data-dir
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - exists:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")].ephemeral
+
+  - it: combines emptyDir data with persistent cache on a StatefulSet
+    template: workload.yaml
+    set:
+      workload.kind: StatefulSet
+      persistence.cache.mode: volumeClaimTemplate
+    asserts:
+      - lengthEqual:
+          path: spec.volumeClaimTemplates
+          count: 1
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: cache-dir
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              emptyDir:
+                sizeLimit: 4Gi
+
+  - it: creates one shared claim per directory even with multiple replicas
+    set: &shared_values
+      persistence.data.mode: persistentVolumeClaim
+      persistence.cache.mode: persistentVolumeClaim
+    asserts: &shared_claims
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: data-dir
+              persistentVolumeClaim:
+                claimName: storage-test-agent-local-data
+            - name: cache-dir
+              persistentVolumeClaim:
+                claimName: storage-test-agent-local-cache
+        template: workload.yaml
+      - hasDocuments:
+          count: 2
+        template: pvc.yaml
+      - equal:
+          path: spec.accessModes
+          value: [ReadWriteOnce]
+        template: pvc.yaml
+      - equal:
+          path: spec.resources.requests.storage
+          value: 4Gi
+        template: pvc.yaml
+        documentSelector:
+          path: metadata.name
+          value: storage-test-agent-local-data
+      - equal:
+          path: spec.resources.requests.storage
+          value: 20Gi
+        template: pvc.yaml
+        documentSelector:
+          path: metadata.name
+          value: storage-test-agent-local-cache
+
+  - it: also supports shared claims on StatefulSets
+    set:
+      <<: *shared_values
+      workload.kind: StatefulSet
+    asserts: *shared_claims
+
+  - it: preserves shared claim annotations and allows disabling dynamic provisioning
+    set:
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.storageClassName: "-"
+      persistence.cache.persistentVolumeClaim.annotations:
+        helm.sh/resource-policy: keep
+        example.com/owner: agents
+    template: pvc.yaml
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: ""
+      - equal:
+          path: metadata.annotations
+          value:
+            helm.sh/resource-policy: keep
+            example.com/owner: agents
+
+  - it: honors ephemeral claim settings and subpaths without copying Helm retention
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.mode: ephemeral
+      persistence.cache.persistentVolumeClaim: &custom_claim
+        claimName: ignored-existing-claim
+        storageClassName: fast-disks
+        storage: 42Gi
+        accessMode: ReadWriteOncePod
+        subPath: providers
+        annotations:
+          helm.sh/resource-policy: keep
+          example.com/owner: agents
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")].ephemeral.volumeClaimTemplate
+          value:
+            metadata:
+              annotations:
+                example.com/owner: agents
+            spec: &custom_spec
+              accessModes: [ReadWriteOncePod]
+              storageClassName: fast-disks
+              resources:
+                requests:
+                  storage: 42Gi
+        template: workload.yaml
+      - equal: &subpath
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == "cache-dir")].subPath
+          value: providers
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: keeps StatefulSet claim templates stable across chart and app version changes
+    chart:
+      version: 99.0.0
+      appVersion: 99.0.0
+    set:
+      workload.kind: StatefulSet
+      persistence.cache.mode: volumeClaimTemplate
+      persistence.cache.persistentVolumeClaim: *custom_claim
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates
+          value:
+            - metadata:
+                name: cache-dir
+                labels:
+                  app.kubernetes.io/name: agent-local
+                  app.kubernetes.io/instance: storage-test
+                  app.kubernetes.io/component: cache
+                annotations:
+                  example.com/owner: agents
+              spec: *custom_spec
+        template: workload.yaml
+      - equal: *subpath
+        template: workload.yaml
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: scalr/agent:99.0.0
+        template: workload.yaml
+      - hasDocuments:
+          count: 0
+        template: pvc.yaml
+
+  - it: ignores existing claim names and subpaths in emptyDir mode
+    template: workload.yaml
+    set:
+      persistence.cache.mode: emptyDir
+      persistence.cache.persistentVolumeClaim: *custom_claim
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "cache-dir")]
+          value:
+            name: cache-dir
+            emptyDir:
+              sizeLimit: 20Gi
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == "cache-dir")].subPath

@@ -30,15 +30,38 @@ This repository contains multiple charts for different deployment types and use 
 
 ## Development
 
-- Install [pre-commit](https://pre-commit.com/).
-- Install Node.js for building and testing GitHub Actions: [https://nodejs.org/en/download/package-manager](https://nodejs.org/en/download/package-manager)
-- Install [just](https://just.systems/man/en/packages.html) and [uv](https://docs.astral.sh/uv/getting-started/installation/).
-- Install additional dependencies: `just dev`
-- Run chart rendering and validation tests: `just test` (requires Helm; uv manages Python and the locked test dependencies).
-- Format Python tests with Ruff: `just fmt`
-- Check Python test lint, formatting, and types with Ruff and ty: `just lint-tests`
-- Rebuild documentation from templates using [helm-docs](https://github.com/norwoodj/helm-docs): `just docs`
-- List available commands: `just`
+### Requirements
+
+Install these tools using their installation guides or your package manager:
+
+- [just](https://just.systems/man/en/packages.html) >= 1.23 for development commands.
+- [Helm 4](https://helm.sh/docs/intro/install/) for chart tests.
+- [chart-testing](https://github.com/helm/chart-testing#installation) (`ct`) 3.15.0 for chart linting and installation tests.
+- [helm-docs](https://github.com/norwoodj/helm-docs#installation) >= 1.14 for generated documentation.
+- [pre-commit](https://pre-commit.com/#install) and [lychee](https://github.com/lycheeverse/lychee#installation) for Git hooks and link checks.
+
+Pre-commit installs ct's Python dependencies in an isolated environment: Yamale 6.0.0
+validates chart metadata, and yamllint 1.33.0 checks YAML formatting. The chart-testing
+action manages these dependencies in CI.
+
+For local installation tests, also install [Docker](https://docs.docker.com/get-started/get-docker/),
+[kind](https://kind.sigs.k8s.io/docs/user/quick-start/), and [kubectl](https://kubernetes.io/docs/tasks/tools/).
+See [Testing](./TESTING.md#installation-and-upgrade-testing) for cluster setup.
+
+Editing the custom GitHub Action also requires [Node.js and npm](https://nodejs.org/en/download).
+See [GitHub Actions development](./CONTRIBUTING.md#github-actions-development) for setup.
+
+### Setup
+
+Install helm-unittest 1.2.1, then enable Git hooks:
+
+```console
+helm plugin install https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/unittest-1.2.1.tgz --verify=false
+pre-commit install
+```
+
+Run `just` to list available commands. See [Testing](./TESTING.md) and
+[Documentation](./CONTRIBUTING.md#documentation) for the checks to run for your changes.
 
 ## Contributing
 

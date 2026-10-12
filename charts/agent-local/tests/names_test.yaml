@@ -1,0 +1,65 @@
+suite: Kubernetes workload names
+templates:
+  - workload.yaml
+  - service.yaml
+set:
+  agent.token: dummy
+  workload.kind: StatefulSet
+tests:
+  - it: normalizes numeric and dotted release names for the StatefulSet and Service
+    release:
+      name: 123.agents
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-123-agents-agent-local
+      - equal:
+          path: spec.serviceName
+          value: agent-123-agents-agent-local
+        template: workload.yaml
+
+  - it: normalizes numeric and dotted full name overrides
+    set:
+      fullnameOverride: 123.agents
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-123-agents
+      - equal:
+          path: spec.serviceName
+          value: agent-123-agents
+        template: workload.yaml
+
+  - it: leaves room for the revision hash and removes a trailing hyphen after truncation
+    set:
+      fullnameOverride: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-suffix
+    asserts:
+      - equal:
+          path: metadata.name
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      - equal:
+          path: spec.serviceName
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        template: workload.yaml
+
+  - it: keeps long numeric overrides within the StatefulSet name limit
+    set:
+      fullnameOverride: "11111111111111111111111111111111111111111111111111111111111111a"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-1111111111111111111111111111111111111111111111
+      - equal:
+          path: spec.serviceName
+          value: agent-1111111111111111111111111111111111111111111111
+        template: workload.yaml
+
+  - it: preserves existing Deployment names
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      fullnameOverride: 123.agents
+    asserts:
+      - equal:
+          path: metadata.name
+          value: 123.agents

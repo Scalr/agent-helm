@@ -1,11 +1,7 @@
-.ct
 .vscode/
 .idea/
 .env
 .envrc
-.venv/
-.pytest_cache/
-.ruff_cache/
 **/node_modules/
 .*.sh
 __pycache__

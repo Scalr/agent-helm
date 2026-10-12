@@ -9,35 +9,21 @@ repos:
         language: system
         pass_filenames: false
         files: ^\.github/actions/
-      - id: uv-lock
-        name: Check uv lockfile
-        entry: uv lock --check
+      - id: chart-lint
+        name: Lint Helm charts
+        entry: ct lint --config .ct/ct.yaml --all
+        language: python
+        additional_dependencies:
+          - yamale==6.0.0
+          - yamllint==1.33.0
+        pass_filenames: false
+        files: ^(charts/|\.ct/|justfile$|\.pre-commit-config\.yaml$)
+      - id: helm-unittest
+        name: Run Helm unit tests
+        entry: just test
         language: system
         pass_filenames: false
-        files: ^(pyproject\.toml|uv\.lock|\.python-version|\.pre-commit-config\.yaml)$
-      - id: ruff-check
-        name: Lint Python tests with Ruff
-        entry: uv run --locked ruff check --fix tests
-        language: system
-        pass_filenames: false
-        files: &test_tooling ^(tests/.*\.pyi?|pyproject\.toml|uv\.lock|\.python-version|\.pre-commit-config\.yaml)$
-      - id: ruff-format
-        name: Format Python tests with Ruff
-        entry: uv run --locked ruff format tests
-        language: system
-        pass_filenames: false
-        files: *test_tooling
-      - id: ty-check
-        name: Type check Python tests with ty
-        entry: uv run --locked ty check tests
-        language: system
-        pass_filenames: false
-        files: *test_tooling
-  - repo: https://github.com/gruntwork-io/pre-commit
-    rev: v0.1.30
-    hooks:
-      - id: helmlint
-        files: ^\.charts/
+        files: ^(charts/|justfile$|\.pre-commit-config\.yaml$)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

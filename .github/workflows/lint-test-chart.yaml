@@ -5,10 +5,17 @@ on: pull_request
 permissions:
   contents: read
 
+concurrency:
+  group: chart-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   lint-test:
     if: github.repository == 'Scalr/agent-helm'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CT_TARGET_BRANCH: ${{ github.base_ref }}
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
@@ -18,49 +25,43 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2  # v5.0.0
         with:
-          version: v3.11.2
+          version: v4.3.0
 
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
-        with:
-          python-version-file: .python-version
-          check-latest: true
+      - name: Set up helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/unittest-1.2.1.tgz --verify=false
+
+      - name: Run unit tests
+        run: helm unittest --strict charts/*
 
       - name: Set up chart-testing
         uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f  # v2.8.0
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
-          version: "0.13.0"
-          enable-cache: true
+          version: v3.15.0
 
-      - name: Check Python tests
+      - name: Lint charts
+        run: ct lint --config .ct/ct.yaml --all
+
+      - name: Select charts for installation
+        id: changes
         run: |
-          uv run --locked ruff check tests
-          uv run --locked ruff format --check tests
-          uv run --locked ty check tests
-
-      - name: Test agent-local workload and storage rendering
-        run: uv run --locked pytest
-
-      - name: Run chart-testing (list-changed)
-        id: list-changed
-        run: |
-          changed=$(ct list-changed --target-branch ${{ github.event.repository.default_branch }})
-          if [[ -n "$changed" ]]; then
+          changed=$(ct list-changed --config .ct/ct.yaml)
+          if git diff --name-only "origin/$CT_TARGET_BRANCH...HEAD" -- \
+            .ct .github/workflows/lint-test-chart.yaml justfile | grep -q .; then
+            echo "CT_ALL=true" >> "$GITHUB_ENV"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$changed" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run chart-testing (lint)
-        if: steps.list-changed.outputs.changed == 'true'
-        env:
-          CT_CHECK_VERSION_INCREMENT: false
-        run: ct lint --target-branch ${{ github.event.repository.default_branch }}
-
       - name: Create kind cluster
-        if: steps.list-changed.outputs.changed == 'true'
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc  # v1.14.0
+        if: steps.changes.outputs.changed == 'true'
+        uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa  # v1.15.1
+        with:
+          version: v0.33.0
+          config: .ct/kind.yaml
+          node_image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+          kubectl_version: v1.37.1
 
-      - name: Run chart-testing
-        if: steps.list-changed.outputs.changed == 'true'
-        run: ct install --target-branch ${{ github.event.repository.default_branch }} --helm-extra-set-args '--set agent.url=https://scalr.test --set agent.token=foo'
+      - name: Install and upgrade charts
+        if: steps.changes.outputs.changed == 'true'
+        run: ct install --config .ct/ct.yaml --upgrade
