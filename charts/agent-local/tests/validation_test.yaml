@@ -56,12 +56,52 @@ tests:
       persistence.cache.mode: volumeClaimTemplate
     asserts: *invalid_cache_mode
 
-  - it: prevents duplicate cache directory environment variables
+  - it: lists the active reserved keys when rejecting a duplicate cache directory
     set:
       extraEnv.SCALR_AGENT_CACHE_DIR: custom
     asserts:
       - failedTemplate:
-          errorPattern: "SCALR_AGENT_CACHE_DIR"
+          errorPattern: |-
+            ^\s*Reserved keys are:
+              - SCALR_AGENT_NAME
+              - SCALR_URL
+              - SCALR_AGENT_DRIVER
+              - SCALR_AGENT_CONCURRENCY
+              - SCALR_AGENT_DISCONNECT_ON_STOP
+              - SCALR_AGENT_WORKER_ON_STOP_ACTION
+              - SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              - SCALR_AGENT_DATA_DIR
+              - SCALR_AGENT_CACHE_DIR
+              - SCALR_AGENT_TOKEN\s*$
+
+  - it: includes configured drain TLS CA and mirror variables in the reserved keys
+    set:
+      agent.shutdownMode: drain
+      agent.tls.clientCertSecret.name: client-cert
+      agent.tls.caBundleSecret.name: ca-bundle
+      agent.providerNetworkMirrors:
+        - url: https://mirror.example.com
+      extraEnv.SCALR_AGENT_NAME: custom
+    asserts:
+      - failedTemplate:
+          errorPattern: |-
+            ^\s*Reserved keys are:
+              - SCALR_AGENT_NAME
+              - SCALR_URL
+              - SCALR_AGENT_DRIVER
+              - SCALR_AGENT_CONCURRENCY
+              - SCALR_AGENT_DISCONNECT_ON_STOP
+              - SCALR_AGENT_WORKER_ON_STOP_ACTION
+              - SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+              - SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              - SCALR_AGENT_DATA_DIR
+              - SCALR_AGENT_CACHE_DIR
+              - SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
+              - SCALR_AGENT_TOKEN
+              - SCALR_AGENT_TLS_CERT_FILE
+              - SCALR_AGENT_TLS_KEY_FILE
+              - SCALR_AGENT_CA_CERT
+              - SSL_CERT_FILE\s*$
 
   - it: prevents duplicate drain timeout environment variables
     set:

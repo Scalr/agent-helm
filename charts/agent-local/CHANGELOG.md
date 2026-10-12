@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **BREAKING:** Reject `extraEnv` entries that duplicate variables emitted by the chart.
+  Errors list the reserved keys for the current configuration.
   This now includes `SCALR_AGENT_CACHE_DIR`, `SCALR_AGENT_WORKER_DRAIN_TIMEOUT`,
   `SCALR_AGENT_TLS_CERT_FILE`, and `SCALR_AGENT_TLS_KEY_FILE` when set by the chart.
   Use `agent.cacheDir`, shutdown settings, or `agent.tls` for those values.

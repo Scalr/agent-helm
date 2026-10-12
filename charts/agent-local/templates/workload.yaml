@@ -153,7 +153,11 @@ spec:
             {{- end }}
             {{- range $env }}
             {{- if hasKey ($.Values.extraEnv | default dict) .name }}
-            {{- fail (printf "extraEnv contains a key '%s' that is controlled by the Helm chart" .name) }}
+            {{- $reservedEnvVars := list }}
+            {{- range $env }}
+            {{- $reservedEnvVars = append $reservedEnvVars .name }}
+            {{- end }}
+            {{- fail (printf "extraEnv contains a key '%s' that is controlled by the Helm chart.\n\nReserved keys are:\n  - %s" .name (join "\n  - " $reservedEnvVars)) }}
             {{- end }}
             - name: {{ .name }}
               {{- if hasKey . "value" }}
