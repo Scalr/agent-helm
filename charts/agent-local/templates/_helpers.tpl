@@ -26,14 +26,14 @@ If release name contains chart name it will be used as a full name.
 {{- $fullName = printf "%s-%s" .Release.Name $chartName -}}
 {{- end -}}
 {{- end -}}
-{{- $name := $fullName | replace "." "-" -}}
+{{- $name := $fullName | replace "." "-" | trimSuffix "-" -}}
 {{- if regexMatch "^[0-9]" $name -}}
 {{- $name = printf "agent-%s" $name -}}
 {{- end -}}
 {{- if or (ne $name $fullName) (gt (len $name) 52) -}}
 {{- printf "%s-%s" ($name | trunc 43 | trimSuffix "-") ($fullName | sha256sum | trunc 8) -}}
 {{- else -}}
-{{- $name | trimSuffix "-" -}}
+{{- $name -}}
 {{- end -}}
 {{- end }}
 

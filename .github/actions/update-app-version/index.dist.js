@@ -37814,6 +37814,26 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 3195:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const semver = __nccwpck_require__(1383)
+
+function nextChartVersion (currentVersion, latestReleased, changelog) {
+  const base = latestReleased && semver.gt(latestReleased, currentVersion)
+    ? latestReleased
+    : currentVersion
+  const unreleased = changelog.split('## [UNRELEASED]')[1]?.split('\n## ')[0] || ''
+  const breaking = /^\s*-\s+\*\*BREAKING:\*\*/m.test(unreleased)
+  const increment = breaking ? (semver.major(base) === 0 ? 'minor' : 'major') : 'patch'
+  return semver.inc(base, increment)
+}
+
+module.exports = { nextChartVersion }
+
+
+/***/ }),
+
 /***/ 9491:
 /***/ ((module) => {
 
@@ -39733,6 +39753,7 @@ const core = __nccwpck_require__(2186)
 const exec = __nccwpck_require__(1514)
 const github = __nccwpck_require__(5438)
 const semver = __nccwpck_require__(1383)
+const { nextChartVersion } = __nccwpck_require__(3195)
 const fs = __nccwpck_require__(7147)
 const path = __nccwpck_require__(1017)
 
@@ -39779,12 +39800,10 @@ async function updateCharts (chart) {
   const chartData = yaml.load(fs.readFileSync(chartPath, 'utf8'))
 
   const latestReleased = await getLatestReleasedVersion(chart)
-  const base = latestReleased && semver.gt(latestReleased, chartData.version)
-    ? latestReleased
-    : chartData.version
+  const changelog = fs.readFileSync(path.join(chartsDir, chart, 'CHANGELOG.md'), 'utf8')
 
   chartData.appVersion = appVersion
-  chartData.version = semver.inc(base, 'patch')
+  chartData.version = nextChartVersion(chartData.version, latestReleased, changelog)
   const updatedYaml = yaml.dump(chartData, { lineWidth: -1 })
   fs.writeFileSync(chartPath, updatedYaml, 'utf8')
   core.info(`The new version of ${chart} is ${chartData.version}`)

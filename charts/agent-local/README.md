@@ -30,7 +30,7 @@ Deploys a static number of agents and executes runs in shared agent pods.
 ## Prerequisites
 
 - Kubernetes 1.33+
-- Helm 3.0+
+- Helm 3.5+
 - A compatible StorageClass or pre-provisioned PVs for PVC-backed storage (optional)
 - Scalr Agent >= 0.45.0
 
@@ -338,7 +338,8 @@ Deployment uses `strategy`. StatefulSet uses `workload.statefulSet.updateStrateg
 Its default `Parallel` policy scales agents together, while rolling updates replace one pod
 at a time. Set `podManagementPolicy` before installation because it is immutable.
 Claim templates are also immutable, including their size, storage class, and annotations.
-Plan PVC expansion or controller recreation separately.
+Switching a volume to or from `volumeClaimTemplate` requires recreating the StatefulSet.
+Use a separate release for storage-mode changes, then drain the old agents.
 
 StatefulSet PVCs are retained after scale-down and uninstall by default. Configure
 `workload.statefulSet.persistentVolumeClaimRetentionPolicy` to change this behavior.
@@ -504,14 +505,9 @@ The `terminationGracePeriodSeconds` must be at least 10 seconds for `force` mode
 
 ### Pod Eviction
 
-To reduce the risk of Pod eviction for active Scalr agents, the default configuration applies the following annotations for common autoscalers such as Cluster Autoscaler, GKE Autopilot, and Karpenter:
-
-```yaml
-cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
-karpenter.sh/do-not-evict: "true"
-karpenter.sh/do-not-disrupt: "true"
-autopilot.gke.io/priority: "high"
-```
+Set `podAnnotations` to configure eviction protection for your autoscaler.
+The chart's default eviction annotations apply to the workload controller and leave pod
+eviction behavior unchanged.
 
 Monitor node resource pressure and eviction events to ensure stable operation.
 

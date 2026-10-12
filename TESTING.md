@@ -45,7 +45,7 @@ helm unittest --strict -f tests/storage_test.yaml charts/agent-local
 pod readiness, and upgrades with the chart's `ci/*-values.yaml` profiles. CI runs these checks in kind.
 
 Upgrade checks cover the target branch's profiles and an in-place upgrade of each current profile.
-They do not test switching workload kinds or storage modes. Deprecated charts are excluded.
+Workload-kind and storage-mode transitions require separate tests. Deprecated charts are excluded.
 
 These tests use dummy credentials and create and remove releases. The command requires the
 `kind-agent-helm-test` context. Create a disposable cluster:

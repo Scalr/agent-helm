@@ -93,6 +93,30 @@ tests:
           value: agent-123-agents-e5f44cce
         template: workload.yaml
 
+  - it: hashes names that lose a trailing hyphen
+    set:
+      fullnameOverride: abc-
+    asserts:
+      - equal:
+          path: metadata.name
+          value: abc-2211b74f
+      - equal:
+          path: spec.serviceName
+          value: abc-2211b74f
+        template: workload.yaml
+
+  - it: keeps the name without a trailing hyphen distinct
+    set:
+      fullnameOverride: abc
+    asserts:
+      - equal:
+          path: metadata.name
+          value: abc
+      - equal:
+          path: spec.serviceName
+          value: abc
+        template: workload.yaml
+
   - it: preserves valid names at the 52-character boundary
     set:
       fullnameOverride: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"

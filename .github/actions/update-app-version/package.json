@@ -4,9 +4,10 @@
     "description": "Main action fro update-app-version.yaml workflow",
     "main": "index.js",
     "scripts": {
-        "lint": "eslint --config ../.eslintrc.json --fix index.js",
+        "lint": "eslint --config ../.eslintrc.json --fix index.js version.js version.test.js",
+        "test": "node --test version.test.js",
         "build": "ncc build index.js && mv dist/index.js index.dist.js && rm -rf dist",
-        "all": "npm run lint && npm run build"
+        "all": "npm run lint && npm run test && npm run build"
     },
     "author": "Vitalii Motso",
     "dependencies": {

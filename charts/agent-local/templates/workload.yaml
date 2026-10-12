@@ -1,4 +1,4 @@
-{{- /* Older releases using --reuse-values do not have workload settings. */ -}}
+{{- /* Older releases using --reuse-values need the Deployment default. */ -}}
 {{- $kind := (default dict .Values.workload).kind | default "Deployment" -}}
 {{- $data := include "agent-local.persistence.volume" (dict "root" . "name" "data") | fromYaml -}}
 {{- $cache := include "agent-local.persistence.volume" (dict "root" . "name" "cache") | fromYaml -}}
@@ -17,7 +17,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
-  {{- /* TODO: Autoscalers read pod annotations, so these controller annotations do not protect pods.
+  {{- /* TODO: Autoscalers read pod annotations, so these controller annotations leave pods unprotected.
   Move them to spec.template.metadata.annotations, allowing podAnnotations overrides.
   Document the change in eviction behavior for existing installations. */}}
   annotations:
@@ -55,7 +55,7 @@ spec:
     - metadata:
         name: {{ $volume.name }}-dir
         labels:
-          {{- /* Claim template metadata is immutable: do not include chart/app versions. */}}
+          {{- /* Immutable claim template metadata uses stable labels across releases. */}}
           {{- include "agent-local.selectorLabels" $ | nindent 10 }}
           app.kubernetes.io/component: {{ $volume.name }}
         {{- with omit $volume.annotations "helm.sh/resource-policy" }}

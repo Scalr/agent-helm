@@ -79,7 +79,7 @@
         }
     },
     "else": {
-        "description": "volumeClaimTemplate requires workload.kind=StatefulSet; an omitted kind defaults to Deployment.",
+        "description": "volumeClaimTemplate requires workload.kind=StatefulSet. An omitted kind defaults to Deployment.",
         "properties": {
             "persistence": {
                 "properties": {

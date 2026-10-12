@@ -6,6 +6,8 @@ release:
   name: storage-test
 set:
   agent.token: dummy
+  agent.dataDir: /custom/data
+  agent.cacheDir: /custom/cache
   replicaCount: 3
 tests:
   - it: renders Deployment with emptyDir data and emptyDir cache
@@ -15,6 +17,18 @@ tests:
       persistence.data.mode: emptyDir
       persistence.cache.mode: emptyDir
     asserts:
+      - &data_mount
+        equal:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == "data-dir")]
+          value:
+            name: data-dir
+            mountPath: /custom/data
+      - &cache_mount
+        equal:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == "cache-dir")]
+          value:
+            name: cache-dir
+            mountPath: /custom/cache
       - &Deployment
         isKind:
           of: Deployment
@@ -51,6 +65,8 @@ tests:
       persistence.data.mode: emptyDir
       persistence.cache.mode: persistentVolumeClaim
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - *data_emptyDir
       - &cache_persistentVolumeClaim
@@ -87,6 +103,8 @@ tests:
       persistence.cache.mode: ephemeral
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - *data_emptyDir
       - &cache_ephemeral
@@ -112,6 +130,8 @@ tests:
       persistence.data.mode: persistentVolumeClaim
       persistence.cache.mode: emptyDir
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - &data_persistentVolumeClaim
         equal:
@@ -144,6 +164,8 @@ tests:
       persistence.data.mode: persistentVolumeClaim
       persistence.cache.mode: persistentVolumeClaim
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - *data_persistentVolumeClaim
       - *data_claim
@@ -164,6 +186,8 @@ tests:
       persistence.cache.mode: ephemeral
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - *data_persistentVolumeClaim
       - *data_claim
@@ -180,6 +204,8 @@ tests:
       persistence.cache.mode: emptyDir
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - &data_ephemeral
         equal:
@@ -206,6 +232,8 @@ tests:
       persistence.cache.mode: persistentVolumeClaim
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - *data_ephemeral
       - *cache_persistentVolumeClaim
@@ -223,6 +251,8 @@ tests:
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *Deployment
       - *data_ephemeral
       - *cache_ephemeral
@@ -237,6 +267,8 @@ tests:
       persistence.data.mode: emptyDir
       persistence.cache.mode: emptyDir
     asserts:
+      - *data_mount
+      - *cache_mount
       - &StatefulSet
         isKind:
           of: StatefulSet
@@ -253,6 +285,8 @@ tests:
       persistence.data.mode: emptyDir
       persistence.cache.mode: persistentVolumeClaim
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_emptyDir
       - *cache_persistentVolumeClaim
@@ -269,6 +303,8 @@ tests:
       persistence.cache.mode: ephemeral
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_emptyDir
       - *cache_ephemeral
@@ -284,6 +320,8 @@ tests:
       persistence.cache.mode: volumeClaimTemplate
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_emptyDir
       - &cache_volumeClaimTemplate
@@ -311,6 +349,8 @@ tests:
       persistence.data.mode: persistentVolumeClaim
       persistence.cache.mode: emptyDir
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_persistentVolumeClaim
       - *data_claim
@@ -326,6 +366,8 @@ tests:
       persistence.data.mode: persistentVolumeClaim
       persistence.cache.mode: persistentVolumeClaim
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_persistentVolumeClaim
       - *data_claim
@@ -343,6 +385,8 @@ tests:
       persistence.cache.mode: ephemeral
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_persistentVolumeClaim
       - *data_claim
@@ -359,6 +403,8 @@ tests:
       persistence.cache.mode: volumeClaimTemplate
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_persistentVolumeClaim
       - *data_claim
@@ -375,6 +421,8 @@ tests:
       persistence.cache.mode: emptyDir
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_ephemeral
       - *cache_emptyDir
@@ -390,6 +438,8 @@ tests:
       persistence.cache.mode: persistentVolumeClaim
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_ephemeral
       - *cache_persistentVolumeClaim
@@ -407,6 +457,8 @@ tests:
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_ephemeral
       - *cache_ephemeral
@@ -423,6 +475,8 @@ tests:
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_ephemeral
       - *cache_volumeClaimTemplate
@@ -438,6 +492,8 @@ tests:
       persistence.cache.mode: emptyDir
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - &data_volumeClaimTemplate
         equal:
@@ -460,6 +516,8 @@ tests:
       persistence.cache.mode: persistentVolumeClaim
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_volumeClaimTemplate
       - *cache_persistentVolumeClaim
@@ -477,6 +535,8 @@ tests:
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_volumeClaimTemplate
       - *cache_ephemeral
@@ -493,6 +553,8 @@ tests:
       persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
       persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
     asserts:
+      - *data_mount
+      - *cache_mount
       - *StatefulSet
       - *data_volumeClaimTemplate
       - *cache_volumeClaimTemplate
