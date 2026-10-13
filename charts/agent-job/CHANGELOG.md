@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Notable changes** - the default runner image now ships Python 3.14 instead of 3.13 (3.13.11 to 3.14.8). Runs may need attention if hooks, scripts, or provisioners rely on a specific Python version or on packages installed for Python 3.13. Set `task.runner.image.tag: "0.2.0"` to keep the previous image.
 
+## [v0.6.9]
+
+### Updated
+
+- Bumping chart version to v0.6.9 for scalr-agent v1.8.0
+
 ### Added
 
 - `task.hostAliases` and `task.dnsConfig` values, passed through to the task job pod spec, so hostname resolution for runner pods can be steered from the chart instead of by patching the AgentTaskTemplate.

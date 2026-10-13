@@ -1,6 +1,6 @@
 # agent-local
 
-![Version: 0.6.8](https://img.shields.io/badge/Version-0.6.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.7.0](https://img.shields.io/badge/AppVersion-1.7.0-informational?style=flat-square)
+![Version: 0.6.9](https://img.shields.io/badge/Version-0.6.9-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.8.0](https://img.shields.io/badge/AppVersion-1.8.0-informational?style=flat-square)
 
 A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
 Deploys a static number of agents and executes runs in shared agent pods.
@@ -601,6 +601,7 @@ $ helm install scalr-agent scalr-charts/agent-local \
 | extraVolumeMounts | list | <pre>[]</pre> | Additional volume mounts for the Scalr Agent container. Must reference volumes declared in `extraVolumes` (or other pod-level volumes). |
 | extraVolumes | list | <pre>[]</pre> | Additional volumes mounted into the Scalr Agent pod. Use to mount extra secrets, configMaps, or other volumes alongside the chart-managed ones. |
 | podAnnotations | object | <pre>{}</pre> | Annotations for Scalr Agent pods (e.g., for monitoring or logging). |
+| podLabels | object | <pre>{}</pre> | Labels for Scalr Agent pods. Selector labels take precedence over duplicate keys. |
 
 ### Image
 
