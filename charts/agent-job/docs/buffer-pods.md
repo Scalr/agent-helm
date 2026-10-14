@@ -48,7 +48,7 @@ spec:
               cpu: 250m
               memory: 256Mi
         - name: runner
-          image: scalr/runner:0.2.0  # pin to the same tag as task.runner.image.tag
+          image: scalr/runner:0.6.0  # pin to the same tag as task.runner.image.tag
           command: ["sleep", "infinity"]
           resources:
             requests:
