@@ -362,6 +362,9 @@ persistence:
 
 Each replica gets its own 20Gi cache PVC.
 
+StatefulSet agents append the first eight characters of the pod UID to the pod name,
+so a recreated pod connects under a new name.
+
 Deployment uses `strategy`. StatefulSet uses `workload.statefulSet.updateStrategy`.
 Changing `workload.statefulSet.podManagementPolicy` or claim templates requires recreating
 the StatefulSet.

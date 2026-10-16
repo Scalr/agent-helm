@@ -19,6 +19,9 @@
   "SCALR_AGENT_TLS_KEY_FILE"
   "SCALR_AGENT_CA_CERT"
   "SSL_CERT_FILE"
+  "KUBERNETES_WORKLOAD_KIND"
+  "KUBERNETES_POD_NAME"
+  "KUBERNETES_POD_UID"
 -}}
 
 apiVersion: apps/v1
@@ -144,10 +147,19 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
             {{- end }}
+            {{- /* Empty overrides an image default, the agent derives the name from the pod. */}}
             - name: SCALR_AGENT_NAME
+              value: ""
+            - name: KUBERNETES_WORKLOAD_KIND
+              value: {{ $kind }}
+            - name: KUBERNETES_POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: KUBERNETES_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: SCALR_URL
               value: {{ .Values.agent.url | quote }}
             - name: SCALR_AGENT_DRIVER
