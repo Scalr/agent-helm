@@ -3,6 +3,7 @@ const core = require('@actions/core')
 const exec = require('@actions/exec')
 const github = require('@actions/github')
 const semver = require('semver')
+const { nextChartVersion } = require('./version')
 const fs = require('fs')
 const path = require('path')
 
@@ -49,12 +50,10 @@ async function updateCharts (chart) {
   const chartData = yaml.load(fs.readFileSync(chartPath, 'utf8'))
 
   const latestReleased = await getLatestReleasedVersion(chart)
-  const base = latestReleased && semver.gt(latestReleased, chartData.version)
-    ? latestReleased
-    : chartData.version
+  const changelog = fs.readFileSync(path.join(chartsDir, chart, 'CHANGELOG.md'), 'utf8')
 
   chartData.appVersion = appVersion
-  chartData.version = semver.inc(base, 'patch')
+  chartData.version = nextChartVersion(chartData.version, latestReleased, changelog)
   const updatedYaml = yaml.dump(chartData, { lineWidth: -1 })
   fs.writeFileSync(chartPath, updatedYaml, 'utf8')
   core.info(`The new version of ${chart} is ${chartData.version}`)

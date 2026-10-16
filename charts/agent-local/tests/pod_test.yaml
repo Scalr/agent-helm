@@ -1,0 +1,81 @@
+suite: Shared pod configuration
+templates:
+  - workload.yaml
+set:
+  agent.token: dummy
+  agent.shutdownMode: drain
+  agent.tls.clientCertSecret.name: client-tls
+  agent.tls.caBundleSecret.name: ca-bundle
+  podLabels:
+    team: infra
+    app.kubernetes.io/name: cannot-override
+  podAnnotations:
+    example.com/annotation: present
+    karpenter.sh/do-not-disrupt: "false"
+  extraEnv.EXAMPLE: value
+  extraVolumes:
+    - name: config
+      configMap:
+        name: extra-config
+  extraVolumeMounts:
+    - name: config
+      mountPath: /etc/extra-config
+tests:
+  - it: preserves pod settings on a Deployment
+    asserts: &pod_settings
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            karpenter.sh/do-not-disrupt: "false"
+            example.com/annotation: present
+      - isSubset:
+          path: spec.template.metadata.labels
+          content:
+            team: infra
+            app.kubernetes.io/name: agent-local
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: client-cert
+            secret:
+              secretName: client-tls
+              items:
+                - key: tls.crt
+                  path: tls.crt
+                - key: tls.key
+                  path: tls.key
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: ca-bundle
+            secret:
+              secretName: ca-bundle
+              items:
+                - key: ca-bundle.crt
+                  path: ca-bundle.crt
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            configMap:
+              name: extra-config
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /etc/extra-config
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+            value: "50"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: EXAMPLE
+            value: value
+
+  - it: preserves the same pod settings on a StatefulSet
+    set:
+      workload.kind: StatefulSet
+    asserts: *pod_settings

@@ -1,0 +1,23 @@
+replicaCount: 2
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: agent-local
+        topologyKey: kubernetes.io/hostname
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+persistence:
+  data:
+    enabled: true
+    mode: ephemeral
+    persistentVolumeClaim:
+      storage: 128Mi
+  cache:
+    enabled: true
+    mode: ephemeral
+    persistentVolumeClaim:
+      storage: 128Mi

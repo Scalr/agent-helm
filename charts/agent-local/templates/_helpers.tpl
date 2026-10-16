@@ -23,6 +23,26 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 {{- end }}
 
+{{/* Leave room for the revision hash label and use a valid governing Service name. */}}
+{{- define "agent-local.statefulSetName" -}}
+{{- $fullName := .Values.fullnameOverride -}}
+{{- if not $fullName -}}
+{{-   $chartName := .Values.nameOverride | default .Chart.Name -}}
+{{-   $fullName = .Release.Name -}}
+{{-   if not (contains $chartName .Release.Name) -}}
+{{-     $fullName = printf "%s-%s" .Release.Name $chartName -}}
+{{-   end -}}
+{{- end -}}
+{{- $name := $fullName | replace "." "-" | trimSuffix "-" -}}
+{{- if regexMatch "^[0-9]" $name -}}
+{{-   $name = printf "agent-%s" $name -}}
+{{- end -}}
+{{- if or (ne $name $fullName) (gt (len $name) 52) -}}
+{{-   printf "%s-%s" ($name | trunc 43 | trimSuffix "-") ($fullName | sha256sum | trunc 8) -}}
+{{- else -}}
+{{-   $name -}}
+{{- end -}}
+{{- end }}
 
 {{/*
 Create chart name and version as used by the chart label.
@@ -48,7 +68,7 @@ Selector labels
 */}}
 {{- define "agent-local.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "agent-local.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end }}
 
 {{/*
@@ -60,42 +80,4 @@ Create the name of the service account to use
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
-{{- end }}
-
-{{/*
-Returns "true" if the deprecated top-level persistence keys are in use.
-Triggered when `persistence.enabled` is true or the legacy `persistence.persistentVolumeClaim.claimName` is non-empty.
-*/}}
-{{- define "agent-local.persistence.usingDeprecated" -}}
-{{- if or .Values.persistence.enabled (ne (default "" .Values.persistence.persistentVolumeClaim.claimName) "") -}}
-true
-{{- end -}}
-{{- end }}
-
-{{/*
-Effective cache persistence config as a dict with keys:
-  enabled, claimName, storageClassName, storage, accessMode, subPath, emptyDirSizeLimit, defaultClaimName
-When the deprecated top-level schema is in use, falls back to legacy `persistence.persistentVolumeClaim.*` and `persistence.enabled`,
-and preserves the legacy default PVC name (`<fullname>`) to avoid orphaning existing PVCs on upgrade.
-*/}}
-{{- define "agent-local.persistence.cache" -}}
-{{- $deprecated := eq (include "agent-local.persistence.usingDeprecated" .) "true" -}}
-{{- $enabled := or .Values.persistence.cache.enabled .Values.persistence.enabled -}}
-{{- $pvc := .Values.persistence.cache.persistentVolumeClaim -}}
-{{- $defaultClaimName := printf "%s-cache" (include "agent-local.fullname" .) -}}
-{{- if $deprecated -}}
-  {{- $pvc = .Values.persistence.persistentVolumeClaim -}}
-  {{- $defaultClaimName = include "agent-local.fullname" . -}}
-{{- end -}}
-{{- $out := dict
-    "enabled" $enabled
-    "claimName" (default "" $pvc.claimName)
-    "storageClassName" (default "" $pvc.storageClassName)
-    "storage" $pvc.storage
-    "accessMode" $pvc.accessMode
-    "subPath" (default "" $pvc.subPath)
-    "emptyDirSizeLimit" .Values.persistence.cache.emptyDir.sizeLimit
-    "defaultClaimName" $defaultClaimName
--}}
-{{- toYaml $out -}}
 {{- end }}

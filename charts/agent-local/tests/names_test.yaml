@@ -1,0 +1,212 @@
+suite: Kubernetes workload names
+templates:
+  - workload.yaml
+  - service.yaml
+set:
+  agent.token: dummy
+  workload.kind: StatefulSet
+tests:
+  - it: keeps ordinary release names
+    release:
+      name: "storage-test"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: storage-test-agent-local
+      - equal:
+          path: spec.serviceName
+          value: storage-test-agent-local
+        template: workload.yaml
+
+  - it: normalizes numeric release names without colliding with prefixed names
+    release:
+      name: "123"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-123-agent-local-169ed848
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "123"
+      - equal:
+          path: spec.serviceName
+          value: agent-123-agent-local-169ed848
+        template: workload.yaml
+
+  - it: keeps already prefixed release names distinct
+    release:
+      name: "agent-123"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-123-agent-local
+      - equal:
+          path: spec.serviceName
+          value: agent-123-agent-local
+        template: workload.yaml
+
+  - it: normalizes dotted numeric releases
+    release:
+      name: "123.agents"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-123-agents-agent-local-e16ac4dd
+      - equal:
+          path: spec.serviceName
+          value: agent-123-agents-agent-local-e16ac4dd
+        template: workload.yaml
+
+  - it: normalizes dotted overrides without colliding with dashed names
+    set:
+      fullnameOverride: "abc.def"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: abc-def-ebb3127b
+      - equal:
+          path: spec.serviceName
+          value: abc-def-ebb3127b
+        template: workload.yaml
+
+  - it: keeps dashed overrides distinct
+    set:
+      fullnameOverride: "abc-def"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: abc-def
+      - equal:
+          path: spec.serviceName
+          value: abc-def
+        template: workload.yaml
+
+  - it: normalizes numeric full name overrides
+    set:
+      fullnameOverride: "123.agents"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-123-agents-e5f44cce
+      - equal:
+          path: spec.serviceName
+          value: agent-123-agents-e5f44cce
+        template: workload.yaml
+
+  - it: hashes names that lose a trailing hyphen
+    set:
+      fullnameOverride: abc-
+    asserts:
+      - equal:
+          path: metadata.name
+          value: abc-2211b74f
+      - equal:
+          path: spec.serviceName
+          value: abc-2211b74f
+        template: workload.yaml
+
+  - it: keeps the name without a trailing hyphen distinct
+    set:
+      fullnameOverride: abc
+    asserts:
+      - equal:
+          path: metadata.name
+          value: abc
+      - equal:
+          path: spec.serviceName
+          value: abc
+        template: workload.yaml
+
+  - it: preserves valid names at the 52-character boundary
+    set:
+      fullnameOverride: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      - equal:
+          path: spec.serviceName
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        template: workload.yaml
+
+  - it: preserves uniqueness after character 52 for the first name
+    set:
+      fullnameOverride: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-first"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-92678b0c
+      - equal:
+          path: spec.serviceName
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-92678b0c
+        template: workload.yaml
+
+  - it: preserves uniqueness after character 52 for the second name
+    set:
+      fullnameOverride: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-second"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-4b12f04a
+      - equal:
+          path: spec.serviceName
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-4b12f04a
+        template: workload.yaml
+
+  - it: hashes the first full input before the 63-character truncation
+    set:
+      fullnameOverride: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-first"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-5d51fb1f
+      - equal:
+          path: spec.serviceName
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-5d51fb1f
+        template: workload.yaml
+
+  - it: hashes the second full input before the 63-character truncation
+    set:
+      fullnameOverride: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-second"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-8e17d119
+      - equal:
+          path: spec.serviceName
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-8e17d119
+        template: workload.yaml
+
+  - it: avoids a double hyphen at the hash boundary
+    set:
+      fullnameOverride: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-long-suffix"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-a37a31f4
+      - equal:
+          path: spec.serviceName
+          value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-a37a31f4
+        template: workload.yaml
+
+  - it: keeps long numeric overrides within the StatefulSet limit
+    set:
+      fullnameOverride: "1111111111111111111111111111111111111111111111111111111111a"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: agent-1111111111111111111111111111111111111-04d521e0
+      - equal:
+          path: spec.serviceName
+          value: agent-1111111111111111111111111111111111111-04d521e0
+        template: workload.yaml
+
+  - it: preserves existing Deployment names
+    template: workload.yaml
+    set:
+      workload.kind: Deployment
+      fullnameOverride: 123.agents
+    asserts:
+      - equal:
+          path: metadata.name
+          value: 123.agents

@@ -1,0 +1,262 @@
+suite: Workload and storage validation
+templates:
+  - workload.yaml
+  - pvc.yaml
+set:
+  agent.token: dummy
+tests:
+  - it: rejects the removed top-level persistence flag
+    set:
+      persistence.enabled: true
+    asserts: &removed_persistence
+      - failedTemplate:
+          errorPattern: |-
+            Move the old settings under persistence.cache. For example:
+
+            persistence:
+              cache:
+                enabled: true
+                persistentVolumeClaim:
+                  storage: 20Gi
+        template: pvc.yaml
+
+  - it: rejects a legacy claim name even when legacy persistence is disabled
+    set:
+      persistence.enabled: false
+      persistence.persistentVolumeClaim.claimName: legacy-cache
+    asserts: *removed_persistence
+
+  - it: rejects removed settings alongside current cache settings
+    set:
+      workload.kind: StatefulSet
+      persistence.cache.enabled: true
+      persistence.cache.mode: volumeClaimTemplate
+      persistence.persistentVolumeClaim.claimName: legacy-cache
+    asserts: *removed_persistence
+
+  - it: rejects unsupported workload kinds
+    set:
+      workload.kind: DaemonSet
+    asserts: &invalid_kind
+      - failedTemplate:
+          errorPattern: workload.kind
+
+  - it: rejects incorrect workload capitalization
+    set:
+      workload.kind: statefulset
+    asserts: *invalid_kind
+
+  - it: rejects unsupported StatefulSet pod management policies
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.podManagementPolicy: Foo
+    asserts:
+      - failedTemplate:
+          errorPattern: podManagementPolicy
+
+  - it: rejects unsupported StatefulSet update strategy types
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.updateStrategy.type: Recreate
+    asserts:
+      - failedTemplate:
+          errorPattern: updateStrategy
+
+  - it: rejects a negative StatefulSet rolling update partition
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.updateStrategy.rollingUpdate.partition: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: partition
+
+  - it: rejects unsupported StatefulSet PVC retention policies
+    set:
+      workload.kind: StatefulSet
+      workload.statefulSet.persistentVolumeClaimRetentionPolicy.whenScaled: Keep
+    asserts:
+      - failedTemplate:
+          errorPattern: whenScaled
+
+  - it: rejects non-string workload kinds
+    set:
+      workload.kind: 1
+    asserts: *invalid_kind
+
+  - it: rejects an explicitly empty workload kind
+    set:
+      workload.kind: ""
+    asserts: *invalid_kind
+
+  - it: rejects an unknown data storage mode
+    set:
+      persistence.data.mode: invalid
+    asserts: &invalid_data_mode
+      - failedTemplate:
+          errorPattern: persistence.data
+
+  - it: rejects an unknown cache storage mode
+    set:
+      persistence.cache.mode: invalid
+    asserts: &invalid_cache_mode
+      - failedTemplate:
+          errorPattern: persistence.cache
+
+  - it: rejects emptyDir as a data persistence mode
+    set:
+      persistence.data.enabled: true
+      persistence.data.mode: emptyDir
+    asserts: *invalid_data_mode
+
+  - it: rejects emptyDir as a cache persistence mode
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.mode: emptyDir
+    asserts: *invalid_cache_mode
+
+  - it: rejects a data mode when persistence is disabled
+    set:
+      persistence.data.mode: persistentVolumeClaim
+    asserts: &disabled_data_mode
+      - failedTemplate:
+          errorMessage: persistence.data.mode requires persistence.data.enabled=true. Enable persistence or remove mode to use emptyDir.
+        template: pvc.yaml
+
+  - it: rejects a cache mode when persistence is disabled
+    set:
+      persistence.cache.mode: ephemeral
+    asserts: &disabled_cache_mode
+      - failedTemplate:
+          errorMessage: persistence.cache.mode requires persistence.cache.enabled=true. Enable persistence or remove mode to use emptyDir.
+        template: pvc.yaml
+
+  - it: rejects data claim templates when StatefulSet persistence is disabled
+    set:
+      workload.kind: StatefulSet
+      persistence.data.mode: volumeClaimTemplate
+    asserts: *disabled_data_mode
+
+  - it: rejects cache claim templates when StatefulSet persistence is disabled
+    set:
+      workload.kind: StatefulSet
+      persistence.cache.mode: volumeClaimTemplate
+    asserts: *disabled_cache_mode
+
+  - it: rejects a mode when a reused persistence flag is null
+    set:
+      persistence.cache.enabled: null
+      persistence.cache.mode: ephemeral
+    asserts: *disabled_cache_mode
+
+  - it: rejects data claim templates on a Deployment
+    set:
+      persistence.data.enabled: true
+      persistence.data.mode: volumeClaimTemplate
+    asserts:
+      - failedTemplate:
+          errorMessage: |-
+            For Deployment, use --set persistence.data.mode=ephemeral for a separate PVC per pod (deleted with the pod).
+            For persistent storage per replica, use --set workload.kind=StatefulSet.
+        template: pvc.yaml
+
+  - it: rejects cache claim templates on a Deployment
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.mode: volumeClaimTemplate
+    asserts: &cache_requires_statefulset
+      - failedTemplate:
+          errorMessage: |-
+            For Deployment, use --set persistence.cache.mode=ephemeral for a separate PVC per pod (deleted with the pod).
+            For persistent storage per replica, use --set workload.kind=StatefulSet.
+        template: pvc.yaml
+
+  - it: rejects claim templates when old values omit the workload
+    set:
+      workload: null
+      persistence.cache.enabled: true
+      persistence.cache.mode: volumeClaimTemplate
+    asserts: *cache_requires_statefulset
+
+  - it: rejects a shared cache RWOP claim across StatefulSet replicas
+    set:
+      workload.kind: StatefulSet
+      replicaCount: 2
+      persistence.cache.enabled: true
+      persistence.cache.mode: persistentVolumeClaim
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: &shared_cache_replicas
+      - failedTemplate:
+          errorPattern: |-
+            ReadWriteOncePod allows only one pod to mount this PVC.
+
+            For a separate cache for each replica, add:
+              StatefulSet: --set persistence.cache.mode=volumeClaimTemplate
+              Deployment:  --set persistence.cache.mode=ephemeral
+        template: pvc.yaml
+
+  - it: rejects a shared data RWOP claim across Deployment replicas even with Recreate
+    set:
+      replicaCount: "2"
+      strategy.type: Recreate
+      persistence.data.enabled: true
+      persistence.data.mode: persistentVolumeClaim
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: &shared_data_replicas
+      - failedTemplate:
+          errorPattern: |-
+            ReadWriteOncePod allows only one pod to mount this PVC.
+
+            For separate storage for each replica, add:
+              StatefulSet: --set persistence.data.mode=volumeClaimTemplate
+              Deployment:  --set persistence.data.mode=ephemeral
+        template: pvc.yaml
+
+  - it: rejects multiple replicas when enabled selects a shared data RWOP claim
+    set:
+      replicaCount: 2
+      persistence.data.enabled: "true"
+      persistence.data.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_data_replicas
+
+  - it: rejects multiple replicas when enabled selects a shared cache RWOP claim
+    set:
+      workload: null
+      replicaCount: 2
+      persistence.cache.enabled: true
+      persistence.cache.persistentVolumeClaim.accessMode: ReadWriteOncePod
+    asserts: *shared_cache_replicas
+
+  - it: lists all reserved keys when rejecting a chart-controlled variable
+    set:
+      extraEnv.SCALR_AGENT_NAME: custom
+    asserts: &reserved_keys
+      - failedTemplate:
+          errorPattern: |-
+            ^\s*Reserved keys are:
+              - SCALR_AGENT_NAME
+              - SCALR_URL
+              - SCALR_AGENT_DRIVER
+              - SCALR_AGENT_CONCURRENCY
+              - SCALR_AGENT_DISCONNECT_ON_STOP
+              - SCALR_AGENT_WORKER_ON_STOP_ACTION
+              - SCALR_AGENT_WORKER_GRACE_SHUTDOWN_TIMEOUT
+              - SCALR_AGENT_WORKER_DRAIN_TIMEOUT
+              - SCALR_AGENT_DATA_DIR
+              - SCALR_AGENT_CACHE_DIR
+              - SCALR_AGENT_PROVIDER_NETWORK_MIRRORS
+              - SCALR_AGENT_TOKEN
+              - SCALR_AGENT_TLS_CERT_FILE
+              - SCALR_AGENT_TLS_KEY_FILE
+              - SCALR_AGENT_CA_CERT
+              - SSL_CERT_FILE\s*$
+        template: workload.yaml
+
+  - it: keeps the same reserved keys with drain TLS CA and mirror settings
+    set:
+      agent.shutdownMode: drain
+      agent.tls.clientCertSecret.name: client-cert
+      agent.tls.caBundleSecret.name: ca-bundle
+      agent.providerNetworkMirrors:
+        - url: https://mirror.example.com
+      extraEnv.SCALR_AGENT_NAME: custom
+    asserts: *reserved_keys

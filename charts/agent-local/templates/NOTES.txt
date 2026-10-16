@@ -4,8 +4,61 @@ Release name: {{ .Release.Name }}
 Namespace:    {{ .Release.Namespace }}
 Chart:        {{ .Chart.Name }}-{{ .Chart.Version }} (appVersion {{ .Chart.AppVersion }})
 
+{{- if and
+  (gt (.Values.replicaCount | int) 1)
+  .Values.persistence.data.enabled
+  (eq (.Values.persistence.data.mode | default (ternary "volumeClaimTemplate" "persistentVolumeClaim" (eq (.Values.workload).kind "StatefulSet"))) "persistentVolumeClaim")
+  (not .Values.persistence.data.persistentVolumeClaim.claimName)
+  (eq .Values.persistence.data.persistentVolumeClaim.accessMode "ReadWriteOnce")
+}}
+
+WARNING: persistence.data uses one ReadWriteOnce PVC for multiple replicas.
+  Keep all replicas on the same node to avoid volume attachment failures.
+  For separate PVCs, use persistence.data.mode=ephemeral (deleted with each pod),
+  or workload.kind=StatefulSet with persistence.data.mode=volumeClaimTemplate.
+{{- end }}
+
+{{- if and
+  (gt (.Values.replicaCount | int) 1)
+  .Values.persistence.cache.enabled
+  (eq (.Values.persistence.cache.mode | default (ternary "volumeClaimTemplate" "persistentVolumeClaim" (eq (.Values.workload).kind "StatefulSet"))) "persistentVolumeClaim")
+  (not .Values.persistence.cache.persistentVolumeClaim.claimName)
+  (eq .Values.persistence.cache.persistentVolumeClaim.accessMode "ReadWriteOnce")
+}}
+
+WARNING: persistence.cache uses one ReadWriteOnce PVC for multiple replicas.
+  Keep all replicas on the same node to avoid volume attachment failures.
+  For separate PVCs, use persistence.cache.mode=ephemeral (deleted with each pod),
+  or workload.kind=StatefulSet with persistence.cache.mode=volumeClaimTemplate.
+{{- end }}
+
+{{- if and
+  (ne (.Values.workload).kind "StatefulSet")
+  (eq (.Values.strategy.type | default "RollingUpdate") "RollingUpdate")
+  (not (has ((.Values.strategy.rollingUpdate).maxSurge | toString) (list "0" "0%")))
+}}
+{{- range $name := list "data" "cache" }}
+{{- $volume := index $.Values.persistence $name }}
+{{- if and
+  $volume.enabled
+  (eq ($volume.mode | default "persistentVolumeClaim") "persistentVolumeClaim")
+  (not $volume.persistentVolumeClaim.claimName)
+  (has $volume.persistentVolumeClaim.accessMode (list "ReadWriteOnce" "ReadWriteOncePod"))
+}}
+
+WARNING: Deployment rolling updates can stall with the shared {{ $volume.persistentVolumeClaim.accessMode }} PVC for persistence.{{ $name }}.
+  A new pod waits for the volume while the old pod still uses it.
+  Set strategy.type=Recreate, or strategy.rollingUpdate.maxSurge=0, so the old pod releases the volume first.
+  For separate PVCs, use persistence.{{ $name }}.mode=ephemeral (deleted with each pod).
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- if .Release.IsUpgrade }}
-{{- $existing := lookup "apps/v1" "Deployment" .Release.Namespace (include "agent-local.fullname" .) }}
+{{- $existing := or
+  (lookup "apps/v1" "Deployment" .Release.Namespace (include "agent-local.fullname" .))
+  (lookup "apps/v1" "StatefulSet" .Release.Namespace (include "agent-local.statefulSetName" .))
+}}
 {{- if $existing }}
 {{- $prevImage := "" }}
 {{- range $c := $existing.spec.template.spec.containers }}
@@ -25,25 +78,4 @@ WARNING: Default agent image changed from `scalr/agent-runner` to `scalr/agent`.
   See https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md#v060 for details.
 {{- end }}
 {{- end }}
-{{- end }}
-
-{{- if eq (include "agent-local.persistence.usingDeprecated" .) "true" }}
-
-WARNING: Deprecated persistence configuration detected.
-  The top-level `persistence.enabled` and `persistence.persistentVolumeClaim.*` keys are deprecated
-  and will be removed in a future release. They were honored for this release for backward compatibility.
-
-  Migrate to the per-volume schema:
-
-    persistence:
-      cache:
-        enabled: {{ .Values.persistence.enabled }}
-        persistentVolumeClaim:
-          claimName: {{ .Values.persistence.persistentVolumeClaim.claimName | quote }}
-          storageClassName: {{ .Values.persistence.persistentVolumeClaim.storageClassName | quote }}
-          storage: {{ .Values.persistence.persistentVolumeClaim.storage }}
-          accessMode: {{ .Values.persistence.persistentVolumeClaim.accessMode }}
-          subPath: {{ .Values.persistence.persistentVolumeClaim.subPath | quote }}
-
-  See the chart README for the full schema and the new `persistence.data.*` options.
 {{- end }}

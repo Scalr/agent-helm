@@ -1,0 +1,23 @@
+replicaCount: 2
+strategy:
+  type: Recreate
+affinity:
+  podAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: agent-local
+        topologyKey: kubernetes.io/hostname
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+persistence:
+  data:
+    enabled: true
+    persistentVolumeClaim:
+      storage: 128Mi
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      storage: 128Mi

@@ -21,6 +21,91 @@
             "type": "integer",
             "minimum": 10,
             "description": "Kubernetes pod termination grace period in seconds."
+        },
+        "workload": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "enum": [
+                        "Deployment",
+                        "StatefulSet"
+                    ]
+                },
+                "statefulSet": {
+                    "type": "object",
+                    "properties": {
+                        "podManagementPolicy": {
+                            "enum": [
+                                "Parallel",
+                                "OrderedReady"
+                            ]
+                        },
+                        "updateStrategy": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "enum": [
+                                        "RollingUpdate",
+                                        "OnDelete"
+                                    ]
+                                },
+                                "rollingUpdate": {
+                                    "type": "object",
+                                    "properties": {
+                                        "partition": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "persistentVolumeClaimRetentionPolicy": {
+                            "type": "object",
+                            "properties": {
+                                "whenDeleted": {
+                                    "enum": [
+                                        "Retain",
+                                        "Delete"
+                                    ]
+                                },
+                                "whenScaled": {
+                                    "enum": [
+                                        "Retain",
+                                        "Delete"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "persistence": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/volume"
+                },
+                "cache": {
+                    "$ref": "#/definitions/volume"
+                }
+            }
+        }
+    },
+    "definitions": {
+        "volume": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "enum": [
+                        "",
+                        "persistentVolumeClaim",
+                        "ephemeral",
+                        "volumeClaimTemplate"
+                    ]
+                }
+            }
         }
     }
 }

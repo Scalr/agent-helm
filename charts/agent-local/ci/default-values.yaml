@@ -1,0 +1,5 @@
+# Keep the default Deployment profile when ct discovers other CI values files.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi

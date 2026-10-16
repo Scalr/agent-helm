@@ -12,6 +12,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `podLabels` value to add custom labels to Scalr Agent pods.
+- StatefulSet support via `workload.kind: StatefulSet`, with persistent storage per replica.
+  Deployment remains the default. See [Workload selection](README.md#workload-selection).
+- `persistence.data.mode` and `persistence.cache.mode` to choose shared PVCs, generic ephemeral
+  PVCs, or StatefulSet claim templates. See [Storage modes](README.md#storage-modes).
+- PVC annotations via `persistence.data.persistentVolumeClaim.annotations` and
+  `persistence.cache.persistentVolumeClaim.annotations`.
+- Warnings for shared chart-created PVCs that can block replica scheduling or Deployment rolling updates.
+- Validation of `workload.statefulSet` pod management, update, and PVC retention settings.
+
+### Changed
+
+- **BREAKING:** Reject multiple replicas when the chart creates a shared `ReadWriteOncePod`
+  claim for data or cache. Use at most one replica, switch to per-pod storage,
+  or use `ReadWriteMany` with a compatible storage class.
+
+### Removed
+
+- **BREAKING:** Remove support for the top-level `persistence.enabled` and
+  `persistence.persistentVolumeClaim.*` keys, deprecated in [v0.6.1](#v061). If legacy
+  `persistence.enabled` is true or a legacy `claimName` is set, move these settings under
+  `persistence.cache` before upgrading. Migrating a chart-created cache replaces its PVC
+  with an empty claim; back up any cache data you need. Unused legacy settings are ignored.
+
+  Before:
+
+  ```yaml
+  persistence:
+    enabled: true
+    persistentVolumeClaim:
+      storage: 20Gi
+  ```
+
+  After:
+
+  ```yaml
+  persistence:
+    cache:
+      enabled: true
+      persistentVolumeClaim:
+        storage: 20Gi
+  ```
+
+### Fixed
+
+- **BREAKING:** Reject `SCALR_AGENT_CACHE_DIR`, `SCALR_AGENT_WORKER_DRAIN_TIMEOUT`,
+  `SCALR_AGENT_TLS_CERT_FILE`, and `SCALR_AGENT_TLS_KEY_FILE` in `extraEnv` to prevent duplicate
+  chart-controlled variables. Use `agent.cacheDir`, `agent.shutdownMode` with `terminationGracePeriodSeconds`, and
+  `agent.tls.*` instead.
 
 ## [v0.6.9]
 

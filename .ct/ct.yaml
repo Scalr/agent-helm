@@ -1,0 +1,12 @@
+chart-dirs:
+  - charts
+target-branch: master
+exclude-deprecated: true
+check-version-increment: false
+chart-yaml-schema: .ct/chart_schema.yaml
+lint-conf: .ct/lintconf.yaml
+helm-lint-extra-args: --set agent.url=https://scalr.test --set agent.token=dummy
+# Dummy JWT payload: {"sub":"apool-ci"}.
+helm-extra-set-args: >-
+  --set agent.url=https://scalr.test
+  --set agent.token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhcG9vbC1jaSJ9.dGVzdA

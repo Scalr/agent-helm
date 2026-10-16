@@ -1,4 +1,47 @@
-{{- if and .Values.persistence.data.enabled (not .Values.persistence.data.persistentVolumeClaim.claimName) }}
+{{- if or (.Values.persistence).enabled ((.Values.persistence).persistentVolumeClaim).claimName -}}
+{{-   fail `persistence.enabled and persistence.persistentVolumeClaim were removed after deprecation in v0.6.1.
+Move the old settings under persistence.cache. For example:
+
+persistence:
+  cache:
+    enabled: true
+    persistentVolumeClaim:
+      storage: 20Gi` -}}
+{{- end -}}
+
+{{- if and .Values.persistence.data.mode (not .Values.persistence.data.enabled) -}}
+{{-   fail "persistence.data.mode requires persistence.data.enabled=true. Enable persistence or remove mode to use emptyDir." -}}
+{{- end -}}
+{{- if and .Values.persistence.cache.mode (not .Values.persistence.cache.enabled) -}}
+{{-   fail "persistence.cache.mode requires persistence.cache.enabled=true. Enable persistence or remove mode to use emptyDir." -}}
+{{- end -}}
+
+{{- if and (eq .Values.persistence.data.mode "volumeClaimTemplate") (ne (.Values.workload).kind "StatefulSet") -}}
+{{-   fail `persistence.data.mode=volumeClaimTemplate requires workload.kind=StatefulSet.
+For Deployment, use --set persistence.data.mode=ephemeral for a separate PVC per pod (deleted with the pod).
+For persistent storage per replica, use --set workload.kind=StatefulSet.` -}}
+{{- end -}}
+{{- if and (eq .Values.persistence.cache.mode "volumeClaimTemplate") (ne (.Values.workload).kind "StatefulSet") -}}
+{{-   fail `persistence.cache.mode=volumeClaimTemplate requires workload.kind=StatefulSet.
+For Deployment, use --set persistence.cache.mode=ephemeral for a separate PVC per pod (deleted with the pod).
+For persistent storage per replica, use --set workload.kind=StatefulSet.` -}}
+{{- end -}}
+
+{{- if and
+  .Values.persistence.data.enabled
+  (eq (.Values.persistence.data.mode | default (ternary "volumeClaimTemplate" "persistentVolumeClaim" (eq (.Values.workload).kind "StatefulSet"))) "persistentVolumeClaim")
+  (not .Values.persistence.data.persistentVolumeClaim.claimName)
+}}
+{{- if and (gt (.Values.replicaCount | int) 1) (eq .Values.persistence.data.persistentVolumeClaim.accessMode "ReadWriteOncePod") -}}
+{{-   fail `persistence.data: shared ReadWriteOncePod storage requires replicaCount <= 1.
+ReadWriteOncePod allows only one pod to mount this PVC.
+
+For separate storage for each replica, add:
+  StatefulSet: --set persistence.data.mode=volumeClaimTemplate
+  Deployment:  --set persistence.data.mode=ephemeral (storage is deleted with the pod)
+
+To keep shared storage, use --set replicaCount=1 or configure persistence.data.persistentVolumeClaim.accessMode=ReadWriteMany with a compatible storage class.` -}}
+{{- end }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -7,6 +50,10 @@ metadata:
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
     app.kubernetes.io/component: data
+  {{- with .Values.persistence.data.persistentVolumeClaim.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   accessModes:
     - {{ .Values.persistence.data.persistentVolumeClaim.accessMode }}
@@ -18,26 +65,41 @@ spec:
   {{- end }}
 {{- end }}
 
-{{- $cache := fromYaml (include "agent-local.persistence.cache" .) }}
-{{- if and $cache.enabled (not $cache.claimName) }}
-{{- if .Values.persistence.data.enabled }}
----
+{{- if and
+  .Values.persistence.cache.enabled
+  (eq (.Values.persistence.cache.mode | default (ternary "volumeClaimTemplate" "persistentVolumeClaim" (eq (.Values.workload).kind "StatefulSet"))) "persistentVolumeClaim")
+  (not .Values.persistence.cache.persistentVolumeClaim.claimName)
+}}
+{{- if and (gt (.Values.replicaCount | int) 1) (eq .Values.persistence.cache.persistentVolumeClaim.accessMode "ReadWriteOncePod") -}}
+{{-   fail `persistence.cache: shared ReadWriteOncePod storage requires replicaCount <= 1.
+ReadWriteOncePod allows only one pod to mount this PVC.
+
+For a separate cache for each replica, add:
+  StatefulSet: --set persistence.cache.mode=volumeClaimTemplate
+  Deployment:  --set persistence.cache.mode=ephemeral (cache is deleted with the pod)
+
+To keep shared storage, use --set replicaCount=1 or configure persistence.cache.persistentVolumeClaim.accessMode=ReadWriteMany with a compatible storage class.` -}}
 {{- end }}
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ $cache.defaultClaimName }}
+  name: {{ include "agent-local.fullname" . }}-cache
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "agent-local.labels" . | nindent 4 }}
     app.kubernetes.io/component: cache
+  {{- with .Values.persistence.cache.persistentVolumeClaim.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   accessModes:
-    - {{ $cache.accessMode }}
+    - {{ .Values.persistence.cache.persistentVolumeClaim.accessMode }}
   resources:
     requests:
-      storage: {{ $cache.storage }}
-  {{- with $cache.storageClassName }}
+      storage: {{ .Values.persistence.cache.persistentVolumeClaim.storage }}
+  {{- with .Values.persistence.cache.persistentVolumeClaim.storageClassName }}
   storageClassName: {{ ternary "" . (eq . "-") | quote }}
   {{- end }}
 {{- end }}
