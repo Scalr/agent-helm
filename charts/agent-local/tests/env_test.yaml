@@ -12,9 +12,17 @@ tests:
           path: spec.template.spec.containers[0].env
           value:
             - name: SCALR_AGENT_NAME
+              value: ''
+            - name: KUBERNETES_WORKLOAD_KIND
+              value: Deployment
+            - name: KUBERNETES_POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: KUBERNETES_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: SCALR_URL
               value: ''
             - name: SCALR_AGENT_DRIVER
@@ -53,9 +61,17 @@ tests:
             - name: EXAMPLE
               value: custom
             - name: SCALR_AGENT_NAME
+              value: ''
+            - name: KUBERNETES_WORKLOAD_KIND
+              value: Deployment
+            - name: KUBERNETES_POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: KUBERNETES_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: SCALR_URL
               value: ''
             - name: SCALR_AGENT_DRIVER
@@ -90,6 +106,37 @@ tests:
               value: /etc/ssl/certs/scalr-ca-bundle.crt
             - name: SSL_CERT_FILE
               value: /etc/ssl/certs/scalr-ca-bundle.crt
+
+  - it: passes the StatefulSet identity to the agent
+    set:
+      workload.kind: StatefulSet
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KUBERNETES_WORKLOAD_KIND
+            value: StatefulSet
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KUBERNETES_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KUBERNETES_POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+
+  - it: reserves the pod name supplied by the Downward API
+    set:
+      extraEnv.KUBERNETES_POD_NAME: custom
+    asserts:
+      - failedTemplate:
+          errorPattern: KUBERNETES_POD_NAME
 
   - it: rejects a cache directory override through extraEnv
     set:
@@ -153,4 +200,7 @@ tests:
               - SCALR_AGENT_TLS_CERT_FILE
               - SCALR_AGENT_TLS_KEY_FILE
               - SCALR_AGENT_CA_CERT
-              - SSL_CERT_FILE\s*$
+              - SSL_CERT_FILE
+              - KUBERNETES_WORKLOAD_KIND
+              - KUBERNETES_POD_NAME
+              - KUBERNETES_POD_UID\s*$
