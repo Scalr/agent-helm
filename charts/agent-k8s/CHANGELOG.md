@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.10]
+
+### Updated
+
+- Bumping chart version to v0.6.10 for scalr-agent v1.9.0
+
 **Notable changes** - the default runner image now ships Python 3.14 instead of 3.13 (3.13.11 to 3.14.9). Runs may need attention if hooks, scripts, or provisioners rely on a specific Python version or on packages installed for Python 3.13. Set `agent.container_task_image: scalr/runner:0.2.0` to keep the previous image.
 
 ### Updated
