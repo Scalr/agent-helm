@@ -613,6 +613,30 @@ Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Test
 
 **Note (EKS):** Pod networking is provided by Amazon VPC CNI. Calico is used only as the network policy engine (no Calico data plane); the VPC CNI is patched so Calico can enforce policy (e.g. `ANNOTATE_POD_IP=true` on the aws-node DaemonSet)
 
+### DNS Egress on Cilium
+
+The NetworkPolicy allows DNS (port 53) to the peers in `task.networkPolicy.dnsEgressTo`. The default, `namespaceSelector: {}`, matches every pod in the cluster.
+
+Cilium stores allowed peers in a per-pod policy map with a default limit of 16384 entries. Each pod identity the DNS rule matches takes two entries, one per protocol, on every task pod. In clusters with more than about 8000 Cilium identities, the map overflows, the agent logs `Failed to add PolicyMap key ... no space left on device`, and task pods can lose DNS. This applies to GKE Dataplane V2 and other Cilium clusters.
+
+Restrict the rule to the cluster DNS pods. Include `node-local-dns` when NodeLocal DNSCache is enabled:
+
+```yaml
+task:
+  networkPolicy:
+    dnsEgressTo:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchExpressions:
+            - key: k8s-app
+              operator: In
+              values: [kube-dns, node-local-dns]
+```
+
+Check the labels of your DNS pods first. Some distributions, such as OpenShift, run DNS in another namespace or with other labels.
+
 ## Provider Network Mirrors
 
 The agent can install OpenTofu/Terraform providers from [provider network mirrors](https://opentofu.org/docs/internals/provider-network-mirror-protocol/) instead of the origin registries, for example when runs execute in a network without access to the public registries. When caching providers from the dependency lockfile, the agent downloads them from the mirrors in the configured order and falls back to the origin registry itself. During `init`, OpenTofu/Terraform consults the mirrors and falls back to the origin registry only when a mirror returns a clean 404 for a provider it does not serve. Static GCS/S3 bucket mirrors return 403 for missing objects, so they must replicate every provider matched by their `include` patterns. Requires Terraform >= 0.15 and is not supported for Terragrunt runs.
@@ -1074,6 +1098,7 @@ The chart exposes `agent.extraEnv` (and the per-container `agent.controller.extr
 | task.job.ttlSecondsAfterFinished | int | `60` | Time in seconds after job completion before it is automatically deleted. |
 | task.jobAnnotations | object | <pre>{}</pre> | Additional annotations for the Job (workload object). |
 | task.jobLabels | object | <pre>{}</pre> | Additional labels for the Job (workload object). |
+| task.networkPolicy.dnsEgressTo | list | <pre>[<br>&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;"namespaceSelector":&nbsp;{}<br>&nbsp;&nbsp;}<br>]</pre> | NetworkPolicy peers that task pods may reach on port 53 (UDP and TCP). The default allows every namespace. See [DNS Egress on Cilium](#dns-egress-on-cilium) for large Cilium clusters. |
 | task.nodeSelector | object | <pre>{}</pre> | Node selector for assigning task job pods to specific nodes. Example: `--set task.nodeSelector."node-type"="agent-worker"` |
 | task.podAnnotations | object | <pre>{}</pre> | Task-specific pod annotations (merged with global.podAnnotations, overrides duplicate keys). |
 | task.podDisruptionBudget | object | <pre>{<br>&nbsp;&nbsp;"enabled":&nbsp;true,<br>&nbsp;&nbsp;"maxUnavailable":&nbsp;0,<br>&nbsp;&nbsp;"minAvailable":&nbsp;null<br>}</pre> | PodDisruptionBudget configuration for task pods. Protects in-flight task pods from voluntary disruptions (e.g. node upgrades, drains) via the Eviction API. With the default `maxUnavailable: 0`, a draining node waits for a running task to finish on its own before evicting it, instead of killing it mid-run. Tasks are short-lived, so node upgrades still proceed through their normal flow (GKE/kubectl drain has its own timeout). |

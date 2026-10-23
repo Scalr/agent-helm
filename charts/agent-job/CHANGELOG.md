@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- `task.networkPolicy.dnsEgressTo` sets the peers task pods may reach on port 53. The default, `namespaceSelector: {}`, keeps the current behavior. On large Cilium clusters, restrict it to the cluster DNS pods to avoid per-pod policy map overflow. See [DNS Egress on Cilium](README.md#dns-egress-on-cilium).
+
 ## [v0.6.10]
 
 ### Updated

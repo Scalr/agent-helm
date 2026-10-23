@@ -1,0 +1,71 @@
+suite: Task NetworkPolicy
+templates:
+  - networkpolicy.yaml
+capabilities:
+  majorVersion: "1"
+  minorVersion: "35"
+set:
+  agent.token: dummy
+tests:
+  - it: allows DNS to every namespace by default
+    asserts:
+      - equal:
+          path: spec.egress[0].to
+          value:
+            - namespaceSelector: {}
+
+  - it: allows DNS only to the configured peers
+    set:
+      task.networkPolicy.dnsEgressTo:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchExpressions:
+              - key: k8s-app
+                operator: In
+                values: [kube-dns, node-local-dns]
+    asserts:
+      - equal:
+          path: spec.egress[0].to
+          value:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchExpressions:
+                  - key: k8s-app
+                    operator: In
+                    values: [kube-dns, node-local-dns]
+      - equal:
+          path: spec.egress[0].ports
+          value:
+            - port: 53
+              protocol: UDP
+            - port: 53
+              protocol: TCP
+
+  - it: falls back to every namespace when values predate dnsEgressTo
+    set:
+      task.networkPolicy: null
+    asserts:
+      - equal:
+          path: spec.egress[0].to
+          value:
+            - namespaceSelector: {}
+
+  - it: keeps the metadata service block
+    asserts:
+      - equal:
+          path: spec.egress[1].to[0].ipBlock
+          value:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+
+  - it: is not rendered when the metadata service is allowed
+    set:
+      task.allowMetadataService: true
+    asserts:
+      - hasDocuments:
+          count: 0

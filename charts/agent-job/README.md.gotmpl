@@ -657,6 +657,30 @@ Ensure your cluster uses a CNI plugin that supports egress NetworkPolicies. Test
 
 **Note (EKS):** Pod networking is provided by Amazon VPC CNI. Calico is used only as the network policy engine (no Calico data plane); the VPC CNI is patched so Calico can enforce policy (e.g. `ANNOTATE_POD_IP=true` on the aws-node DaemonSet)
 
+### DNS Egress on Cilium
+
+The NetworkPolicy allows DNS (port 53) to the peers in `task.networkPolicy.dnsEgressTo`. The default, `namespaceSelector: {}`, matches every pod in the cluster.
+
+Cilium stores allowed peers in a per-pod policy map with a default limit of 16384 entries. Each pod identity the DNS rule matches takes two entries, one per protocol, on every task pod. In clusters with more than about 8000 Cilium identities, the map overflows, the agent logs `Failed to add PolicyMap key ... no space left on device`, and task pods can lose DNS. This applies to GKE Dataplane V2 and other Cilium clusters.
+
+Restrict the rule to the cluster DNS pods. Include `node-local-dns` when NodeLocal DNSCache is enabled:
+
+```yaml
+task:
+  networkPolicy:
+    dnsEgressTo:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchExpressions:
+            - key: k8s-app
+              operator: In
+              values: [kube-dns, node-local-dns]
+```
+
+Check the labels of your DNS pods first. Some distributions, such as OpenShift, run DNS in another namespace or with other labels.
+
 ## Provider Network Mirrors
 
 The agent can install OpenTofu/Terraform providers from [provider network mirrors](https://opentofu.org/docs/internals/provider-network-mirror-protocol/) instead of the origin registries, for example when runs execute in a network without access to the public registries. When caching providers from the dependency lockfile, the agent downloads them from the mirrors in the configured order and falls back to the origin registry itself. During `init`, OpenTofu/Terraform consults the mirrors and falls back to the origin registry only when a mirror returns a clean 404 for a provider it does not serve. Static GCS/S3 bucket mirrors return 403 for missing objects, so they must replicate every provider matched by their `include` patterns. Requires Terraform >= 0.15 and is not supported for Terragrunt runs.
