@@ -23,7 +23,7 @@ spec:
     # This must be explicitly allowed because ipBlock (below) only matches
     # external IPs and does not cover cluster-internal service IPs.
     - to:
-      - namespaceSelector: {}
+      {{- dig "networkPolicy" "dnsEgressTo" (list (dict "namespaceSelector" (dict))) .Values.task | toYaml | nindent 6 }}
       ports:
       - port: 53
         protocol: UDP

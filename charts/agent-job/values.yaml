@@ -552,6 +552,13 @@ task:
   # @section -- Task
   allowMetadataService: false
 
+  networkPolicy:
+    # -- NetworkPolicy peers that task pods may reach on port 53 (UDP and TCP).
+    # The default allows every namespace. See [DNS Egress on Cilium](#dns-egress-on-cilium) for large Cilium clusters.
+    # @section -- Task
+    dnsEgressTo:
+      - namespaceSelector: {}
+
   # -- Additional volumes for task job pods.
   # @section -- Task
   extraVolumes: []
