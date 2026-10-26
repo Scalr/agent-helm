@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Security
+
+- Default runner image (`agent.container_task_image`) bumped from `scalr/runner:0.6.1` to `scalr/runner:0.6.2`. It updates `libbrotli1` from 1.1.0-2+b7 to 1.1.0-2+deb13u1 to fix CVE-2026-111497. See changes: https://github.com/Scalr/runner/compare/0.6.1...0.6.2
+
 ## [v0.6.10]
 
 ### Updated

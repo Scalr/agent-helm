@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `task.networkPolicy.dnsEgressTo` sets the peers task pods may reach on port 53. The default, `namespaceSelector: {}`, keeps the current behavior. On large Cilium clusters, restrict it to the cluster DNS pods to avoid per-pod policy map overflow. See [DNS Egress on Cilium](README.md#dns-egress-on-cilium).
 
+### Security
+
+- Default runner image (`task.runner.image.tag`) bumped from `0.6.1` to `0.6.2`. It updates `libbrotli1` from 1.1.0-2+b7 to 1.1.0-2+deb13u1 to fix CVE-2026-111497. See changes: https://github.com/Scalr/runner/compare/0.6.1...0.6.2
+
 ## [v0.6.10]
 
 ### Updated
