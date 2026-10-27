@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Default runner image (`agent.container_task_image`) bumped from `scalr/runner:0.6.1` to `scalr/runner:0.6.2`. It updates `libbrotli1` from 1.1.0-2+b7 to 1.1.0-2+deb13u1 to fix CVE-2026-111497. See changes: https://github.com/Scalr/runner/compare/0.6.1...0.6.2
+- Default runner image (`agent.container_task_image`) bumped from `scalr/runner:0.6.1` to `scalr/runner:0.6.3`. It updates `libbrotli1` from 1.1.0-2+b7 to 1.1.0-2+deb13u1 to fix CVE-2026-111497. Python goes from 3.14.9 to 3.14.10, which fixes CVE-2026-115557 and CVE-2026-114583 and makes `ssl` reject certificate chains that use the compromised eMudhra intermediate CA keys. git-lfs goes from v3.8.0 to v3.8.1, gcloud from 590.0.0 to 590.0.1, and AWS CLI from 2.38.4 to 2.38.6. See changes: https://github.com/Scalr/runner/compare/0.6.1...0.6.3
 
 ## [v0.6.10]
 
