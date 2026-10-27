@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Updated
+
+- Default runner image (`agent.container_task_image`) bumped from `scalr/runner:0.6.3` to `scalr/runner:0.6.4`. It updates `certifi` and `pip` in the Azure CLI environment, which no longer trust the compromised eMudhra `emSign ECC Root CA - G3`. See changes: https://github.com/Scalr/runner/compare/0.6.3...0.6.4
+
 ## [v0.6.11]
 
 ### Updated
