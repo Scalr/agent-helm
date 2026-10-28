@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [v0.6.12]
+
+### Updated
+
+- Bumping chart version to v0.6.12 for scalr-agent v1.10.1
+
 ### Updated
 
 - Default runner image (`task.runner.image.tag`) bumped from `0.6.3` to `0.6.4`. It updates `certifi` and `pip` in the Azure CLI environment, which no longer trust the compromised eMudhra `emSign ECC Root CA - G3`. See changes: https://github.com/Scalr/runner/compare/0.6.3...0.6.4
