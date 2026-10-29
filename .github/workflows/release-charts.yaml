@@ -144,48 +144,43 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub Token
+        id: generate_token
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{vars.SUDO_GHA_CLIENT_ID}}
+          private-key: ${{secrets.SUDO_GHA_APP_PRIVATE_KEY}}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout Release Thread Action
+        continue-on-error: true
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          repository: Scalr/release-management
+          token: ${{ steps.generate_token.outputs.token }}
+          path: release-management
+          sparse-checkout: .github/actions/release-thread
+
       - name: Release Succeeded
         if: ${{ needs.release.result == 'success' }}
-        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
+        continue-on-error: true
+        uses: ./release-management/.github/actions/release-thread
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            {
-              "text": "The Agent Helm has been Released",
-              "attachments": [
-                {
-                  "color": "36a64f",
-                  "fields": [
-                    {
-                      "title": "Job URL",
-                      "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-                      "short": false
-                    }
-                  ]
-                }
-              ]
-            }
+          project: agent
+          version: ${{ github.ref_name }}
+          text: ":package: Helm charts for `${{ github.ref_name }}` released. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Run>"
+          slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Release Failed
         if: ${{ contains(needs.*.result, 'failure')}}
-        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
+        continue-on-error: true
+        uses: ./release-management/.github/actions/release-thread
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            {
-              "text": "The Agent Helm Release has been Failed",
-              "attachments": [
-                {
-                  "color": "b52c2a",
-                  "fields": [
-                    {
-                      "title": "Job URL",
-                      "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-                      "short": false
-                    }
-                  ]
-                }
-              ]
-            }
+          project: agent
+          version: ${{ github.ref_name }}
+          text: "<@UJ5RZQNQK> :x: Helm chart release for `${{ github.ref_name }}` failed. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Run>"
+          broadcast: "true"
+          slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
