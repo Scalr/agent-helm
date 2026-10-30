@@ -171,7 +171,7 @@ jobs:
           version: ${{ github.ref_name }}
           text: ":package: Helm charts for `${{ github.ref_name }}` released. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Run>"
           slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
-          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_RELEASE_SYNC_WEBHOOK_URL }}
 
       - name: Release Failed
         if: ${{ contains(needs.*.result, 'failure')}}
@@ -183,4 +183,4 @@ jobs:
           text: "<@UJ5RZQNQK> :x: Helm chart release for `${{ github.ref_name }}` failed. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Run>"
           broadcast: "true"
           slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
-          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_RELEASE_SYNC_WEBHOOK_URL }}
