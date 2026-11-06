@@ -131,7 +131,11 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
-              add: ["CHOWN", "FOWNER", "DAC_OVERRIDE"]
+              add:
+                - CHOWN         # change the owner of the cache files
+                - FOWNER        # chmod files that root does not own
+                - DAC_OVERRIDE  # access cache files regardless of their permissions
+                - FSETID        # keep the setgid bit when the group is not root
           resources:
             requests:
               cpu: 10m
