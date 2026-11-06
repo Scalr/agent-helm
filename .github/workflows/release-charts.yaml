@@ -157,15 +157,15 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          repository: Scalr/release-management
+          repository: Scalr/actions
           token: ${{ steps.generate_token.outputs.token }}
-          path: release-management
-          sparse-checkout: .github/actions/release-thread
+          path: actions
+          sparse-checkout: release-thread
 
       - name: Release Succeeded
         if: ${{ needs.release.result == 'success' }}
         continue-on-error: true
-        uses: ./release-management/.github/actions/release-thread
+        uses: ./actions/release-thread
         with:
           project: agent
           version: ${{ github.ref_name }}
@@ -176,7 +176,7 @@ jobs:
       - name: Release Failed
         if: ${{ contains(needs.*.result, 'failure')}}
         continue-on-error: true
-        uses: ./release-management/.github/actions/release-thread
+        uses: ./actions/release-thread
         with:
           project: agent
           version: ${{ github.ref_name }}
