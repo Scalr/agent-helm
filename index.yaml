@@ -1346,6 +1346,65 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: changed
+          description: "Bumping chart version to v0.6.14 for scalr-agent v1.12.0"
+      artifacthub.io/crds: |
+        - kind: AgentTaskTemplate
+          version: v1alpha1
+          name: agenttasktemplate
+          displayName: Agent Task Template
+          description: |
+            Defines a template for tasks that the Scalr Agent controller materializes
+            into Kubernetes Jobs for each Scalr Run.
+      artifacthub.io/displayName: Scalr Agent (Job)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.12.0
+        - name: runner
+          image: scalr/runner:0.6.4
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-job/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.12.0
+    created: "2026-11-16T12:15:37.803950509Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      It uses a job-based model, where each Scalr Run is isolated in its own Kubernetes
+      Job. '
+    digest: 005bceff051877d22126e9107a41f147c555b6e0e7376cc619ffeb27c4a54212
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - job
+    - multi-tenancy
+    kubeVersion: '>=1.35.0-0'
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-job
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-job
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.6.14/agent-job-0.6.14.tgz
+    version: 0.6.14
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Bumping chart version to v0.6.13 for scalr-agent v1.11.0"
       artifacthub.io/crds: |
         - kind: AgentTaskTemplate
@@ -2503,6 +2562,55 @@ entries:
     - https://github.com/Scalr/agent-helm/releases/download/agent-job-0.5.59/agent-job-0.5.59.tgz
     version: 0.5.59
   agent-k8s:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "Bumping chart version to v0.6.14 for scalr-agent v1.12.0"
+      artifacthub.io/displayName: Scalr Agent (Kubernetes)
+      artifacthub.io/images: |
+        - name: agent
+          image: scalr/agent:1.12.0
+        - name: runner
+          image: scalr/runner:0.6.4
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-k8s/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.12.0
+    created: "2026-11-16T12:15:38.084299672Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys an agent controller with a set of agent workers and executes runs in
+      isolated pods. '
+    digest: 0e486dcb41eea191b04b332a019379ded937cc20369e38fd33f4d9d48dbd54d0
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    - multi-tenancy
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-k8s
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-k8s
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-k8s-0.6.14/agent-k8s-0.6.14.tgz
+    version: 0.6.14
   - annotations:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
@@ -4590,6 +4698,51 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: changed
+          description: "Bumping chart version to v0.7.4 for scalr-agent v1.12.0"
+      artifacthub.io/displayName: Scalr Agent (Local)
+      artifacthub.io/images: |
+        - name: agent-runner
+          image: scalr/agent:1.12.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.scalr.io/docs/self-hosted-agents-pools
+        - name: Scalr
+          url: https://scalr.com
+        - name: Source
+          url: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+        - name: Changelog
+          url: https://github.com/Scalr/agent-helm/blob/master/charts/agent-local/CHANGELOG.md
+      artifacthub.io/signKey: |
+        fingerprint: 90CF6AB88FFAFFD2BE1A40291C0DB0953B416AA6
+        url: https://scalr.github.io/agent-helm/public-key.asc
+    apiVersion: v2
+    appVersion: 1.12.0
+    created: "2026-11-16T12:15:38.302300865Z"
+    description: 'A Helm chart for deploying the Scalr Agent on a Kubernetes cluster.
+      Deploys a static number of agents and executes runs in shared agent pods. '
+    digest: 4bb5379789591583d214cce2a858b7d0c47551ecc5bebb069c332688157c3031
+    home: https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    icon: https://raw.githubusercontent.com/Scalr/agent-helm/master/charts/agent-job/assets/icon.png
+    keywords:
+    - scalr
+    - agent
+    - terraform
+    - opentofu
+    - iac
+    maintainers:
+    - email: packages@scalr.com
+      name: scalr
+    name: agent-local
+    sources:
+    - https://github.com/Scalr/agent-helm/tree/master/charts/agent-local
+    type: application
+    urls:
+    - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.7.4/agent-local-0.7.4.tgz
+    version: 0.7.4
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Bumping chart version to v0.7.3 for scalr-agent v1.11.0"
       artifacthub.io/displayName: Scalr Agent (Local)
       artifacthub.io/images: |
@@ -5729,4 +5882,4 @@ entries:
     urls:
     - https://github.com/Scalr/agent-helm/releases/download/agent-local-0.5.40/agent-local-0.5.40.tgz
     version: 0.5.40
-generated: "2026-11-06T10:31:07.996536902Z"
+generated: "2026-11-16T12:15:38.302916427Z"
