@@ -33,7 +33,7 @@ rbac:
   # @section -- RBAC
   create: true
   # -- Namespaced RBAC rules granted to the controller ServiceAccount.
-  # @default -- Pods, Jobs, Deployments and Events permissions (see values.yaml)
+  # @default -- Pods, Jobs, Deployments, Events and Secret creation permissions (see values.yaml)
   # @section -- RBAC
   rules:
     - apiGroups: [""]
@@ -80,6 +80,10 @@ rbac:
     - apiGroups: [""]
       resources: ["events"]
       verbs: ["list"]
+    # The controller stores the agent worker token in a Secret for its task pods.
+    - apiGroups: [""]
+      resources: ["secrets"]
+      verbs: ["create"]
   # -- Cluster-wide RBAC rules (applied via ClusterRole bound in the release namespace).
   # @default -- Read access to scalr.io AgentTaskTemplates (see values.yaml)
   # @section -- RBAC
