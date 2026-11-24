@@ -801,10 +801,6 @@ By default the chart provisions:
 - **Role/RoleBinding** with namespaced access to manage pods/jobs and related resources needed for task execution
 - **ClusterRole/ClusterRoleBinding** granting read access to `AgentTaskTemplate` resources (`agenttasktemplates.scalr.io`)
 
-The Role lets the controller create Secrets. At startup the controller stores an agent worker token in a
-Secret named `<task template name>-worker-token-<token hash>`, and task pods read it in place of the agent
-pool token. Without this permission the controller logs a warning and task pods keep the agent pool token.
-
 Set `rbac.create=false` to bring your own ServiceAccount/Rules, or adjust permissions with `rbac.rules` and `rbac.clusterRules`.
 
 ## Custom Resource Definitions
