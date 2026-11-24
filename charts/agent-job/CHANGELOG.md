@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Security
+
+- The controller Role now allows creating Secrets, so task pods use an agent worker token in place of the agent pool token. If you override `rbac.rules`, add `create` on `secrets`.
+
 ## [v0.6.16]
 
 ### Updated

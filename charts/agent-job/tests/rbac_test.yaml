@@ -1,0 +1,17 @@
+suite: RBAC
+templates:
+  - rbac.yaml
+set:
+  agent.token: dummy
+tests:
+  - it: lets the controller create the worker token Secret
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Role
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["secrets"]
+            verbs: ["create"]
