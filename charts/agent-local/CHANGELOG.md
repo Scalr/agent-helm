@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+**Notable changes** - the next `scalr/agent` image ships Python 3.15 instead of 3.14 (3.14.10 to 3.15.2). The local driver executes runs inside the agent container, so runs may need attention if hooks, scripts, or provisioners rely on a specific Python version or on packages installed for Python 3.14. Set `image.tag: "1.14.0"` to keep the previous image.
+
 ## [v0.7.6]
 
 ### Updated

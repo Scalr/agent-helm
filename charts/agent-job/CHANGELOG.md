@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+**Notable changes** - the default runner image now ships Python 3.15 instead of 3.14 (3.14.10 to 3.15.2). Runs may need attention if hooks, scripts, or provisioners rely on a specific Python version or on packages installed for Python 3.14. Set `task.runner.image.tag: "0.6.4"` to keep the previous image.
+
+### Updated
+
+- Default runner image (`task.runner.image.tag`) bumped from `0.6.4` to `0.7.0`. Python goes from 3.14.10 to 3.15.2, kubectl from v1.37.1 to v1.37.3, gcloud from 590.0.1 to 594.0.1, AWS CLI from 2.38.6 to 2.42.4, and Azure CLI from 2.91.0 to 2.93.0. See changes: https://github.com/Scalr/runner/compare/0.6.4...0.7.0
+
 ### Security
 
 - The controller Role now allows creating Secrets, so task pods use an agent worker token in place of the agent pool token. If you override `rbac.rules`, add `create` on `secrets`.
