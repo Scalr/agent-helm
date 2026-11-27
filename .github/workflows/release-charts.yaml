@@ -85,15 +85,19 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
 
-      - name: Install Python dependencies
-        run: pip install --user pyyaml
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.13.10"
+          python-version: "3.15.2"
+          enable-cache: false
 
       - name: Inject Artifact Hub annotations into Chart.yaml
         run: |
           set -euo pipefail
           for c in agent-k8s agent-job agent-local; do
-            python3 scripts/changelog-to-ah.py "charts/$c"
-            python3 scripts/images-to-ah.py "charts/$c"
+            uv run --locked --no-dev scripts/changelog-to-ah.py "charts/$c"
+            uv run --locked --no-dev scripts/images-to-ah.py "charts/$c"
           done
 
       - name: Import GPG signing key

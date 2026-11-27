@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+**Notable changes** - the default runner image now ships Python 3.15 instead of 3.14 (3.14.10 to 3.15.2). Runs may need attention if hooks, scripts, or provisioners rely on a specific Python version or on packages installed for Python 3.14. Set `agent.container_task_image: scalr/runner:0.6.4` to keep the previous image.
+
+### Updated
+
+- Default runner image (`agent.container_task_image`) bumped from `scalr/runner:0.6.4` to `scalr/runner:0.7.0`. Python goes from 3.14.10 to 3.15.2, kubectl from v1.37.1 to v1.37.3, gcloud from 590.0.1 to 594.0.1, AWS CLI from 2.38.6 to 2.42.4, and Azure CLI from 2.91.0 to 2.93.0. See changes: https://github.com/Scalr/runner/compare/0.6.4...0.7.0
+
 ## [v0.6.16]
 
 ### Updated
